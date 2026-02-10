@@ -1,0 +1,24 @@
+{
+  "name": "@moderniptvplayer/auth",
+  "type": "module",
+  "exports": {
+    ".": {
+      "default": "./src/index.ts"
+    },
+    "./*": {
+      "default": "./src/*.ts"
+    }
+  },
+  "scripts": {},
+  "dependencies": {
+    "@moderniptvplayer/db": "workspace:*",
+    "@moderniptvplayer/env": "workspace:*",
+    "better-auth": "catalog:",
+    "dotenv": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@moderniptvplayer/config": "workspace:*",
+    "typescript": "catalog:"
+  }
+}
