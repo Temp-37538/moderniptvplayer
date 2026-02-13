@@ -1,8 +1,5 @@
 "use client";
-import Link from "next/link";
-
-import { ModeToggle } from "./mode-toggle";
-import UserMenu from "./user-menu";
+import Link from "next/link"; 
 
 export default function Header() {
   const links = [
@@ -12,7 +9,7 @@ export default function Header() {
 
   return (
     <div>
-      <div className="flex   items-center border-2  border-red-700  justify-between px-2 py-1">
+      <div className="flex   items-center   justify-between px-2 py-1">
         <nav className="flex gap-4 text-lg">
           {links.map(({ to, label }) => {
             return (
@@ -22,10 +19,6 @@ export default function Header() {
             );
           })}
         </nav>
-        <div className="flex items-center gap-2">
-          <ModeToggle />
-          <UserMenu />
-        </div>
       </div>
       <hr />
     </div>

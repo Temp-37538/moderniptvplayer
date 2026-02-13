@@ -1,130 +1,91 @@
----
-applyTo: "**/*.{ts,tsx,js,jsx}"
----
+# AI Coding Instructions for ModernIPTVPlayer
 
-# Ultracite Code Standards
+This monorepo uses **pnpm workspaces** with **Turborepo** for orchestration. The project is a Next.js 16 web application with **Better Auth** for authentication and **Prisma** with PostgreSQL for database.
 
-This project uses **Ultracite**, a zero-config preset that enforces strict code quality standards through automated formatting and linting.
+## Project Structure
 
-## Quick Reference
+```
+apps/web/          # Next.js 16 application (port 3001)
+packages/
+  auth/            # Better Auth server configuration
+  db/              # Prisma client and schema
+  config/          # Shared TypeScript/ESLint config
+  env/             # Environment variables (server/client)
+```
 
-- **Format code**: `pnpm dlx ultracite fix`
-- **Check for issues**: `pnpm dlx ultracite check`
-- **Diagnose setup**: `pnpm dlx ultracite doctor`
+## Key Commands
 
-Biome (the underlying engine) provides robust linting and formatting. Most issues are automatically fixable.
+| Command            | Description                                        |
+| ------------------ | -------------------------------------------------- |
+| `pnpm dev`         | Start all apps in Turborepo                        |
+| `pnpm dev:web`     | Start only web app                                 |
+| `pnpm build`       | Build all packages (generates Prisma client first) |
+| `pnpm db:push`     | Push Prisma schema to database                     |
+| `pnpm db:studio`   | Open Prisma Studio                                 |
+| `pnpm db:generate` | Generate Prisma client                             |
+| `pnpm check-types` | Run TypeScript type checking                       |
 
----
+## Architecture Patterns
 
-## Core Principles
+### Authentication
 
-Write code that is **accessible, performant, type-safe, and maintainable**. Focus on clarity and explicit intent over brevity.
+- **Server**: `packages/auth/src/index.ts` exports configured `better-auth` instance with Prisma adapter
+- **Client**: `apps/web/src/lib/auth-client.ts` exports `authClient` using `createAuthClient`
+- Auth API routes: `apps/web/src/app/api/auth/[...all]/route.ts`
+- Sign-in/up forms: Client components using `@daveyplate/better-auth-ui`
 
-### Type Safety & Explicitness
+### Database
 
-- Use explicit types for function parameters and return values when they enhance clarity
-- Prefer `unknown` over `any` when the type is genuinely unknown
-- Use const assertions (`as const`) for immutable values and literal types
-- Leverage TypeScript's type narrowing instead of type assertions
-- Use meaningful variable names instead of magic numbers - extract constants with descriptive names
+- Prisma schema in `packages/db/prisma/schema/auth.prisma` and `schema.prisma`
+- Models: `User`, `Session`, `Account`, `Verification`
+- Always run `pnpm db:generate` after modifying schemas
 
-### Modern JavaScript/TypeScript
+### UI Components
 
-- Use arrow functions for callbacks and short functions
-- Prefer `for...of` loops over `.forEach()` and indexed `for` loops
-- Use optional chaining (`?.`) and nullish coalescing (`??`) for safer property access
-- Prefer template literals over string concatenation
-- Use destructuring for object and array assignments
-- Use `const` by default, `let` only when reassignment is needed, never `var`
+- Uses **shadcn/ui** components in `apps/web/src/components/ui/`
+- Styling: Tailwind CSS v4 with `@base-ui/react` for components
+- Theme provider: `apps/web/src/components/theme-provider.tsx`
+- Icons: `lucide-react`
 
-### Async & Promises
+### Server Components
 
-- Always `await` promises in async functions - don't forget to use the return value
-- Use `async/await` syntax instead of promise chains for better readability
-- Handle errors appropriately in async code with try-catch blocks
-- Don't use async functions as Promise executors
+- All pages in `apps/web/src/app/` are Server Components by default
+- Use `use client` directive for client-side interactivity
+- Auth hooks via `useSession` from `better-auth/react`
 
-### React & JSX
+## Important Conventions
 
-- Use function components over class components
-- Call hooks at the top level only, never conditionally
-- Specify all dependencies in hook dependency arrays correctly
-- Use the `key` prop for elements in iterables (prefer unique IDs over array indices)
-- Nest children between opening and closing tags instead of passing as props
-- Don't define components inside other components
-- Use semantic HTML and ARIA attributes for accessibility:
-  - Provide meaningful alt text for images
-  - Use proper heading hierarchy
-  - Add labels for form inputs
-  - Include keyboard event handlers alongside mouse events
-  - Use semantic elements (`<button>`, `<nav>`, etc.) instead of divs with roles
+1. **Environment variables**: Use `@moderniptvplayer/env` package - import from `@moderniptvplayer/env/server` for server-side, `@moderniptvplayer/env/web` for client-side
+2. **Tailwind v4**: Uses CSS-first configuration with `@theme` directive, not `tailwind.config.js`
+3. **Linting**: Biome (`pnpm check` / `pnpm lint`), not ESLint
+4. **Prisma in build**: Web build depends on db package generating the client first (configured in `turbo.json`)
 
-### Error Handling & Debugging
+## External Dependencies
 
-- Remove `console.log`, `debugger`, and `alert` statements from production code
-- Throw `Error` objects with descriptive messages, not strings or other values
-- Use `try-catch` blocks meaningfully - don't catch errors just to rethrow them
-- Prefer early returns over nested conditionals for error cases
+- **Next.js 16** with React 19
+- **Better Auth** for authentication
+- **Prisma** with PostgreSQL
+- **shadcn/ui** component registry
+- **TanStack React Form** for form handling
+- **Zod** for validation
 
-### Code Organization
+## Key Files Reference
 
-- Keep functions focused and under reasonable cognitive complexity limits
-- Extract complex conditions into well-named boolean variables
-- Use early returns to reduce nesting
-- Prefer simple conditionals over nested ternary operators
-- Group related code together and separate concerns
+- Auth setup: `packages/auth/src/index.ts`
+- Client auth: `apps/web/src/lib/auth-client.ts`
+- Providers: `apps/web/src/components/providers.tsx`
+- Prisma schema: `packages/db/prisma/schema/auth.prisma`
+- Turborepo config: `turbo.json`
+- Package workspaces: `pnpm-workspace.yaml`
 
-### Security
+## Providers Component
 
-- Add `rel="noopener"` when using `target="_blank"` on links
-- Avoid `dangerouslySetInnerHTML` unless absolutely necessary
-- Don't use `eval()` or assign directly to `document.cookie`
-- Validate and sanitize user input
+The main providers wrapper (`apps/web/src/components/providers.tsx`) includes:
 
-### Performance
+- **ThemeProvider** - Dark/light mode with `next-themes`
+- **SidebarProvider** - From shadcn sidebar component
+- **TooltipProvider** - For tooltip components
+- **AuthUIProvider** - From `@daveyplate/better-auth-ui` with session handling
+- **Toaster** - From `sonner` for toast notifications
 
-- Avoid spread syntax in accumulators within loops
-- Use top-level regex literals instead of creating them in loops
-- Prefer specific imports over namespace imports
-- Avoid barrel files (index files that re-export everything)
-- Use proper image components (e.g., Next.js `<Image>`) over `<img>` tags
-
-### Framework-Specific Guidance
-
-**Next.js:**
-
-- Use Next.js `<Image>` component for images
-- Use `next/head` or App Router metadata API for head elements
-- Use Server Components for async data fetching instead of async Client Components
-
-**React 19+:**
-
-- Use ref as a prop instead of `React.forwardRef`
-
-**Solid/Svelte/Vue/Qwik:**
-
-- Use `class` and `for` attributes (not `className` or `htmlFor`)
-
----
-
-## Testing
-
-- Write assertions inside `it()` or `test()` blocks
-- Avoid done callbacks in async tests - use async/await instead
-- Don't use `.only` or `.skip` in committed code
-- Keep test suites reasonably flat - avoid excessive `describe` nesting
-
-## When Biome Can't Help
-
-Biome's linter will catch most issues automatically. Focus your attention on:
-
-1. **Business logic correctness** - Biome can't validate your algorithms
-2. **Meaningful naming** - Use descriptive names for functions, variables, and types
-3. **Architecture decisions** - Component structure, data flow, and API design
-4. **Edge cases** - Handle boundary conditions and error states
-5. **User experience** - Accessibility, performance, and usability considerations
-6. **Documentation** - Add comments for complex logic, but prefer self-documenting code
-
----
-
-Most formatting and common issues are automatically fixed by Biome. Run `pnpm dlx ultracite fix` before committing to ensure compliance.
+Auth automatically refreshes the router on session changes.

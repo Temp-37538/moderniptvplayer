@@ -3,12 +3,11 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   typescript: {
-    ignoreBuildErrors :  true
+    ignoreBuildErrors: true,
   },
   cacheComponents: true,
   typedRoutes: true,
   reactCompiler: true,
-  
 };
 
 export default nextConfig;

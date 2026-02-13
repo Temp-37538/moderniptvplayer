@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.0.0",
+    "@daveyplate/better-auth-ui": "^3.3.15",
     "@moderniptvplayer/auth": "workspace:*",
     "@moderniptvplayer/env": "workspace:*",
     "@prisma/client": "catalog:",
