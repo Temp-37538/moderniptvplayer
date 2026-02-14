@@ -8,9 +8,25 @@ model User {
   updatedAt     DateTime  @updatedAt
   sessions      Session[]
   accounts      Account[]
+  playlists     Playlist[]
 
   @@unique([email])
   @@map("user")
+}
+
+model Playlist {
+  id        String   @id @default(cuid())
+  serverUrl String   @unique
+  username  String
+  playlistName String
+  password  String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@map("playlist")
 }
 
 model Session {

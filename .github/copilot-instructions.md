@@ -13,6 +13,27 @@ packages/
   env/             # Environment variables (server/client)
 ```
 
+## Types
+
+Types should be defined in apps\web\src\components\types.tsx and imported from there to ensure consistency across the codebase.
+
+## Skills
+
+When performing tasks that correspond to a skill domain, read the corresponding skill file and follow its instructions.
+
+Available skills:
+
+- **better-auth-best-practices**: Integrating Better Auth authentication framework (`.agents\skills\better-auth-best-practices\SKILL.md`)
+- **create-auth-skill**: Creating auth layers with Better Auth (`.agents\skills\create-auth-skill\SKILL.md`)
+- **frontend-design**: Frontend design and UI/UX considerations (`.agents\skills\frontend-design\SKILL.md`)
+- **next-best-practices**: Next.js best practices and conventions (`.agents\skills\next-best-practices\SKILL.md`)
+- **next-cache-components**: Next.js 16 Cache Components (PPR, use cache directive) (`.agents\skills\next-cache-components\SKILL.md`)
+- **next-upgrade**: Upgrading Next.js to the latest version (`.agents\skills\next-upgrade\SKILL.md`)
+- **turborepo**: Turborepo monorepo configuration (`.agents\skills\turborepo\SKILL.md`)
+- **vercel-composition-patterns**: React composition patterns from Vercel (`.agents\skills\vercel-composition-patterns\SKILL.md`)
+- **vercel-react-best-practices**: React and Next.js performance optimization (`.agents\skills\vercel-react-best-practices\SKILL.md`)
+- **web-design-guidelines**: Web interface guidelines and accessibility (`.agents\skills\web-design-guidelines\SKILL.md`)
+
 ## Key Commands
 
 | Command            | Description                                        |

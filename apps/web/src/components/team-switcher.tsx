@@ -1,5 +1,5 @@
-import * as React from "react"
-
+import * as React from "react";
+import Link from "next/link";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -7,49 +7,49 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuShortcut,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from "@/components/ui/dropdown-menu";
 import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
-} from "@/components/ui/sidebar"
-import { ChevronsUpDownIcon, PlusIcon } from "lucide-react"
+} from "@/components/ui/sidebar";
+import { ChevronsUpDownIcon, PlusIcon, ListVideoIcon } from "lucide-react";
+import type { Playlist } from "./types";
 
-export function TeamSwitcher({
-  teams,
-}: {
-  teams: {
-    name: string
-    logo: React.ReactNode
-    plan: string
-  }[]
-}) {
-  const { isMobile } = useSidebar()
-  const [activeTeam, setActiveTeam] = React.useState(teams[0])
-  if (!activeTeam) {
-    return null
+export function PlaylistSwitcher({ playlists }: { playlists: Playlist[] }) {
+  const { isMobile } = useSidebar();
+  const [activePlaylist, setActivePlaylist] = React.useState<Playlist | null>(
+    playlists[0] || null,
+  );
+
+  if (!activePlaylist) {
+    return null;
   }
+
   return (
-    <SidebarMenu>
+    <SidebarMenu >
       <SidebarMenuItem>
-        <DropdownMenu>
+        <DropdownMenu >
           <DropdownMenuTrigger
             render={
               <SidebarMenuButton
                 size="lg"
-                className="data-open:bg-sidebar-accent data-open:text-sidebar-accent-foreground"
+                className="data-open:bg-sidebar-accent cursor-pointer data-open:text-sidebar-accent-foreground"
               />
             }
           >
             <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-              {activeTeam.logo}
+              {activePlaylist.logo || <ListVideoIcon />}
             </div>
             <div className="grid flex-1 text-left text-sm leading-tight">
-              <span className="truncate font-medium">{activeTeam.name}</span>
-              <span className="truncate text-xs">{activeTeam.plan}</span>
+              <span className="truncate font-medium">
+                {activePlaylist.name}
+              </span>
+              <span className="truncate text-xs text-muted-foreground">
+                {activePlaylist.plan || "Playlist"}
+              </span>
             </div>
             <ChevronsUpDownIcon className="ml-auto" />
           </DropdownMenuTrigger>
@@ -61,36 +61,38 @@ export function TeamSwitcher({
           >
             <DropdownMenuGroup>
               <DropdownMenuLabel className="text-muted-foreground text-xs">
-                Teams
+                Mes Playlists
               </DropdownMenuLabel>
-              {teams.map((team, index) => (
+              {playlists.map((playlist, index) => (
                 <DropdownMenuItem
-                  key={team.name}
-                  onClick={() => setActiveTeam(team)}
-                  className="gap-2 p-2"
+                  key={playlist.id}
+                  onClick={() => setActivePlaylist(playlist)}
+                  className="gap-2 p-2 cursor-pointer"
                 >
                   <div className="flex size-6 items-center justify-center rounded-md border">
-                    {team.logo}
+                    {playlist.logo || <ListVideoIcon className="size-4" />}
                   </div>
-                  {team.name}
-                  <DropdownMenuShortcut>⌘{index + 1}</DropdownMenuShortcut>
+                  {playlist.name}
+                  <span className="ml-auto text-xs text-muted-foreground">
+                    ⌘{index + 1}
+                  </span>
                 </DropdownMenuItem>
               ))}
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem className="gap-2 p-2">
+              <DropdownMenuItem className="gap-2 p-2 cursor-pointer">
                 <div className="flex size-6 items-center justify-center rounded-md border bg-transparent">
                   <PlusIcon className="size-4" />
                 </div>
-                <div className="text-muted-foreground font-medium">
-                  Add team
-                </div>
+                <Link href="/addplaylist" className="text-muted-foreground font-medium">
+                  Ajouter une playlist
+                </Link>
               </DropdownMenuItem>
             </DropdownMenuGroup>
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>
     </SidebarMenu>
-  )
+  );
 }

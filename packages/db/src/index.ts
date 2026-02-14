@@ -1,8 +1,7 @@
 import { env } from "@moderniptvplayer/env/server";
 import { neonConfig } from "@neondatabase/serverless";
 import { PrismaNeon } from "@prisma/adapter-neon";
-import ws from "ws";
-
+import ws from "ws"; 
 import { PrismaClient } from "../prisma/generated/client";
 
 neonConfig.webSocketConstructor = ws;
