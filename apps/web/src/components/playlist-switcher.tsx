@@ -24,16 +24,14 @@ export function PlaylistSwitcher({ playlists }: { playlists: Playlist[] }) {
     playlists[0] || null,
   );
 
-  
-
   if (!activePlaylist) {
     return null;
   }
 
   return (
-    <SidebarMenu >
+    <SidebarMenu>
       <SidebarMenuItem>
-        <DropdownMenu >
+        <DropdownMenu>
           <DropdownMenuTrigger
             render={
               <SidebarMenuButton
@@ -87,7 +85,10 @@ export function PlaylistSwitcher({ playlists }: { playlists: Playlist[] }) {
                 <div className="flex size-6 items-center justify-center rounded-md border bg-transparent">
                   <PlusIcon className="size-4" />
                 </div>
-                <Link href="/addplaylist" className="text-muted-foreground font-medium">
+                <Link
+                  href="/dashboard/addplaylist"
+                  className="text-muted-foreground font-medium"
+                >
                   Ajouter une playlist
                 </Link>
               </DropdownMenuItem>

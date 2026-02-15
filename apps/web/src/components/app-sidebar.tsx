@@ -34,7 +34,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       >
         <SignedIn>
           <Button className={"p-0"} variant="outline" size="icon">
-            <Link className="py-4 px-4 m-0" href="/account/settings">
+            <Link className="py-4 px-4 m-0" href="/dashboard/account/settings">
               <Settings />
             </Link>
           </Button>

@@ -7,9 +7,9 @@ import React from "react";
 import { ModeToggle } from "./mode-toggle";
 
 const menuItems = [ 
-  { name: "Add Playlist", href: "/addplaylist" },
-  { name: "Xtream Codes", href: "/addplaylist/xtream" },
-  { name: "M3U URL", href: "/addplaylist/m3u" },
+  { name: "Add Playlist", href: "/dashboard/addplaylist" },
+  { name: "Xtream Codes", href: "/dashboard/addplaylist/xtream" },
+  { name: "M3U URL", href: "/dashboard/addplaylist/m3u" },
 ];
 
 export const HeroHeader = () => {
@@ -62,7 +62,7 @@ export const HeroHeader = () => {
 
             <div className="absolute inset-0 m-auto hidden size-fit lg:block">
               <ul className="flex gap-8 text-sm">
-                {menuItems.map((item, index) => (
+                {menuItems.map((item,) => (
                   <li key={item.href}>
                     <Link
                       href={item.href}
@@ -78,7 +78,7 @@ export const HeroHeader = () => {
             <div className="bg-background in-data-[state=active]:block lg:in-data-[state=active]:flex mb-6 hidden w-full flex-wrap items-center justify-end space-y-8 rounded-3xl border p-6 shadow-2xl shadow-zinc-300/20 md:flex-nowrap lg:m-0 lg:flex lg:w-fit lg:gap-6 lg:space-y-0 lg:border-transparent lg:bg-transparent lg:p-0 lg:shadow-none dark:shadow-none dark:lg:bg-transparent">
               <div className="lg:hidden">
                 <ul className="space-y-6 text-base">
-                  {menuItems.map((item, index) => (
+                  {menuItems.map((item) => (
                     <li key={item.href}>
                       <Link
                         href={item.href}
@@ -96,7 +96,7 @@ export const HeroHeader = () => {
                   variant="outline"
                   size="sm"
                   className={cn(isScrolled && "lg:hidden")}
-                  render={<Link href="/auth/sign-in" />}
+                  render={<Link href="/dashboard/auth/sign-in" />}
                   nativeButton={false}
                 >
                   <span>Sign In</span>
@@ -104,7 +104,7 @@ export const HeroHeader = () => {
                 <Button
                   size="sm"
                   className={cn(isScrolled && "lg:hidden")}
-                  render={<Link href="/auth/sign-up" />}
+                  render={<Link href="/dashboard/auth/sign-up" />}
                   nativeButton={false}
                 >
                   <span>Create Account</span>
@@ -112,7 +112,7 @@ export const HeroHeader = () => {
                 <Button
                   size="sm"
                   className={cn(isScrolled ? "lg:inline-flex" : "hidden")}
-                  render={<Link href="/addplaylist" />}
+                  render={<Link href="/dashboard/addplaylist" />}
                   nativeButton={false}
                 >
                   <span>Add Playlist</span>

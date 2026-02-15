@@ -23,7 +23,7 @@ function Page() {
           </p>
 
           <div className="grid gap-6 md:grid-cols-3 w-full max-w-4xl">
-            <Link href="/addplaylist/xtream" className="group">
+            <Link href="/dashboard/addplaylist/xtream" className="group">
               <Card className="h-full transition-all duration-300 hover:shadow-lg hover:border-primary/50 hover:-translate-y-1 cursor-pointer">
                 <CardHeader className="text-center pb-2">
                   <div className="mx-auto mb-4 p-4 rounded-full bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-300">
@@ -40,7 +40,7 @@ function Page() {
               </Card>
             </Link>
 
-            <Link href="/addplaylist/m3u" className="group">
+            <Link href="/dashboard/addplaylist/m3u" className="group">
               <Card className="h-full transition-all duration-300 hover:shadow-lg hover:border-primary/50 hover:-translate-y-1 cursor-pointer">
                 <CardHeader className="text-center pb-2">
                   <div className="mx-auto mb-4 p-4 rounded-full bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-300">
@@ -57,7 +57,7 @@ function Page() {
               </Card>
             </Link>
 
-            <Link href="/addplaylist/stalker" className="group">
+            <Link href="/dashboard/addplaylist/stalker" className="group">
               <Card className="h-full transition-all duration-300 hover:shadow-lg hover:border-primary/50 hover:-translate-y-1 cursor-pointer">
                 <CardHeader className="text-center pb-2">
                   <div className="mx-auto mb-4 p-4 rounded-full bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-300">

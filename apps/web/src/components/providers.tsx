@@ -28,6 +28,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
               router.refresh(); 
             }}
             nameRequired={false}
+            redirectTo="/dashboard/auth/sign-in"
             changeEmail={false}
             signUp={{ fields: [] }}
             Link={Link}
