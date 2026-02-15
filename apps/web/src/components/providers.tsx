@@ -25,7 +25,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
             navigate={router.push}
             replace={router.replace}
             onSessionChange={() => {
-              router.refresh();
+              router.refresh(); 
             }}
             nameRequired={false}
             changeEmail={false}

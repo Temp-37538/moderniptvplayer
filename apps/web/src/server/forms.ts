@@ -1,12 +1,13 @@
 "use server";
 import type { FormState, xtreamFormData } from "@/components/types";
 import { z } from "zod";
-import { addPlaylist } from "./queries";
+import { addPlaylist, doesPlaylistExist, isPlaylistValid } from "./queries";
 
 export async function validate(
 	_prev: FormState,
 	formData: FormData,
 ): Promise<FormState> {
+	
 	const xtreamCodesSchema = z.object({
 		username: z.string().min(1, "Username is required"),
 		password: z.string().min(1, "Password is required"),
@@ -33,11 +34,53 @@ export async function validate(
 		};
 	}
 
+	const alreadyExists = await doesPlaylistExist(
+		validatedData.data.username,
+		validatedData.data.serverUrl,
+		validatedData.data.password,
+	);
+
+	if (alreadyExists) {
+		return {
+			errors: {
+				properties: {
+					serverUrl: { errors: ["Playlist already exists"] },
+					password: { errors: ["Playlist already exists"] },
+					username: { errors: ["Playlist already exists"] },
+				},
+			},
+			success: false,
+			inputs: rawData,
+			message: "You have already added this playlist.",
+		};
+	}
+
+	const valid = await isPlaylistValid(
+		validatedData.data.username,
+		validatedData.data.serverUrl,
+		validatedData.data.password,
+	);
+
+	if (!valid.ok) {
+		return {
+			errors: {
+				properties: {
+					serverUrl: { errors: ["Invalid playlist credentials"] },
+					password: { errors: ["Invalid playlist credentials"] },
+					username: { errors: ["Invalid playlist credentials"] },
+				},
+			},
+			success: false,
+			inputs: rawData,
+			message: "Invalid playlist.",
+		};
+	}
+
 	const playlist = await addPlaylist(
 		validatedData.data.username,
 		validatedData.data.serverUrl,
 		validatedData.data.playlistName,
-		validatedData.data.password, 
+		validatedData.data.password,
 	);
 
 	console.log(playlist);

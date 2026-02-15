@@ -1,5 +1,9 @@
 "use client";
+import { authClient } from "@/lib/auth-client";
+import { SignedIn } from "@daveyplate/better-auth-ui";
 import { House } from "lucide-react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { AppSidebar } from "./app-sidebar";
 import {
   Breadcrumb,
@@ -12,17 +16,21 @@ import {
 import { Button } from "./ui/button";
 import { Separator } from "./ui/separator";
 import { SidebarInset, SidebarTrigger } from "./ui/sidebar";
-import { usePathname } from "next/navigation";
-import Link from "next/link";
 
 function Sidebar({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await authClient.signOut();
+    router.push("/");
+  };
 
   return (
     <>
       <AppSidebar />
       <SidebarInset>
-        <header className="flex h-16 shrink-0 justify-between items-center gap-2 border-b px-4">
+        <header className="flex h-16 z-10 shrink-0 justify-between items-center gap-2 border-b px-4">
           <div className="flex items-center gap-2">
             <SidebarTrigger className="-ml-1" />
             <Separator
@@ -37,14 +45,10 @@ function Sidebar({ children }: { children: React.ReactNode }) {
                 <BreadcrumbSeparator className="hidden md:block" />
                 <BreadcrumbItem>
                   <BreadcrumbPage>
-                    {pathname.split("/").slice(2).length > 0
-                      ? pathname
-                          .split("/")
-                          .slice(2)[0]
-                          .charAt(0)
-                          .toUpperCase() +
-                        pathname.split("/").slice(2)[0].slice(1)
-                      : ""}
+                    {pathname.split("/").length > 0
+                      ? pathname.split("/")[1].charAt(0).toUpperCase() +
+                        pathname.split("/")[1].slice(1)
+                      : "Home"}
                   </BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
@@ -52,10 +56,19 @@ function Sidebar({ children }: { children: React.ReactNode }) {
           </div>
           <div className="flex items-center gap-2">
             <Button className={"p-0"} variant="outline" size="sm">
-              <Link className="py-4 px-4 m-0" href="/">
+              <Link className="py-4 px-4 m-0" href="/home">
                 <House />
               </Link>
             </Button>
+            <SignedIn>
+              <Button
+                onClick={handleLogout}
+                size={"sm"}
+                className="cursor-pointer w-fit  "
+              >
+                Logout
+              </Button>
+            </SignedIn>
           </div>
         </header>
         <div className="flex flex-1 flex-col gap-4 p-4">{children}</div>

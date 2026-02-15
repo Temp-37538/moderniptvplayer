@@ -132,7 +132,7 @@ export type FormState = {
         }
       | undefined;
   };
-  inputs?: xtreamFormData;  
+  inputs?: xtreamFormData;
   success: boolean;
-  message?: string; 
+  message?: string;
 };
