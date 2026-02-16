@@ -19,6 +19,7 @@
     "better-auth": "catalog:",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "cryptr": "^6.4.0",
     "dotenv": "catalog:",
     "framer-motion": "^12.34.0",
     "lucide-react": "^0.546.0",

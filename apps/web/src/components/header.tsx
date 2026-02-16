@@ -91,12 +91,12 @@ export const HeroHeader = () => {
                 </ul>
               </div>
               <div className="flex w-full flex-col space-y-3 sm:flex-row sm:gap-3 sm:space-y-0 md:w-fit">
-                <ModeToggle/>
+                <ModeToggle />
                 <Button
                   variant="outline"
                   size="sm"
                   className={cn(isScrolled && "lg:hidden")}
-                  render={<Link href="/dashboard/auth/sign-in" />}
+                  render={<Link href="/auth/sign-in" />}
                   nativeButton={false}
                 >
                   <span>Sign In</span>
@@ -104,7 +104,7 @@ export const HeroHeader = () => {
                 <Button
                   size="sm"
                   className={cn(isScrolled && "lg:hidden")}
-                  render={<Link href="/dashboard/auth/sign-up" />}
+                  render={<Link href="/auth/sign-up" />}
                   nativeButton={false}
                 >
                   <span>Create Account</span>

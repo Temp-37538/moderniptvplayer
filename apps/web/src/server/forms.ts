@@ -7,7 +7,6 @@ export async function validate(
 	_prev: FormState,
 	formData: FormData,
 ): Promise<FormState> {
-	
 	const xtreamCodesSchema = z.object({
 		username: z.string().min(1, "Username is required"),
 		password: z.string().min(1, "Password is required"),
@@ -76,14 +75,12 @@ export async function validate(
 		};
 	}
 
-	const playlist = await addPlaylist(
+	await addPlaylist(
 		validatedData.data.username,
 		validatedData.data.serverUrl,
 		validatedData.data.playlistName,
 		validatedData.data.password,
 	);
-
-	console.log(playlist);
 
 	return {
 		errors: {},

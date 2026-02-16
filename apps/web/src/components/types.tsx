@@ -12,10 +12,14 @@ import type * as React from "react";
 
 export interface Playlist {
   id: string;
-  name: string;
-  logo?: React.ReactNode;
-  plan?: string;
-}
+  serverUrl: string;
+  username: string;
+  playlistName: string;
+  password: string;
+  userId: string;
+  createdAt: string | Date;
+  updatedAt: string | Date;
+} 
 
 export interface NavItem {
   title: string;
@@ -34,16 +38,24 @@ export interface Project {
 export const sidebarData = {
   playlists: [
     {
-      id: "1",
-      name: "Playlist Principale",
-      logo: <ListVideoIcon />,
-      plan: "Premium",
+      id: "cmlomjick000m0suxbgb1r799",
+      serverUrl: "https://dede.me",
+      username: "dede",
+      playlistName: "Test Playlist",
+      password: "dedede",
+      userId: "TKKNU27pdnvAC4etBXFVUtjrTygwDFWd",
+      createdAt: new Date("2026-02-16T03:38:09.187Z"),
+      updatedAt: new Date("2026-02-16T03:38:09.187Z"),
     },
     {
-      id: "2",
-      name: "Backup",
-      logo: <ListVideoIcon />,
-      plan: "Free",
+      id: "example-2",
+      serverUrl: "https://example.com",
+      username: "user2",
+      playlistName: "Backup",
+      password: "secret",
+      userId: "user2-id",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     },
   ] as Playlist[],
 

@@ -15,9 +15,11 @@ import {
 } from "./ui/breadcrumb";
 import { Button } from "./ui/button";
 import { Separator } from "./ui/separator";
-import { SidebarInset, SidebarTrigger } from "./ui/sidebar";
+import { SidebarInset, SidebarTrigger } from "./ui/sidebar"; 
+import type { Playlist } from "./types";
 
-function Sidebar({ children }: { children: React.ReactNode }) {
+
+function Sidebar({ children, playlists }: { children: React.ReactNode, playlists: Playlist[] }) {
   const pathname = usePathname();
   const router = useRouter();
 
@@ -28,7 +30,7 @@ function Sidebar({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      <AppSidebar />
+      <AppSidebar playlists={playlists} />
       <SidebarInset>
         <header className="flex h-16 z-10 shrink-0 justify-between items-center gap-2 border-b px-4">
           <div className="flex items-center gap-2">
@@ -56,7 +58,7 @@ function Sidebar({ children }: { children: React.ReactNode }) {
           </div>
           <div className="flex items-center gap-2">
             <Button className={"p-0"} variant="outline" size="sm">
-              <Link className="py-4 px-4 m-0" href="/home">
+              <Link className="py-4 px-4 m-0" href="/dashboard/home">
                 <House />
               </Link>
             </Button>

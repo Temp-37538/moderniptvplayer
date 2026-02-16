@@ -71,7 +71,7 @@ export default function HeroSection() {
               <Image
                 src={`/background.png`}
                 alt="background"
-                className="hidden  size-full dark:block"
+                className="hidden dark:brightness-[0.6] dark:grayscale size-full dark:block"
                 width="3276"
                 height="4095"
               />

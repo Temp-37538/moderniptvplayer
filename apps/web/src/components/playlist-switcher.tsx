@@ -41,14 +41,14 @@ export function PlaylistSwitcher({ playlists }: { playlists: Playlist[] }) {
             }
           >
             <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-              {activePlaylist.logo || <ListVideoIcon />}
+              <ListVideoIcon />
             </div>
             <div className="grid flex-1 text-left text-sm leading-tight">
               <span className="truncate font-medium">
-                {activePlaylist.name}
+                {activePlaylist.playlistName}
               </span>
               <span className="truncate text-xs text-muted-foreground">
-                {activePlaylist.plan || "Playlist"}
+                {activePlaylist.serverUrl}
               </span>
             </div>
             <ChevronsUpDownIcon className="ml-auto" />
@@ -70,9 +70,16 @@ export function PlaylistSwitcher({ playlists }: { playlists: Playlist[] }) {
                   className="gap-2 p-2 cursor-pointer"
                 >
                   <div className="flex size-6 items-center justify-center rounded-md border">
-                    {playlist.logo || <ListVideoIcon className="size-4" />}
+                    <ListVideoIcon className="size-4" />
                   </div>
-                  {playlist.name}
+                  <div className="flex-1 min-w-0">
+                    <div className="truncate font-medium">
+                      {playlist.playlistName}
+                    </div>
+                    <div className="truncate text-xs text-muted-foreground">
+                      {playlist.username} · {playlist.serverUrl}
+                    </div>
+                  </div>
                   <span className="ml-auto text-xs text-muted-foreground">
                     ⌘{index + 1}
                   </span>
