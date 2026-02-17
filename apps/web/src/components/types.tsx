@@ -5,8 +5,7 @@ import {
   HistoryIcon,
   Settings2Icon,
   TvIcon,
-  ZapIcon,
-  ListVideoIcon,
+  ZapIcon
 } from "lucide-react";
 import type * as React from "react";
 
@@ -38,25 +37,15 @@ export interface Project {
 export const sidebarData = {
   playlists: [
     {
-      id: "cmlomjick000m0suxbgb1r799",
-      serverUrl: "https://dede.me",
-      username: "dede",
-      playlistName: "Test Playlist",
-      password: "dedede",
-      userId: "TKKNU27pdnvAC4etBXFVUtjrTygwDFWd",
+      id: "NoPlaylisfreàçuhgpzfiru_thgrpituehgriptgrt",
+      serverUrl: "No Playlist",
+      username: "No Playlist",
+      playlistName: "No Playlist",
+      password: "No Playlist",
+      userId: "No Playlist",
       createdAt: new Date("2026-02-16T03:38:09.187Z"),
       updatedAt: new Date("2026-02-16T03:38:09.187Z"),
-    },
-    {
-      id: "example-2",
-      serverUrl: "https://example.com",
-      username: "user2",
-      playlistName: "Backup",
-      password: "secret",
-      userId: "user2-id",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
+    }, 
   ] as Playlist[],
 
   navMain: [
@@ -66,9 +55,9 @@ export const sidebarData = {
       icon: <TvIcon />,
       isActive: true,
       items: [
-        { title: "Live Channels", url: "#" },
-        { title: "Guide", url: "#" },
-        { title: "Favorites", url: "#" },
+        { title: "Live Channels", url: "/dashboard/channels" },
+        { title: "Guide", url: "" },
+        { title: "Favorites", url: "" },
       ],
     },
     {
@@ -76,9 +65,9 @@ export const sidebarData = {
       url: "#",
       icon: <FilmIcon />,
       items: [
-        { title: "All Movies", url: "#" },
-        { title: "Recent", url: "#" },
-        { title: "Top Rated", url: "#" },
+        { title: "All Movies", url: "/dashboard/movies" },
+        { title: "Recent", url: "" },
+        { title: "Top Rated", url: "" },
       ],
     },
     {
@@ -86,21 +75,11 @@ export const sidebarData = {
       url: "#",
       icon: <ClapperboardIcon />,
       items: [
-        { title: "All Series", url: "#" },
-        { title: "New Episodes", url: "#" },
-        { title: "Continue Watching", url: "#" },
+        { title: "All Series", url: "/dashboard/series" },
+        { title: "New Episodes", url: "" },
+        { title: "Continue Watching", url: "" },
       ],
-    },
-    {
-      title: "Settings",
-      url: "#",
-      icon: <Settings2Icon />,
-      items: [
-        { title: "General", url: "#" },
-        { title: "Playlists", url: "addplaylist" },
-        { title: "Playback", url: "#" },
-      ],
-    },
+    }, 
   ] as NavItem[],
 
   projects: [

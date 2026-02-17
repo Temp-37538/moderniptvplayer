@@ -69,7 +69,7 @@ export default function HeroSection() {
               className="mask-b-from-35% mask-b-to-90% absolute inset-0 top-56 -z-20 lg:top-32"
             >
               <Image
-                src={`/background.png`}
+                src={`/lpbgs.png`}
                 alt="background"
                 className="hidden dark:brightness-[0.6] dark:grayscale size-full dark:block"
                 width="3276"

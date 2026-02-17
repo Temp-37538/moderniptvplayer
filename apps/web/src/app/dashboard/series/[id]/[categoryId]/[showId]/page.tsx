@@ -1,0 +1,334 @@
+import "server-only";
+
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { getPlaylistById, createXtreamClient } from "@/server/xtream";
+
+import { Button } from "@/components/ui/button";
+import {
+	Star,
+	Calendar,
+	Play,
+	ExternalLink,
+	Tv,
+	Film,
+	Clock,
+} from "lucide-react";
+
+type PageProps = {
+	params: Promise<{ id: string; categoryId: string; showId: string }>;
+};
+
+type Episode = {
+	id: string;
+	number: number;
+	plot: string;
+	title: string;
+	poster: string;
+	cover: string;
+	duration: number;
+	durationFormatted: string;
+	voteAverage: number;
+	releaseDate: string;
+	createdAt: string;
+	showId: string;
+	seasonId: string;
+	url: string;
+	subtitles: string[];
+	bitrate: number;
+};
+
+type Season = {
+	id: string;
+	name: string;
+	episodeCount: number;
+	overview: string;
+	voteAverage: number;
+	releaseDate: string;
+	number: number;
+	cover: string;
+	showId: string;
+	episodes: Episode[];
+};
+
+type Show = {
+	id: string;
+	name: string;
+	plot: string;
+	voteAverage: number;
+	poster: string;
+	cover: string;
+	duration: number;
+	cast: string[];
+	director: string[];
+	genre: string[];
+	youtubeId: string;
+	releaseDate: string;
+	updatedAt: string;
+	categoryIds: string[];
+	seasons: Season[];
+};
+
+export default async function ShowDetailPage({ params }: PageProps) {
+	const { id, showId } = await params;
+
+	if (!id || !showId) {
+		notFound();
+	}
+
+	const playlist = await getPlaylistById(id);
+
+	if (!playlist) {
+		notFound();
+	}
+
+	const xtream = createXtreamClient(playlist);
+	let show: Show | null = null;
+
+	try {
+		show = (await xtream.getShow({ showId })) as Show;
+	} catch {
+		show = null;
+	}
+
+	if (!show) {
+		notFound();
+	}
+
+	return (
+		<div className="min-h-full">
+			{/* Hero Section */}
+			<div className="relative">
+				{(show.cover || show.poster) && (
+					<div className="absolute inset-0 h-100 overflow-hidden">
+						<img
+							src={show.cover || show.poster}
+							alt=""
+							className="size-full object-cover blur-2xl scale-110 opacity-20"
+						/>
+						<div className="absolute inset-0 bg-linear-to-b from-background/60 via-background/80 to-background" />
+					</div>
+				)}
+
+				<div className="relative p-6 md:p-8">
+					{/* Show info */}
+					<div className="flex flex-col md:flex-row gap-8">
+						{show.poster && (
+							<div className="shrink-0">
+								<img
+									src={show.poster}
+									alt={show.name}
+									className="w-48 md:w-56 rounded-xl shadow-2xl shadow-black/30 border border-border/30"
+								/>
+							</div>
+						)}
+
+						<div className="flex-1 space-y-5">
+							<h1 className="text-3xl font-bold tracking-tight">{show.name}</h1>
+
+							{/* Meta badges */}
+							<div className="flex flex-wrap items-center gap-2">
+								{show.voteAverage > 0 && (
+									<span className="inline-flex items-center gap-1 rounded-md bg-amber-500/10 text-amber-500 px-2.5 py-1 text-sm font-semibold">
+										<Star className="size-3.5 fill-amber-500" />
+										{Number(show.voteAverage).toFixed(1)}
+									</span>
+								)}
+								{show.releaseDate && (
+									<span className="inline-flex items-center gap-1 rounded-md bg-muted px-2.5 py-1 text-sm text-muted-foreground">
+										<Calendar className="size-3.5" />
+										{new Date(show.releaseDate).getFullYear()}
+									</span>
+								)}
+								{show.seasons?.length > 0 && (
+									<span className="inline-flex items-center gap-1 rounded-md bg-muted px-2.5 py-1 text-sm text-muted-foreground">
+										<Tv className="size-3.5" />
+										{show.seasons.length} season
+										{show.seasons.length > 1 ? "s" : ""}
+									</span>
+								)}
+							</div>
+
+							{/* Genres */}
+							{show.genre?.length > 0 && (
+								<div className="flex flex-wrap gap-1.5">
+									{show.genre.map((g) => (
+										<span
+											key={g}
+											className="rounded-full bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground"
+										>
+											{g}
+										</span>
+									))}
+								</div>
+							)}
+
+							{/* Plot */}
+							{show.plot && (
+								<p className="text-sm leading-relaxed text-muted-foreground max-w-2xl">
+									{show.plot}
+								</p>
+							)}
+
+							{/* Cast/Director */}
+							<div className="space-y-2 text-sm">
+								{show.director?.length > 0 &&
+									show.director.some((d) => d !== "") && (
+										<p>
+											<span className="text-muted-foreground">Director: </span>
+											<span className="font-medium">
+												{show.director.filter((d) => d !== "").join(", ")}
+											</span>
+										</p>
+									)}
+								{show.cast?.length > 0 && (
+									<p>
+										<span className="text-muted-foreground">Cast: </span>
+										<span className="font-medium">{show.cast.join(", ")}</span>
+									</p>
+								)}
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			{/* Trailer */}
+			{show.youtubeId && (
+				<div className="px-6 md:px-8 pb-6">
+					<h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+						<Film className="size-5 text-primary" />
+						Trailer
+					</h2>
+					<div className="relative w-full max-w-3xl rounded-xl overflow-hidden border border-border/50 shadow-xl aspect-video">
+						<iframe
+							className="absolute inset-0 size-full"
+							src={`https://www.youtube.com/embed/${show.youtubeId}`}
+							title={`${show.name} trailer`}
+							allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+							allowFullScreen
+						/>
+					</div>
+				</div>
+			)}
+
+			{/* Seasons & Episodes */}
+			<div className="px-6 md:px-8 pb-8 space-y-8">
+				<h2 className="text-lg font-semibold flex items-center gap-2">
+					<Tv className="size-5 text-primary" />
+					Seasons
+				</h2>
+
+				{show.seasons?.length === 0 && (
+					<p className="text-muted-foreground">No seasons available.</p>
+				)}
+
+				{show.seasons?.map((season) => (
+					<section
+						key={season.id}
+						className="rounded-xl border border-border/50 bg-card overflow-hidden"
+					>
+						{/* Season header */}
+						<div className="flex items-center justify-between px-5 py-4 border-b border-border/50 bg-muted/30">
+							<div>
+								<h3 className="font-semibold">{season.name}</h3>
+								<p className="text-sm text-muted-foreground">
+									{season.episodeCount} episode
+									{season.episodeCount !== 1 ? "s" : ""}
+									{season.voteAverage > 0 &&
+										` · ★ ${Number(season.voteAverage).toFixed(1)}`}
+								</p>
+							</div>
+						</div>
+
+						{season.overview && (
+							<p className="px-5 pt-4 text-sm text-muted-foreground max-w-2xl">
+								{season.overview}
+							</p>
+						)}
+
+						{season.episodes?.length > 0 ? (
+							<div className="divide-y divide-border/30">
+								{season.episodes.map((episode) => {
+									const episodeStreamUrl = xtream.generateStreamUrl({
+										type: "episode",
+										streamId: episode.id,
+										extension: "mp4",
+									});
+
+									return (
+										<div
+											key={episode.id}
+											className="flex items-start gap-4 px-5 py-4 hover:bg-muted/20 transition-colors"
+										>
+											{/* Episode number */}
+											<div className="flex items-center justify-center size-8 rounded-lg bg-muted text-xs font-bold text-muted-foreground shrink-0 mt-0.5">
+												{episode.number}
+											</div>
+
+											{/* Episode info */}
+											<div className="flex-1 min-w-0 space-y-1">
+												<h4 className="text-sm font-medium leading-tight">
+													{episode.title}
+												</h4>
+												{episode.plot && (
+													<p className="text-xs text-muted-foreground line-clamp-2">
+														{episode.plot}
+													</p>
+												)}
+												{episode.durationFormatted && (
+													<span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+														<Clock className="size-3" />
+														{episode.durationFormatted}
+													</span>
+												)}
+											</div>
+
+											{/* Actions */}
+											<div className="flex items-center gap-2 shrink-0">
+												<Button
+													variant="ghost"
+													size="icon-sm"
+													nativeButton={false}
+													render={
+														<a
+															href={episodeStreamUrl}
+															target="_blank"
+															rel="noopener noreferrer"
+															title="Watch (Stream)"
+														/>
+													}
+												>
+													<Play className="size-4" />
+												</Button>
+												<Button
+													variant="ghost"
+													size="icon-sm"
+													nativeButton={false}
+													render={
+														<a
+															href={episode.url}
+															target="_blank"
+															rel="noopener noreferrer"
+															title="Watch (Direct)"
+														/>
+													}
+												>
+													<ExternalLink className="size-4" />
+												</Button>
+											</div>
+										</div>
+									);
+								})}
+							</div>
+						) : (
+							<p className="px-5 py-4 text-sm text-muted-foreground">
+								No episodes available for this season.
+							</p>
+						)}
+					</section>
+				))}
+			</div>
+		</div>
+	);
+}

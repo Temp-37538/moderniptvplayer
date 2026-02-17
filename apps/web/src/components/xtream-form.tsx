@@ -39,7 +39,7 @@ export function XtreamCodesForm() {
               name="username"
               key={1}
               required
-              defaultValue={state.inputs?.username}
+              defaultValue={state.inputs?.username ?? ""}
               minLength={1}
               maxLength={40}
               autoComplete="username"
@@ -72,7 +72,7 @@ export function XtreamCodesForm() {
             <Input
               id="xtream-password"
               name="password"
-              defaultValue={state.inputs?.password}
+              defaultValue={state.inputs?.password ?? ""}
               key={1}
               required
               minLength={1}
@@ -110,7 +110,7 @@ export function XtreamCodesForm() {
               name="serverUrl"
               required
               autoComplete="url"
-              defaultValue={state.inputs?.serverUrl}
+              defaultValue={state.inputs?.serverUrl ?? ""}
               aria-describedby="serverUrl-error"
               placeholder="http://example.com:8080"
               className={clsx(
@@ -144,7 +144,7 @@ export function XtreamCodesForm() {
               minLength={1}
               maxLength={50}
               autoComplete="playlist-name"
-              defaultValue={state.inputs?.playlistName}
+              defaultValue={state.inputs?.playlistName ?? ""}
               aria-describedby="playlistName-error"
               placeholder="My Playlist"
               className={clsx(

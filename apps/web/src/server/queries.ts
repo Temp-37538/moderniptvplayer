@@ -32,7 +32,6 @@ export async function doesPlaylistExist(
 		},
 	});
 
-	revalidatePath("/dashboard", "layout");
 
 	if (!playlist) {
 		return false;
@@ -88,7 +87,7 @@ export async function addPlaylist(
 				userId: session.user.id,
 			},
 		});
-
+		revalidatePath("/dashboard", "layout");
 		return playlist;
 	} catch (error) {
 		console.error("Error fetching playlists:", error);

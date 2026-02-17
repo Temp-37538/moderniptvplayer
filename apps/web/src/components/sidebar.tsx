@@ -4,79 +4,123 @@ import { SignedIn } from "@daveyplate/better-auth-ui";
 import { House } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import React from "react";
 import { AppSidebar } from "./app-sidebar";
 import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
+	Breadcrumb,
+	BreadcrumbItem,
+	BreadcrumbLink,
+	BreadcrumbList,
+	BreadcrumbPage,
+	BreadcrumbSeparator,
 } from "./ui/breadcrumb";
 import { Button } from "./ui/button";
 import { Separator } from "./ui/separator";
-import { SidebarInset, SidebarTrigger } from "./ui/sidebar"; 
+import { SidebarInset, SidebarTrigger } from "./ui/sidebar";
 import type { Playlist } from "./types";
 
+function Sidebar({
+	children,
+	playlists,  
+}: {
+	children: React.ReactNode;
+	playlists: Playlist[];  
+}) {
+	const pathname = usePathname();
+	const router = useRouter();
 
-function Sidebar({ children, playlists }: { children: React.ReactNode, playlists: Playlist[] }) {
-  const pathname = usePathname();
-  const router = useRouter();
+	const handleLogout = async () => {
+		await authClient.signOut();
+		router.push("/");
+	};
 
-  const handleLogout = async () => {
-    await authClient.signOut();
-    router.push("/");
-  };
+	return (
+		<>
+			<AppSidebar  playlists={playlists}   />
+			<SidebarInset>
+				<header className="flex h-16 z-10 shrink-0 justify-between items-center gap-2 border-b px-4">
+					<div className="flex items-center gap-2">
+						<SidebarTrigger className="-ml-1" />
+						<Separator
+							className="mr-2 data-[orientation=vertical]:h-4"
+							orientation="vertical"
+						/>
+						<Breadcrumb>
+							<BreadcrumbList>
+								{pathname
+									.split("/")
+									.filter(Boolean)
+									.map((segment, index, array) => {
+										const href = `/${array.slice(0, index + 1).join("/")}`;
+										const isLast = index === array.length - 1;
+										let label = segment;
 
-  return (
-    <>
-      <AppSidebar playlists={playlists} />
-      <SidebarInset>
-        <header className="flex h-16 z-10 shrink-0 justify-between items-center gap-2 border-b px-4">
-          <div className="flex items-center gap-2">
-            <SidebarTrigger className="-ml-1" />
-            <Separator
-              className="mr-2 data-[orientation=vertical]:h-4"
-              orientation="vertical"
-            />
-            <Breadcrumb>
-              <BreadcrumbList>
-                <BreadcrumbItem className="hidden md:block">
-                  <BreadcrumbLink>Modern IPTV Player</BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator className="hidden md:block" />
-                <BreadcrumbItem>
-                  <BreadcrumbPage>
-                    {pathname.split("/").length > 0
-                      ? pathname.split("/")[1].charAt(0).toUpperCase() +
-                        pathname.split("/")[1].slice(1)
-                      : "Home"}
-                  </BreadcrumbPage>
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button className={"p-0"} variant="outline" size="sm">
-              <Link className="py-4 px-4 m-0" href="/dashboard/home">
-                <House />
-              </Link>
-            </Button>
-            <SignedIn>
-              <Button
-                onClick={handleLogout}
-                size={"sm"}
-                className="cursor-pointer w-fit  "
-              >
-                Logout
-              </Button>
-            </SignedIn>
-          </div>
-        </header>
-        <div className="flex flex-1 flex-col gap-4 p-4">{children}</div>
-      </SidebarInset>
-    </>
-  );
+										if (segment === "dashboard") label = "Home";
+										if (segment === "channels") label = "Channels";
+										if (segment === "movies") label = "Movies";
+										if (segment === "series") label = "Series";
+
+										const playlist = playlists?.find((p) => p.id === segment);
+										if (playlist) {
+											label = playlist.playlistName;
+										} else if (index > 0) {
+											const prevSegment = array[index - 1];
+											const prevPlaylist = playlists?.find(
+												(p) => p.id === prevSegment,
+											);
+											if (prevPlaylist) {
+												label = `Category ${segment}`;
+											}
+										}
+
+										label =
+											label.charAt(0).toUpperCase() + label.slice(1);
+
+										return (
+											<React.Fragment key={href}>
+												<BreadcrumbItem className="hidden md:block">
+													{!isLast ? (
+														<BreadcrumbLink
+															render={
+																<Link href={href as any} />
+															}
+														>
+															{label}
+														</BreadcrumbLink>
+													) : (
+														<BreadcrumbPage>{label}</BreadcrumbPage>
+													)}
+												</BreadcrumbItem>
+												{!isLast && (
+													<BreadcrumbSeparator className="hidden md:block" />
+												)}
+											</React.Fragment>
+										);
+									})}
+							</BreadcrumbList>
+						</Breadcrumb>
+					</div>
+					<div className="flex items-center gap-2">
+						<Button className={"p-0"} variant="outline" size="sm">
+							<Link className="py-4 px-4 m-0" href={"/dashboard" as any}>
+								<House />
+							</Link>
+						</Button>
+						<SignedIn>
+							<Button
+								onClick={handleLogout}
+								size={"sm"}
+								className="cursor-pointer w-fit  "
+							>
+								Logout
+							</Button>
+						</SignedIn>
+					</div>
+				</header>
+				<div className="flex flex-1 flex-col gap-4 p-4 overflow-hidden">{children}</div>
+			</SidebarInset>
+		</>
+	);
 }
 
 export default Sidebar;
