@@ -3,7 +3,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 function LoadingSkeleton() {
 	return (
-		<div className="min-h-full p-6 md:p-4">
+		<div className="min-h-full  ">
 			<div className="mb-8">
 				<div className="flex items-center gap-3 mb-2">
 					<Skeleton className="size-10 rounded-xl" />

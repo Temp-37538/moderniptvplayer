@@ -3,7 +3,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 function LoadingSkeleton() {
 	return (
-		<div className="min-h-full p-6 md:p-4"> 
+		<div className="min-h-full"> 
 			<div className="flex flex-col md:flex-row gap-8 mb-8">
 				<Skeleton className="w-48 md:w-56 aspect-2/3 rounded-xl shrink-0" />
 				<div className="flex-1 space-y-4">
@@ -20,8 +20,7 @@ function LoadingSkeleton() {
 					<Skeleton className="h-20 w-full max-w-2xl" />
 					<Skeleton className="h-4 w-48" />
 				</div>
-			</div>
-			{/* Season skeletons */}
+			</div> 
 			<Skeleton className="h-6 w-24 mb-4" />
 			{Array.from({ length: 2 }).map((_, i) => (
 				<div key={i} className="mb-4">

@@ -17,6 +17,7 @@
     "@tanstack/react-form": "^1.27.3",
     "babel-plugin-react-compiler": "^1.0.0",
     "better-auth": "catalog:",
+    "camelcase-keys": "^10.0.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cryptr": "^6.4.0",

@@ -24,16 +24,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        <Providers>
-          <div className="flex h-screen w-screen overflow-hidden">
-           {children}
-          </div>
-        </Providers>
-      </body>
-    </html>
-  );
+			<html lang="en" suppressHydrationWarning>
+				<body
+					className={`${geistSans.variable} ${geistMono.variable} data-scroll-behavior="smooth" antialiased`}
+				>
+					<Providers>
+						<div className="flex h-screen w-screen overflow-hidden">
+							{children}
+						</div>
+					</Providers>
+				</body>
+			</html>
+		);
 }

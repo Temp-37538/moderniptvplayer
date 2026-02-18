@@ -3,6 +3,7 @@ import "server-only";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getPlaylistById, createXtreamClient } from "@/server/xtream";
+import type { StandardXtreamMovieListing } from "@iptv/xtream-api/standardized";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -40,26 +41,13 @@ export default async function MoviesByCategoryPage({
 		categoryId,
 		page: currentPage,
 		limit: ITEMS_PER_PAGE,
-	})) as unknown as Array<{
-		id: string;
-		name: string;
-		plot: string;
-		genre: string[];
-		cast: string[];
-		director: string[];
-		poster: string;
-		duration: number;
-		voteAverage: number;
-		releaseDate: string;
-		categoryIds: string[];
-		url: string;
-	}>;
+	})) as StandardXtreamMovieListing[];
 
 	const hasNextPage = movies.length === ITEMS_PER_PAGE;
 	const hasPreviousPage = currentPage > 1;
 
 	return (
-		<div className="h-full overflow-y-auto p-6 md:p-4"> 
+		<div className="h-full overflow-y-auto  "> 
 			<div className="flex items-center justify-between mb-6">
 				<div className="flex items-center gap-3">
 					<div className="flex items-center justify-center size-10 rounded-xl bg-primary/10 text-primary">

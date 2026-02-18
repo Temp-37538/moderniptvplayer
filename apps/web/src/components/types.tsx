@@ -1,13 +1,22 @@
+import type { StandardXtreamCategory } from "@iptv/xtream-api/standardized";
 import {
   ClapperboardIcon,
   FilmIcon,
   HeartIcon,
   HistoryIcon,
-  Settings2Icon,
   TvIcon,
   ZapIcon
 } from "lucide-react";
 import type * as React from "react";
+
+export type CategorySearchProps = {
+	id: string;
+	playlistName: string;
+	categories: StandardXtreamCategory[];
+};
+
+export type SeriesCategorySearchProps = CategorySearchProps;
+
 
 export interface Playlist {
   id: string;
@@ -126,4 +135,9 @@ export type FormState = {
   inputs?: xtreamFormData;
   success: boolean;
   message?: string;
+};
+
+
+export type PageProps = {
+  params: Promise<{ id: string; categoryId: string; showId: string }>;
 };

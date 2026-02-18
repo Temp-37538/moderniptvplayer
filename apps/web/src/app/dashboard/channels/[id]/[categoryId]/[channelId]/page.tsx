@@ -1,11 +1,10 @@
-import "server-only";
-
+import { CopyStreamButton } from "@/components/copy-stream-button";
+import { createXtreamClient, getPlaylistById } from "@/server/xtream";
+import type { StandardXtreamChannel } from "@iptv/xtream-api/standardized";
+import { ExternalLink, Hash, Radio, Satellite } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getPlaylistById, createXtreamClient } from "@/server/xtream";
-
-import { Button } from "@/components/ui/button";
-import { Radio, Play, ExternalLink, Hash, Satellite } from "lucide-react";
+import "server-only";
 
 type PageProps = {
 	params: Promise<{ id: string; categoryId: string; channelId: string }>;
@@ -22,15 +21,9 @@ export default async function ChannelDetailPage({ params }: PageProps) {
 
 	const xtream = createXtreamClient(playlist);
 
-	const allChannels = (await xtream.getChannels({ categoryId })) as Array<{
-		id: string;
-		name: string;
-		number: number;
-		logo: string;
-		epgId: string;
-		categoryIds: string[];
-		url: string;
-	}>;
+	const allChannels = (await xtream.getChannels({
+		categoryId,
+	})) as StandardXtreamChannel[];
 
 	const channel = allChannels.find((ch) => ch.id === channelId);
 
@@ -44,16 +37,10 @@ export default async function ChannelDetailPage({ params }: PageProps) {
 		extension: "m3u8",
 	});
 
-	return (
-		<div className="min-h-full p-6 md:p-8">
-
-
-			{/* Channel card */}
+	return ( 
 			<div className="max-w-2xl">
 				<div className="rounded-xl border border-border/50 bg-card overflow-hidden">
-					{/* Hero area */}
 					<div className="flex items-center gap-6 p-6 bg-muted/20">
-						{/* Logo */}
 						<div className="flex items-center justify-center size-24 rounded-xl bg-muted overflow-hidden shrink-0 border border-border/30">
 							{channel.logo ? (
 								<img
@@ -65,7 +52,6 @@ export default async function ChannelDetailPage({ params }: PageProps) {
 								<Radio className="size-10 text-muted-foreground/30" />
 							)}
 						</div>
-
 						<div className="space-y-2">
 							<h1 className="text-2xl font-bold tracking-tight">
 								{channel.name}
@@ -86,20 +72,19 @@ export default async function ChannelDetailPage({ params }: PageProps) {
 							</div>
 						</div>
 					</div>
-
-					{/* Actions */}
 					<div className="flex flex-wrap gap-3 p-6 border-t border-border/30">
-						<Button nativeButton={false} render={<a href={streamUrl} target="_blank" rel="noopener noreferrer" />}>
-							<Play className="size-4" />
-							Watch (Stream)
-						</Button>
-						<Button nativeButton={false} variant="outline" render={<a href={channel.url} target="_blank" rel="noopener noreferrer" />}>
+						<CopyStreamButton url={streamUrl} />
+						<Link
+							variant="outline"
+							href={channel.url}
+							target="_blank"
+							rel="noopener noreferrer"
+						>
 							<ExternalLink className="size-4" />
 							Direct URL
-						</Button>
+						</Link>
 					</div>
 				</div>
-			</div>
-		</div>
+			</div> 
 	);
 }

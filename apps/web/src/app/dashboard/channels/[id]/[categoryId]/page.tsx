@@ -3,6 +3,7 @@ import "server-only";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getPlaylistById, createXtreamClient } from "@/server/xtream";
+import type { StandardXtreamChannel } from "@iptv/xtream-api/standardized";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -39,21 +40,13 @@ export default async function ChannelsByCategoryPage({
 		categoryId,
 		page: currentPage,
 		limit: ITEMS_PER_PAGE,
-	})) as Array<{
-		id: string;
-		name: string;
-		number: number;
-		logo: string;
-		epgId: string;
-		categoryIds: string[];
-		url: string;
-	}>;
+	})) as StandardXtreamChannel[];
 
 	const hasNextPage = channels.length === ITEMS_PER_PAGE;
 	const hasPreviousPage = currentPage > 1;
 
 	return (
-		<div className="h-full overflow-y-auto p-6 md:p-8">
+		<div className="h-full overflow-y-auto ">
 
 
 			{/* Header */}

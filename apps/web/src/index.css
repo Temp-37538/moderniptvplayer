@@ -3,6 +3,10 @@
 @import "shadcn/tailwind.css";
 @import "@daveyplate/better-auth-ui/css";
 
+html[data-scroll-behavior="smooth"] {
+	scroll-behavior: smooth;
+}
+
 @custom-variant dark (&:is(.dark *));
 :root {
 	--background: oklch(0.99 0 0);
