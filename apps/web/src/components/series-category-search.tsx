@@ -43,64 +43,64 @@ function CategorySearchBase({
 		: categories;
 
 	return (
-		<div className="h-full overflow-y-auto">
-			<div className="mb-8">
-				<div className="flex items-center gap-3 mb-2">
+		<div className="h-full flex flex-col gap-4 no-scrollbar">
+			<div className="flex items-center justify-between">
+				<div className="flex items-center gap-3">
 					<div className="flex items-center justify-center size-10 rounded-xl bg-primary/10 text-primary">
 						<Icon className="size-5" />
 					</div>
-					<div className="w-full">
-						<div className="flex w-full items-center justify-between">
-							<h1 className="text-2xl font-bold tracking-tight">{title}</h1>
-							<SearchForm
-								placeholder={placeholder}
-								className="mr-4 md:w-fit w-[50%]"
-								inputName="q"
-								inputProps={{
-									value: query,
-									onChange: (event) => {
-										const nextValue = event.target.value;
-										setQuery(nextValue);
-										const params = new URLSearchParams(
-											searchParams.toString(),
-										);
-										if (nextValue.trim()) {
-											params.set("q", nextValue);
-										} else {
-											params.delete("q");
-										}
-										const nextUrl = params.toString()
-											? `${pathname}?${params.toString()}`
-											: pathname;
-										window.history.replaceState(null, "", nextUrl);
-									},
-								}}
-							/>
-						</div>
+					<div>
+						<h1 className="text-2xl font-bold tracking-tight">{title}</h1>
 						<p className="text-sm text-muted-foreground">
 							{playlistName} · {filteredCategories.length} categories
 						</p>
 					</div>
 				</div>
+				<SearchForm
+					placeholder={placeholder}
+					className="md:w-70 w-full"
+					inputName="q"
+					inputProps={{
+						value: query,
+						onChange: (event) => {
+							const nextValue = event.target.value;
+							setQuery(nextValue);
+							const params = new URLSearchParams(
+								searchParams.toString(),
+							);
+							if (nextValue.trim()) {
+								params.set("q", nextValue);
+							} else {
+								params.delete("q");
+							}
+							const nextUrl = params.toString()
+								? `${pathname}?${params.toString()}`
+								: pathname;
+							window.history.replaceState(null, "", nextUrl);
+						},
+					}}
+				/>
 			</div>
-			<div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-				{filteredCategories.map((category, i) => (
-					<Link
-						key={category.id}
-						href={`${hrefPrefix}/${id}/${category.id}`}
-						className="group relative flex flex-col items-center gap-3 rounded-xl border border-border/50 bg-card p-5 transition-all duration-200 hover:border-primary/30 hover:bg-accent/50 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5"
-						style={{
-							animationDelay: `${Math.min(i * 30, 500)}ms`,
-						}}
-					>
-						<div className="flex items-center justify-center size-10 rounded-lg bg-muted/50 text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-colors duration-200">
-							<FolderOpen className="size-5" />
-						</div>
-						<span className="text-sm font-medium text-center leading-tight line-clamp-2">
-							{category.name}
-						</span>
-					</Link>
-				))}
+			<div className="flex-1 overflow-y-auto no-scrollbar">
+				<div className="grid grid-cols-2 sm:grid-cols-3   lg:grid-cols-4 xl:grid-cols-5 gap-3">
+					{filteredCategories.map((category, i) => (
+						<Link
+							key={category.id}
+							href={`${hrefPrefix}/${id}/${category.id}`}
+							className="group relative flex flex-col items-center gap-3 rounded-xl border border-border/50 bg-card p-5 transition-all duration-200 hover:border-primary/30 hover:bg-accent/50 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5"
+							style={{
+								animationDelay: `${Math.min(i * 30, 500)}ms`,
+							}}
+						>
+							<div className="flex items-center justify-center size-10 rounded-lg bg-muted/50 text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-colors duration-200">
+								<FolderOpen className="size-5" />
+							</div>
+							<span className="text-sm font-medium text-center leading-tight line-clamp-2">
+								{category.name}
+							</span>
+						</Link>
+					))}
+				</div>
 			</div>
 			{filteredCategories.length === 0 && (
 				<div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
