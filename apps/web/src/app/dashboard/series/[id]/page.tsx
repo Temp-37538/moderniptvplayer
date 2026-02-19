@@ -1,8 +1,21 @@
-import "server-only"; 
+import "server-only";
 import { notFound } from "next/navigation";
+import { cacheLife, cacheTag } from "next/cache";
 import { getPlaylistById, createXtreamClient } from "@/server/xtream";
 import type { StandardXtreamCategory } from "@iptv/xtream-api/standardized";
-import { SeriesCategorySearch } from "../../../../components/series-category-search";
+import { SeriesCategorySearch } from "@/components/series-category-search";
+
+async function getCachedShowCategories(
+	playlistId: string,
+	playlist: { serverUrl: string; username: string; password: string },
+) {
+	"use cache";
+	cacheLife("hours");
+	cacheTag(`playlist-${playlistId}-series-categories`);
+	const xtream = createXtreamClient(playlist);
+	const categories = await xtream.getShowCategories();
+	return categories as StandardXtreamCategory[];
+}
 
 type PageProps = {
 	params: Promise<{ id: string }>;
@@ -17,10 +30,8 @@ export default async function SeriesCategoriesPage({ params }: PageProps) {
 		notFound();
 	}
 
-	const xtream = createXtreamClient(playlist);
-	const categories = await xtream.getShowCategories();
-	const typedCategories = categories as StandardXtreamCategory[];
-	
+	const typedCategories = await getCachedShowCategories(id, playlist);
+
 	return (
 		<SeriesCategorySearch
 			id={id}

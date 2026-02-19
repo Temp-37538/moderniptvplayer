@@ -22,6 +22,7 @@ import type { Playlist } from "./types";
 const NO_PLAYLIST_ID = "NoPlaylisfreàçuhgpzfiru_thgrpituehgriptgrt";
 const PLAYLIST_SECTIONS = ["channels", "movies", "series"];
 const NON_PLAYLIST_ROUTES = ["addplaylist", "account"];
+const ALL_SUB_ROUTES = ["all"];
 
 export function PlaylistSwitcher({ playlists }: { playlists: Playlist[] }) {
 	const { isMobile } = useSidebar();
@@ -29,13 +30,19 @@ export function PlaylistSwitcher({ playlists }: { playlists: Playlist[] }) {
 	const pathname = usePathname();
 
 	const { section, playlistIdFromPath } = (() => {
-		const parts = pathname.split("/").filter(Boolean);  
+		const parts = pathname.split("/").filter(Boolean);
 		if (parts.length >= 3 && PLAYLIST_SECTIONS.includes(parts[1])) {
+			if (ALL_SUB_ROUTES.includes(parts[2])) {
+				return {
+					section: parts[1],
+					playlistIdFromPath: parts[3] ?? null,
+				};
+			}
 			return {
 				section: parts[1],
 				playlistIdFromPath: parts[2],
 			};
-		} 
+		}
 		if (
 			parts.length === 2 &&
 			!PLAYLIST_SECTIONS.includes(parts[1]) &&
@@ -45,9 +52,9 @@ export function PlaylistSwitcher({ playlists }: { playlists: Playlist[] }) {
 				section: null,
 				playlistIdFromPath: parts[1],
 			};
-		}  
+		}
 		const hasValidSection =
-			parts.length >= 2 && PLAYLIST_SECTIONS.includes(parts[1]); 
+			parts.length >= 2 && PLAYLIST_SECTIONS.includes(parts[1]);
 		return {
 			section: hasValidSection ? parts[1] : null,
 			playlistIdFromPath: null,
@@ -60,16 +67,16 @@ export function PlaylistSwitcher({ playlists }: { playlists: Playlist[] }) {
 			if (found) {
 				return found;
 			}
-		} 
+		}
 		return playlists[0] || null;
 	})();
 
 	const setActivePlaylist = (playlist: Playlist) => {
-		const basePath = section ? `/dashboard/${section}` : "/dashboard"; 
+		const basePath = section ? `/dashboard/${section}` : "/dashboard";
 		if (playlist.id === NO_PLAYLIST_ID) {
 			router.replace(basePath as any);
 			return;
-		} 
+		}
 		router.replace(`${basePath}/${playlist.id}` as any);
 	};
 
@@ -80,11 +87,14 @@ export function PlaylistSwitcher({ playlists }: { playlists: Playlist[] }) {
 			playlistIdFromPath
 		) {
 			return;
-		} 
-		const parts = pathname.split("/").filter(Boolean); 
+		}
+		const parts = pathname.split("/").filter(Boolean);
 		const isNonPlaylistRoute =
-			parts.length >= 2 && NON_PLAYLIST_ROUTES.includes(parts[1]); 
-		if (isNonPlaylistRoute) {
+			parts.length >= 2 && NON_PLAYLIST_ROUTES.includes(parts[1]);
+		const isAllSubRoute =
+			PLAYLIST_SECTIONS.includes(parts[1]) &&
+			ALL_SUB_ROUTES.includes(parts[2] ?? "");
+		if (isNonPlaylistRoute || isAllSubRoute) {
 			return;
 		}
 		const basePath = section ? `/dashboard/${section}` : "/dashboard";

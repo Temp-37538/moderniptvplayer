@@ -204,7 +204,7 @@ export default async function ShowDetailPage({ params }: PageProps) {
 														render={
 															<a
 																target="_blank"
-																aria-label="Watch episode in external player"
+																aria-label="Watch episode in external window"
 																rel="noopener noreferrer"
 																href={episode.url}
 																type="button"
@@ -215,7 +215,7 @@ export default async function ShowDetailPage({ params }: PageProps) {
 														}
 													/>
 													<TooltipContent>
-														Watch in external player
+														Watch in external window
 													</TooltipContent>
 												</Tooltip>
 											</div>

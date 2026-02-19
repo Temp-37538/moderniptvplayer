@@ -10,7 +10,7 @@ function LoadingSkeleton() {
 					<div className="space-y-2">
 						<Skeleton className="h-8 w-48" />
 						<div className="flex flex-wrap items-center gap-2">
-							<Skeleton className="h-7 w-24 rounded-md" /> 
+							<Skeleton className="h-7 w-24 rounded-md" />
 						</div>
 					</div>
 				</div>

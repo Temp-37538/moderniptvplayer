@@ -3,9 +3,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 function LoadingSkeleton() {
 	return (
-		<div className="min-h-full p-6 md:p-6"> 
+		<div className="min-h-full  ">
 			<div className="flex flex-col md:flex-row gap-8">
-				<Skeleton className="w-48 md:w-56 aspect-[2/3] rounded-xl shrink-0" />
+				<Skeleton className="w-48 md:w-56 aspect-2/3 rounded-xl shrink-0" />
 				<div className="flex-1 space-y-4">
 					<Skeleton className="h-9 w-72" />
 					<div className="flex gap-2">

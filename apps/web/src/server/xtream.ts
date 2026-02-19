@@ -219,7 +219,7 @@ export async function getShowSafe(
 	},
 	showId: string,
 ) {
-	const xtream = createXtreamClient(playlist);
+	const xtream = createXtreamClient(playlist)
 	const baseUrl = playlist.serverUrl.replace(/\/$/, "");
 	const url = `${baseUrl}/player_api.php?username=${encodeURIComponent(
 		playlist.username,

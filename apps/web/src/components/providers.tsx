@@ -27,6 +27,9 @@ export default function Providers({ children }: { children: React.ReactNode }) {
             onSessionChange={() => {
               router.refresh(); 
             }}
+            account={{
+              basePath: "/dashboard/account",
+            }}
             nameRequired={false}
             redirectTo="/dashboard/auth/sign-in"
             changeEmail={false}

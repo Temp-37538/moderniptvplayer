@@ -1,8 +1,21 @@
 import "server-only";
 import { notFound } from "next/navigation";
+import { cacheLife, cacheTag } from "next/cache";
 import { getPlaylistById, createXtreamClient } from "@/server/xtream";
 import type { StandardXtreamCategory } from "@iptv/xtream-api/standardized";
 import { TvCategorySearch } from "@/components/series-category-search";
+
+async function getCachedChannelCategories(
+	playlistId: string,
+	playlist: { serverUrl: string; username: string; password: string },
+) {
+	"use cache";
+	cacheLife("hours");
+	cacheTag(`playlist-${playlistId}-channel-categories`);
+	const xtream = createXtreamClient(playlist);
+	const categories = await xtream.getChannelCategories();
+	return categories as StandardXtreamCategory[];
+}
 
 type PageProps = {
 	params: Promise<{ id: string }>;
@@ -17,10 +30,7 @@ export default async function ChannelCategoriesPage({ params }: PageProps) {
 		notFound();
 	}
 
-	const xtream = createXtreamClient(playlist);
-	const categories = await xtream.getChannelCategories();
-
-	const typedCategories = categories as StandardXtreamCategory[];
+	const typedCategories = await getCachedChannelCategories(id, playlist);
 
 	return (
 		<TvCategorySearch

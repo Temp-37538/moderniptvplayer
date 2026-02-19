@@ -47,14 +47,14 @@ export default async function MoviesByCategoryPage({
 	const hasPreviousPage = currentPage > 1;
 
 	return (
-		<div className="h-full overflow-y-auto  "> 
+		<div className="h-full overflow-y-auto  ">
 			<div className="flex items-center justify-between mb-6">
 				<div className="flex items-center gap-3">
 					<div className="flex items-center justify-center size-10 rounded-xl bg-primary/10 text-primary">
 						<Film className="size-5" />
 					</div>
 					<div>
-						<h1 className="text-xl font-bold tracking-tight">Movies</h1>
+						<h1 className="text-2xl font-bold tracking-tight">Movies</h1>
 						<p className="text-sm text-muted-foreground">Page {currentPage}</p>
 					</div>
 				</div>
@@ -65,9 +65,9 @@ export default async function MoviesByCategoryPage({
 						<Link
 							key={movie.id}
 							href={`/dashboard/movies/${id}/${categoryId}/${movie.id}`}
-							className="group relative flex flex-col rounded-xl overflow-hidden border border-border/50 bg-card transition-all duration-200 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-1"
+							className="group"
 						>
-							<div className="relative aspect-2/3 bg-muted overflow-hidden">
+							<div className="relative aspect-2/3 overflow-hidden rounded-xl bg-muted border border-border/30">
 								{movie.poster ? (
 									<img
 										src={movie.poster}
@@ -75,34 +75,29 @@ export default async function MoviesByCategoryPage({
 										className="size-full object-cover transition-transform duration-300 group-hover:scale-105"
 									/>
 								) : (
-									<div className="flex items-center justify-center size-full">
-										<Film className="size-8 text-muted-foreground/30" />
+									<div className="flex items-center justify-center size-full text-muted-foreground">
+										<Film className="size-10 opacity-50" />
 									</div>
 								)}
 								{movie.voteAverage > 0 && (
-									<div className="absolute top-2 right-2 flex items-center gap-1 rounded-md bg-black/70 backdrop-blur-sm px-1.5 py-0.5 text-xs font-semibold text-amber-400">
-										<Star className="size-3 fill-amber-400" />
+									<div className="absolute top-2 right-2 rounded-md bg-amber-500/90 text-amber-50 text-xs font-semibold px-2 py-1 flex items-center gap-1">
+										<Star className="size-3 fill-amber-50" />
 										{Number(movie.voteAverage).toFixed(1)}
 									</div>
 								)}
 							</div>
-							<div className="p-3 space-y-1">
-								<h3 className="text-sm font-medium leading-tight line-clamp-2 group-hover:text-primary transition-colors">
-									{movie.name}
-								</h3>
-								{movie.releaseDate && (
-									<p className="text-xs text-muted-foreground">
-										{new Date(movie.releaseDate).getFullYear()}
-									</p>
-								)}
-							</div>
+							<h3 className="mt-2 text-sm font-medium leading-tight line-clamp-2 group-hover:text-primary transition-colors">
+								{movie.name}
+							</h3>
 						</Link>
 					))}
 				</div>
 			) : (
 				<div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
 					<PackageOpen className="size-12 mb-4 opacity-30" />
-					<p className="text-lg font-medium">No movies in this category</p>
+					<p className="text-lg font-medium">
+						No movies in this category
+					</p>
 					<p className="text-sm">Try another category.</p>
 				</div>
 			)}

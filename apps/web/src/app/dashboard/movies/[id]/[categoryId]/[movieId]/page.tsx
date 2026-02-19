@@ -42,7 +42,7 @@ export default async function MovieDetailPage({ params }: PageProps) {
 	});
 
 	return (
-		<div className="min-h-full">
+		<div className="min-h-full overflow-y-scroll no-scrollbar">
 			<div className="relative">
 				{(movie.cover || movie.poster) && (
 					<div className="absolute inset-0 h-full overflow-hidden">
@@ -54,7 +54,7 @@ export default async function MovieDetailPage({ params }: PageProps) {
 						<div className="absolute inset-0 bg-linear-to-b from-background/60 via-background/80 to-background" />
 					</div>
 				)}
-				<div className="relative p-6 md:p-6">
+				<div className="relative ">
 					<div className="flex flex-col md:flex-row gap-8">
 						{movie.poster && (
 							<div className="shrink-0">
@@ -64,7 +64,7 @@ export default async function MovieDetailPage({ params }: PageProps) {
 									className="w-48 md:w-56 rounded-xl shadow-2xl shadow-black/30 border border-border/30"
 								/>
 							</div>
-						)} 
+						)}
 						<div className="flex-1 space-y-5">
 							<div>
 								<h1 className="text-3xl font-bold tracking-tight mb-1">
@@ -75,7 +75,7 @@ export default async function MovieDetailPage({ params }: PageProps) {
 										{movie.originalName}
 									</p>
 								)}
-							</div> 
+							</div>
 							<div className="flex flex-wrap items-center gap-2">
 								{movie.voteAverage > 0 && (
 									<span className="inline-flex items-center gap-1 rounded-md bg-amber-500/10 text-amber-500 px-2.5 py-1 text-sm font-semibold">
@@ -106,7 +106,7 @@ export default async function MovieDetailPage({ params }: PageProps) {
 										{movie.rating.mpaa}
 									</span>
 								)}
-							</div> 
+							</div>
 							{movie.genre?.length > 0 && (
 								<div className="flex flex-wrap gap-1.5">
 									{movie.genre.map((g) => (
@@ -118,12 +118,12 @@ export default async function MovieDetailPage({ params }: PageProps) {
 										</span>
 									))}
 								</div>
-							)} 
+							)}
 							{movie.plot && (
 								<p className="text-sm leading-relaxed text-muted-foreground max-w-2xl">
 									{movie.plot}
 								</p>
-							)} 
+							)}
 							<div className="space-y-2 text-sm">
 								{movie.director?.length > 0 && (
 									<p>
@@ -162,7 +162,7 @@ export default async function MovieDetailPage({ params }: PageProps) {
 						</div>
 					</div>
 				</div>
-			</div> 
+			</div>
 			{movie.youtubeId && (
 				<div className="px-6 md:px-8 pb-8">
 					<h2 className="text-lg font-semibold mb-4 flex items-center gap-2">

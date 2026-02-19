@@ -1,8 +1,8 @@
-import "server-only"; 
+import "server-only";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getPlaylistById, createXtreamClient } from "@/server/xtream";
-import type { StandardXtreamShow } from "@iptv/xtream-api/standardized"; 
+import type { StandardXtreamShow } from "@iptv/xtream-api/standardized";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Tv, Star, PackageOpen } from "lucide-react";
 
@@ -46,7 +46,7 @@ export default async function SeriesByCategoryPage({
 						<Tv className="size-5" />
 					</div>
 					<div>
-						<h1 className="text-xl font-bold tracking-tight">Series</h1>
+						<h1 className="text-2xl font-bold tracking-tight">Series</h1>
 						<p className="text-sm text-muted-foreground">Page {currentPage}</p>
 					</div>
 				</div>
@@ -57,9 +57,9 @@ export default async function SeriesByCategoryPage({
 						<Link
 							key={show.id}
 							href={`/dashboard/series/${id}/${categoryId}/${show.id}`}
-							className="group relative flex flex-col rounded-xl overflow-hidden border border-border/50 bg-card transition-all duration-200 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-1"
+							className="group"
 						>
-							<div className="relative aspect-[2/3] bg-muted overflow-hidden">
+							<div className="relative aspect-2/3 overflow-hidden rounded-xl bg-muted border border-border/30">
 								{show.poster ? (
 									<img
 										src={show.poster}
@@ -67,35 +67,29 @@ export default async function SeriesByCategoryPage({
 										className="size-full object-cover transition-transform duration-300 group-hover:scale-105"
 									/>
 								) : (
-									<div className="flex items-center justify-center size-full">
-										<Tv className="size-8 text-muted-foreground/30" />
+									<div className="flex items-center justify-center size-full text-muted-foreground">
+										<Tv className="size-10 opacity-50" />
 									</div>
 								)}
 								{show.voteAverage > 0 && (
-									<div className="absolute top-2 right-2 flex items-center gap-1 rounded-md bg-black/70 backdrop-blur-sm px-1.5 py-0.5 text-xs font-semibold text-amber-400">
-										<Star className="size-3 fill-amber-400" />
+									<div className="absolute top-2 right-2 rounded-md bg-amber-500/90 text-amber-50 text-xs font-semibold px-2 py-1 flex items-center gap-1">
+										<Star className="size-3 fill-amber-50" />
 										{Number(show.voteAverage).toFixed(1)}
 									</div>
 								)}
 							</div>
-							<div className="p-3 space-y-1">
-								<h3 className="text-sm font-medium leading-tight line-clamp-2 group-hover:text-primary transition-colors">
-									{show.name}
-								</h3>
-								{show.releaseDate &&
-									!isNaN(new Date(show.releaseDate).getTime()) && (
-										<p className="text-xs text-muted-foreground">
-											{new Date(show.releaseDate).getFullYear()}
-										</p>
-									)}
-							</div>
+							<h3 className="mt-2 text-sm font-medium leading-tight line-clamp-2 group-hover:text-primary transition-colors">
+								{show.name}
+							</h3>
 						</Link>
 					))}
 				</div>
 			) : (
 				<div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
 					<PackageOpen className="size-12 mb-4 opacity-30" />
-					<p className="text-lg font-medium">No series in this category</p>
+					<p className="text-lg font-medium">
+						No series in this category
+					</p>
 					<p className="text-sm">Try another category.</p>
 				</div>
 			)}
