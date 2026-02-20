@@ -1,7 +1,7 @@
 import { NavMain } from "@/components/nav-main";
 import { NavProjects } from "@/components/nav-projects";
 import { PlaylistSwitcher } from "@/components/playlist-switcher";
-import { sidebarData, type Playlist } from "@/components/types";
+import { sidebarData } from "@/components/types";
 import {
 	Sidebar,
 	SidebarContent,
@@ -17,16 +17,13 @@ import type * as React from "react";
 import { ModeToggle } from "./mode-toggle";
 import { Button } from "./ui/button";
 
-export function AppSidebar({
-	playlists, 
-	...props
-}: React.ComponentProps<typeof Sidebar> & { playlists: Playlist[],   }) {
+export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 	const { state } = useSidebar();
 
 	return (
 		<Sidebar collapsible="icon" {...props}>
 			<SidebarHeader>
-				<PlaylistSwitcher playlists={playlists}   />
+				<PlaylistSwitcher />
 			</SidebarHeader>
 			<SidebarContent>
 				<NavMain items={sidebarData.navMain} />

@@ -4,6 +4,6 @@ export default async function PlaylistHomePage({
 	params: Promise<{ playlistId: string }>;
 }) {
 	const { playlistId } = await params;
-
-	return <div>Home - Playlist: {playlistId}</div>;
+ 
+	return <div  >Home - Playlist: {playlistId}</div>;
 }

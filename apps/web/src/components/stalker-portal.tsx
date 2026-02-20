@@ -1,5 +1,6 @@
 "use client";
 
+import type { SimpleFormState } from "@/components/types";
 import { useActionState } from "react";
 import { z } from "zod";
 import { Input } from "@/components/ui/input";
@@ -23,12 +24,7 @@ const stalkerPortalSchema = z.object({
     ),
 });
 
-type FormState = {
-  errors: Record<string, string>;
-  success: boolean;
-};
-
-function validate(_prev: FormState, formData: FormData): FormState {
+function validate(_prev: SimpleFormState, formData: FormData): SimpleFormState {
   const result = stalkerPortalSchema.safeParse({
     portalUrl: formData.get("portalUrl"),
     macAddress: formData.get("macAddress"),
@@ -42,12 +38,11 @@ function validate(_prev: FormState, formData: FormData): FormState {
     }
     return { errors, success: false };
   }
-
-  console.log("Stalker Portal submitted:", result.data);
+ 
   return { errors: {}, success: true };
 }
 
-const initialState: FormState = { errors: {}, success: false };
+const initialState: SimpleFormState = { errors: {}, success: false };
 
 export function StalkerPortalForm() {
   const [state, formAction, isPending] = useActionState(validate, initialState);

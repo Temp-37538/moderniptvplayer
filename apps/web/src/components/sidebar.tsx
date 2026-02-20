@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import React from "react";
 import { AppSidebar } from "./app-sidebar";
+import { PlaylistProvider, usePlaylists } from "./playlist-context";
 import {
 	Breadcrumb,
 	BreadcrumbItem,
@@ -26,6 +27,15 @@ function Sidebar({
 	children: React.ReactNode;
 	playlists: Playlist[];  
 }) {
+	return (
+		<PlaylistProvider playlists={playlists}>
+			<SidebarContent>{children}</SidebarContent>
+		</PlaylistProvider>
+	);
+}
+
+function SidebarContent({ children }: { children: React.ReactNode }) {
+	const playlists = usePlaylists();
 	const pathname = usePathname();
 	const router = useRouter();
 
@@ -36,7 +46,7 @@ function Sidebar({
 
 	return (
 		<>
-			<AppSidebar  playlists={playlists}   />
+			<AppSidebar />
 			<SidebarInset>
 				<header className="flex h-16 z-10 shrink-0 justify-between items-center gap-2 border-b px-4">
 					<div className="flex items-center gap-2">
@@ -124,3 +134,4 @@ function Sidebar({
 }
 
 export default Sidebar;
+export { SidebarContent };

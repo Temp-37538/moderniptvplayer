@@ -19,7 +19,8 @@ Types should be defined in apps\web\src\components\types.tsx and imported from t
 
 ## Skills
 
-When performing tasks that correspond to a skill domain, read the corresponding skill file and follow its instructions.
+When performing ANY TASKS check the .agents/skills folder BEFORE and if its skills match the task then follow the skills
+instructions.
 
 Available skills:
 

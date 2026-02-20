@@ -1,5 +1,4 @@
 "use client";
-
 import {
   Sidebar,
   SidebarContent,
@@ -51,7 +50,7 @@ function SkeletonSidebar({ children }: { children: React.ReactNode }) {
                   <Skeleton className="ml-auto size-3.5 rounded shrink-0" />
                 </SidebarMenuButton>
                 <SidebarMenuSub>
-                  {Array.from({ length: 3 }).map((_, i) => (
+                  {Array.from({ length: 2 }).map((_, i) => (
                     <SidebarMenuSubItem key={`sub-${i}`}>
                       <SidebarMenuSubButton className="pointer-events-none">
                         <Skeleton className="h-3 w-24 rounded" />
@@ -95,7 +94,7 @@ function SkeletonSidebar({ children }: { children: React.ReactNode }) {
         </SidebarContent> 
         <SidebarFooter className="flex items-center gap-2 py-4 border-t-2 justify-center">
           <Skeleton className="h-8 w-10 rounded-md" />
-          <Skeleton className="h-8 w-10 rounded-md" />
+          <Skeleton className="h-8 w-10 rounded-md" />  
         </SidebarFooter>
 
         <SidebarRail />
@@ -109,14 +108,14 @@ function SkeletonSidebar({ children }: { children: React.ReactNode }) {
               orientation="vertical"
             />
             <div className="flex items-center gap-2">
-              <Skeleton className="hidden md:block h-3.5 w-32 rounded" />
-              <Skeleton className="hidden md:block h-3.5 w-1.5 rounded" />
-              <Skeleton className="h-3.5 w-20 rounded" />
+              <Skeleton className="hidden md:block h-4 w-32 rounded" />
+              <Skeleton className="hidden md:block h-4 w-4 rounded" />
+              <Skeleton className="h-4 w-24 rounded" />
             </div>
           </div>
           <div className="flex items-center gap-2"> 
-            <Skeleton className="h-8 w-13 rounded-md" /> 
-            <Skeleton className="h-8 w-16 rounded-md" />
+            <Skeleton className="h-8 w-12 rounded-md" /> 
+            <Skeleton className="h-8 w-17 rounded-md" />
           </div>
         </header>
         <div className="flex flex-1 flex-col gap-4 p-4 overflow-hidden">{children}</div>

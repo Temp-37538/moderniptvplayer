@@ -2,7 +2,6 @@
 
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
-
 import { ModeToggle } from "@/components/mode-toggle";
 
 export function AuthActions() {

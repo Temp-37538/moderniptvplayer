@@ -1,5 +1,6 @@
 "use client";
 
+import type { SimpleFormState } from "@/components/types";
 import { useActionState } from "react";
 import { z } from "zod";
 import { Input } from "@/components/ui/input";
@@ -15,12 +16,7 @@ const m3uSchema = z.object({
   serverName: z.string().optional(),
 });
 
-type FormState = {
-  errors: Record<string, string>;
-  success: boolean;
-};
-
-function validate(_prev: FormState, formData: FormData): FormState {
+function validate(_prev: SimpleFormState, formData: FormData): SimpleFormState {
   const result = m3uSchema.safeParse({
     m3uUrl: formData.get("m3uUrl"),
     serverName: formData.get("serverName") || undefined,
@@ -34,12 +30,11 @@ function validate(_prev: FormState, formData: FormData): FormState {
     }
     return { errors, success: false };
   }
-
-  console.log("M3U submitted:", result.data);
+ 
   return { errors: {}, success: true };
 }
 
-const initialState: FormState = { errors: {}, success: false };
+const initialState: SimpleFormState = { errors: {}, success: false };
 
 export function M3UForm() {
   const [state, formAction, isPending] = useActionState(validate, initialState);

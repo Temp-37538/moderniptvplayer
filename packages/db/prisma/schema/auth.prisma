@@ -9,6 +9,8 @@ model User {
   sessions      Session[]
   accounts      Account[]
   playlists     Playlist[]
+  watchLater    WatchLater[]
+  favorites     Favorite[]
 
   @@unique([email])
   @@map("user")
@@ -24,9 +26,47 @@ model Playlist {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  watchLater WatchLater[]
+  favorites  Favorite[]
 
   @@index([userId])
   @@map("playlist")
+}
+
+model WatchLater {
+  id         String   @id @default(cuid())
+  itemId     String
+  itemType   String
+  itemName   String
+  itemUrl    String
+  playlistId String
+  playlist   Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@unique([playlistId, itemId, itemType])
+  @@index([playlistId])
+  @@index([userId])
+  @@map("watch_later")
+}
+
+model Favorite {
+  id         String   @id @default(cuid())
+  itemId     String
+  itemType   String
+  itemName   String
+  itemUrl    String
+  playlistId String
+  playlist   Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@unique([playlistId, itemId, itemType])
+  @@index([playlistId])
+  @@index([userId])
+  @@map("favorite")
 }
 
 model Session {

@@ -1,10 +1,7 @@
 import "@moderniptvplayer/env/web";
 import type { NextConfig } from "next";
 
-const nextConfig: NextConfig = {
-	typescript: {
-		ignoreBuildErrors: true,
-	},  
+const nextConfig: NextConfig = { 
 	cacheComponents: true,
 	typedRoutes: true,
 	reactCompiler: true,

@@ -1,10 +1,8 @@
 import "server-only";
 import prisma from "../../../../packages/db/src/index";
-import { auth } from "@moderniptvplayer/auth";
-import { headers } from "next/headers";
-import Cryptr from "cryptr";
-import "dotenv/config";
+import Cryptr from "cryptr"; 
 import { revalidatePath } from "next/cache";
+import { getAuthenticatedUserId } from "./auth-utils";
 
 const cryptr = new Cryptr(process.env.SECRET_KEY!);
 
@@ -13,25 +11,18 @@ export async function doesPlaylistExist(
 	serverUrl: string,
 	password: string,
 ) {
-	const session = await auth.api.getSession({
-		headers: await headers(),
-	});
-
-	if (!session?.user.id) {
-		throw new Error("User not authenticated");
-	}
+	const userId = await getAuthenticatedUserId();
 
 	const playlist = await prisma.playlist.findUnique({
 		where: {
 			username,
 			serverUrl,
-			userId: session.user.id,
+			userId,
 		},
 		select: {
 			password: true,
 		},
 	});
-
 
 	if (!playlist) {
 		return false;
@@ -45,13 +36,7 @@ export async function isPlaylistValid(
 	serverUrl: string,
 	password: string,
 ) {
-	const session = await auth.api.getSession({
-		headers: await headers(),
-	});
-
-	if (!session?.user.id) {
-		throw new Error("User not authenticated");
-	}
+	await getAuthenticatedUserId();
 
 	const test = await fetch(
 		`${serverUrl}/player_api.php?username=${username}&password=${password}`,
@@ -68,13 +53,7 @@ export async function addPlaylist(
 	playlistName: string,
 	password: string,
 ) {
-	const session = await auth.api.getSession({
-		headers: await headers(),
-	});
-
-	if (!session?.user.id) {
-		throw new Error("User not authenticated");
-	}
+	const userId = await getAuthenticatedUserId();
 
 	try {
 		const encryptedPassword = cryptr.encrypt(password);
@@ -84,7 +63,7 @@ export async function addPlaylist(
 				serverUrl,
 				playlistName,
 				password: encryptedPassword,
-				userId: session.user.id,
+				userId,
 			},
 		});
 		revalidatePath("/dashboard", "layout");
@@ -95,19 +74,30 @@ export async function addPlaylist(
 	}
 }
 
-export async function fetchPlaylists() {
-	const session = await auth.api.getSession({
-		headers: await headers(),
-	});
+export async function deletePlaylist(playlistId: string) {
+	const userId = await getAuthenticatedUserId();
 
-	if (!session?.user.id) {
-		throw new Error("User not authenticated");
+	try {
+		await prisma.playlist.delete({
+			where: {
+				id: playlistId,
+				userId,
+			},
+		});
+		revalidatePath("/dashboard", "layout");
+	} catch (error) {
+		console.error("Error deleting playlist:", error);
+		throw new Error("Failed to delete playlist");
 	}
+}
+
+export async function fetchPlaylists() {
+	const userId = await getAuthenticatedUserId();
 
 	try {
 		const playlists = await prisma.playlist.findMany({
 			where: {
-				userId: session.user.id,
+				userId,
 			},
 		});
 		return playlists;

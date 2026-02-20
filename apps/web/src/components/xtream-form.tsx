@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { validate } from "@/server/forms";
-import clsx from "clsx";
+import { cn } from "@/lib/utils";
 import { CheckCircle2, Globe, ListVideo, Lock, User } from "lucide-react";
 import { useActionState } from "react";
 import type { FormState } from "./types";
@@ -24,7 +24,7 @@ export function XtreamCodesForm() {
       <h1 className="text-4xl font-bold tracking-tighter py-2 px-4">
         Add Xtream Codes Playlist
       </h1>
-      <form action={formAction} className="flex flex-col p-4 w-[50%] gap-5">
+      <form key={state.message} action={formAction} className="flex flex-col p-4 w-[50%] gap-5">
         <div className="flex flex-col gap-2">
           <Label
             htmlFor="xtream-username"
@@ -45,7 +45,7 @@ export function XtreamCodesForm() {
               autoComplete="username"
               aria-describedby="username-error"
               placeholder="Enter your username"
-              className={clsx(
+              className={cn(
                 "pl-10 h-12 bg-secondary border-border text-foreground placeholder:text-muted-foreground",
                 {
                   "border-destructive": state.errors.properties?.username,
@@ -81,7 +81,7 @@ export function XtreamCodesForm() {
               aria-describedby="password-error"
               type="password"
               placeholder="Enter your password"
-              className={clsx(
+              className={cn(
                 "pl-10 h-12 bg-secondary border-border text-foreground placeholder:text-muted-foreground",
                 {
                   "border-destructive": state.errors.properties?.password,
@@ -113,7 +113,7 @@ export function XtreamCodesForm() {
               defaultValue={state.inputs?.serverUrl ?? ""}
               aria-describedby="serverUrl-error"
               placeholder="http://example.com:8080"
-              className={clsx(
+              className={cn(
                 "pl-10 h-12 bg-secondary border-border text-foreground placeholder:text-muted-foreground",
                 {
                   "border-destructive": state.errors.properties?.serverUrl,
@@ -147,7 +147,7 @@ export function XtreamCodesForm() {
               defaultValue={state.inputs?.playlistName ?? ""}
               aria-describedby="playlistName-error"
               placeholder="My Playlist"
-              className={clsx(
+              className={cn(
                 "pl-10 h-12 bg-secondary border-border text-foreground placeholder:text-muted-foreground",
                 {
                   "border-destructive": state.errors.properties?.playlistName,
@@ -175,7 +175,7 @@ export function XtreamCodesForm() {
               <CheckCircle2 color="green" className="h-4 w-4" />
             )}
             <AlertDescription
-              className={clsx(
+              className={cn(
                 state.success ? "text-green-500" : "text-red-500",
               )}
             >

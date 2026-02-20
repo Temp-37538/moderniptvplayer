@@ -1,20 +1,154 @@
 import "server-only";
 import prisma from "../../../../packages/db/src/index";
-import { auth } from "@moderniptvplayer/auth";
-import { headers } from "next/headers";
 import Cryptr from "cryptr";
-import "dotenv/config";
-import { defineSerializers, Xtream, type XtreamEpisode } from "@iptv/xtream-api";
+import {
+	defineSerializers,
+	Xtream,
+	type XtreamEpisode,
+} from "@iptv/xtream-api";
 import { standardizedSerializer } from "@iptv/xtream-api/standardized";
 import camelcaseKeys from "camelcase-keys";
+import { getAuthenticatedUserId } from "./auth-utils";
 
 const cryptr = new Cryptr(process.env.SECRET_KEY!);
 
 const toStringSafe = (value: unknown) =>
 	value === undefined || value === null ? "" : String(value);
 
+const toNumberSafe = (value: unknown) => {
+	const number = Number(value);
+	return Number.isFinite(number) ? number : 0;
+};
+
+const toDateSafe = (value: unknown) => {
+	if (value === undefined || value === null || value === "") {
+		return null;
+	}
+	const date =
+		typeof value === "string" ||
+		typeof value === "number" ||
+		value instanceof Date
+			? new Date(value)
+			: new Date(String(value));
+	return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const toStringListSafe = (value: unknown) => {
+	if (Array.isArray(value)) {
+		return value.map((item) => toStringSafe(item)).filter(Boolean);
+	}
+	if (typeof value === "string") {
+		return value
+			.split(",")
+			.map((item) => item.trim())
+			.filter(Boolean);
+	}
+	return [] as string[];
+};
+
+const getCoverFromBackdropSafe = (backdropPath: unknown) => {
+	if (Array.isArray(backdropPath)) {
+		const firstBackdrop = backdropPath.find(
+			(item) => typeof item === "string" && item.length > 0,
+		);
+		return typeof firstBackdrop === "string" ? firstBackdrop : undefined;
+	}
+	return typeof backdropPath === "string" && backdropPath.length > 0
+		? backdropPath
+		: undefined;
+};
+
 const safeSerializer = defineSerializers("StandardizedSafe", {
 	...standardizedSerializer.serializers,
+	movies: (input: unknown) => {
+		const movies = Array.isArray(input) ? input : [];
+		return movies.flatMap((item) => {
+			if (!item || typeof item !== "object") {
+				return [];
+			}
+			const data = camelcaseKeys(item as Record<string, unknown>, {
+				deep: true,
+			}) as Record<string, unknown>;
+			const id = toStringSafe(data.streamId ?? data.stream_id ?? data.id);
+			if (!id) {
+				return [];
+			}
+			const categoryIdsRaw =
+				data.categoryIds ??
+				(data.categoryId !== undefined && data.categoryId !== null
+					? [data.categoryId]
+					: []);
+			const releaseDateRaw = data.releaseDate ?? data.release_date;
+			const createdAt =
+				data.added !== undefined && data.added !== null
+					? toDateSafe(toNumberSafe(data.added) * 1e3)
+					: null;
+			return [
+				{
+					id,
+					name: toStringSafe(data.title ?? data.name),
+					plot: toStringSafe(data.plot),
+					genre: toStringListSafe(data.genre),
+					cast: toStringListSafe(data.cast),
+					director: toStringListSafe(data.director),
+					poster: toStringSafe(data.streamIcon ?? data.poster ?? data.cover),
+					duration: toNumberSafe(data.episodeRunTime) * 60,
+					voteAverage: toNumberSafe(data.rating),
+					releaseDate: toDateSafe(releaseDateRaw),
+					youtubeId:
+						toStringSafe(data.youtubeTrailer ?? data.youtubeId) || null,
+					createdAt,
+					categoryIds: toStringListSafe(categoryIdsRaw),
+					url: toStringSafe(data.url),
+				},
+			];
+		});
+	},
+	shows: (input: unknown) => {
+		const shows = Array.isArray(input) ? input : [];
+		return shows.flatMap((item) => {
+			if (!item || typeof item !== "object") {
+				return [];
+			}
+			const data = camelcaseKeys(item as Record<string, unknown>, {
+				deep: true,
+			}) as Record<string, unknown>;
+			const id = toStringSafe(data.seriesId ?? data.series_id ?? data.id);
+			if (!id) {
+				return [];
+			}
+			const cover =
+				getCoverFromBackdropSafe(data.backdropPath) ??
+				data.coverBig ??
+				data.cover ??
+				data.poster;
+			const categoryIdsRaw =
+				data.categoryIds ??
+				(data.categoryId !== undefined && data.categoryId !== null
+					? [data.categoryId]
+					: []);
+			return [
+				{
+					id,
+					name: data.name ?? data.title ?? "",
+					plot: data.plot ?? "",
+					voteAverage: toNumberSafe(data.rating),
+					poster: data.cover ?? data.poster,
+					cover,
+					duration: toNumberSafe(data.episodeRunTime) * 60,
+					cast: [],
+					director: [],
+					genre: [],
+					youtubeId: data.youtubeTrailer ?? data.youtubeId,
+					releaseDate: toDateSafe(data.releaseDate),
+					updatedAt: data.lastModified
+						? toDateSafe(toNumberSafe(data.lastModified) * 1e3)
+						: null,
+					categoryIds: toStringListSafe(categoryIdsRaw),
+				},
+			];
+		});
+	},
 	show: (input: unknown) => {
 		const data = camelcaseKeys(input as Record<string, unknown>, {
 			deep: true,
@@ -105,18 +239,13 @@ const safeSerializer = defineSerializers("StandardizedSafe", {
 				episodes: episodesForSeason,
 			};
 		});
-		const categoryIds = Array.isArray(info.categoryIds)
-			? info.categoryIds.map((id: unknown) => toStringSafe(id)).filter(Boolean)
-			: typeof info.categoryIds === "string"
-				? info.categoryIds
-						.split(",")
-						.map((id: string) => id.trim())
-						.filter(Boolean)
-				: [];
+		const categoryIds = toStringListSafe(info.categoryIds);
 		const poster = info.cover ?? info.poster;
-		const cover = Array.isArray(info.backdropPath)
-			? info.backdropPath[0]
-			: (info.backdropPath ?? info.coverBig ?? info.cover ?? info.poster);
+		const cover =
+			getCoverFromBackdropSafe(info.backdropPath) ??
+			info.coverBig ??
+			info.cover ??
+			info.poster;
 		const cast =
 			typeof info.cast === "string"
 				? info.cast
@@ -167,18 +296,12 @@ const safeSerializer = defineSerializers("StandardizedSafe", {
 });
 
 export async function getPlaylistById(playlistId: string) {
-	const session = await auth.api.getSession({
-		headers: await headers(),
-	});
-
-	if (!session?.user.id) {
-		throw new Error("User not authenticated");
-	}
+	const userId = await getAuthenticatedUserId();
 
 	const playlist = await prisma.playlist.findUnique({
 		where: {
 			id: playlistId,
-			userId: session.user.id,
+			userId,
 		},
 	});
 
@@ -219,7 +342,7 @@ export async function getShowSafe(
 	},
 	showId: string,
 ) {
-	const xtream = createXtreamClient(playlist)
+	const xtream = createXtreamClient(playlist);
 	const baseUrl = playlist.serverUrl.replace(/\/$/, "");
 	const url = `${baseUrl}/player_api.php?username=${encodeURIComponent(
 		playlist.username,
