@@ -1,7 +1,12 @@
 "use server";
 import type { FormState, xtreamFormData } from "@/components/types";
 import { z } from "zod";
-import { addPlaylist, deletePlaylist, doesPlaylistExist, isPlaylistValid } from "./queries";
+import {
+	addPlaylist,
+	deletePlaylist,
+	doesPlaylistExist,
+	isPlaylistValid,
+} from "./queries";
 
 export async function validate(
 	_prev: FormState,

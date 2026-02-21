@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "check-types": "tsc -p tsconfig.json --noEmit",
     "dev": "next dev --port 3001",
     "build": "cd ../../packages/db && npx prisma generate && cd ../../apps/web && next build",
     "start": "next start"

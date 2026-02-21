@@ -1,4 +1,4 @@
-"use client"; 
+"use client";
 import { createContext, useContext } from "react";
 import type { Playlist } from "./types";
 
@@ -11,11 +11,7 @@ export function PlaylistProvider({
 	playlists: Playlist[];
 	children: React.ReactNode;
 }) {
-	return (
-		<PlaylistContext value={playlists}>
-			{children}
-		</PlaylistContext>
-	);
+	return <PlaylistContext value={playlists}>{children}</PlaylistContext>;
 }
 
 export function usePlaylists() {

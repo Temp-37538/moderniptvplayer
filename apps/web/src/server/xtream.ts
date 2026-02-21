@@ -66,9 +66,10 @@ const safeSerializer = defineSerializers("StandardizedSafe", {
 			if (!item || typeof item !== "object") {
 				return [];
 			}
-			const data = camelcaseKeys(item as Record<string, unknown>, {
-				deep: true,
-			}) as Record<string, unknown>;
+			const data = camelcaseKeys(item as Record<string, unknown>) as Record<
+				string,
+				unknown
+			>;
 			const id = toStringSafe(data.streamId ?? data.stream_id ?? data.id);
 			if (!id) {
 				return [];
@@ -110,9 +111,10 @@ const safeSerializer = defineSerializers("StandardizedSafe", {
 			if (!item || typeof item !== "object") {
 				return [];
 			}
-			const data = camelcaseKeys(item as Record<string, unknown>, {
-				deep: true,
-			}) as Record<string, unknown>;
+			const data = camelcaseKeys(item as Record<string, unknown>) as Record<
+				string,
+				unknown
+			>;
 			const id = toStringSafe(data.seriesId ?? data.series_id ?? data.id);
 			if (!id) {
 				return [];
@@ -159,6 +161,9 @@ const safeSerializer = defineSerializers("StandardizedSafe", {
 			data.episodes && typeof data.episodes === "object" ? data.episodes : {};
 		const seriesId = info.seriesId ?? info.series_id ?? info.id;
 		const showId = toStringSafe(seriesId);
+		if (!showId) {
+			throw new Error("seriesId is required");
+		}
 		const flatEpisodes = Object.values(episodesBySeason).flatMap((value) =>
 			Array.isArray(value) ? value : [],
 		);
@@ -367,7 +372,10 @@ export async function getShowSafe(
 
 	if (data?.info && typeof data.info === "object") {
 		if (data.info.series_id === undefined || data.info.series_id === null) {
-			data.info.series_id = Number(showId);
+			const numericShowId = Number(showId);
+			data.info.series_id = Number.isFinite(numericShowId)
+				? numericShowId
+				: showId;
 		}
 	}
 

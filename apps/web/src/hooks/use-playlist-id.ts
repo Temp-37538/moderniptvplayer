@@ -10,7 +10,7 @@ const PLAYLIST_SECTIONS = [
 	"favorites",
 ] as const;
 const NON_PLAYLIST_ROUTES = ["addplaylist", "account"] as const;
-const ALL_SUB_ROUTES = ["all"] as const;
+const SEARCH_SUB_ROUTES = ["search"] as const;
 
 export function usePlaylistIdFromPath() {
 	const pathname = usePathname();
@@ -21,7 +21,7 @@ export function parsePlaylistFromPath(pathname: string) {
 	const parts = pathname.split("/").filter(Boolean);
 
 	if (parts.length >= 3 && PLAYLIST_SECTIONS.includes(parts[1] as any)) {
-		if (ALL_SUB_ROUTES.includes(parts[2] as any)) {
+		if (SEARCH_SUB_ROUTES.includes(parts[2] as any)) {
 			return {
 				section: parts[1] as PlaylistSection,
 				playlistId: parts[3] ?? null,
@@ -53,4 +53,4 @@ export function parsePlaylistFromPath(pathname: string) {
 	};
 }
 
-export { PLAYLIST_SECTIONS, NON_PLAYLIST_ROUTES, ALL_SUB_ROUTES };
+export { PLAYLIST_SECTIONS, NON_PLAYLIST_ROUTES, SEARCH_SUB_ROUTES };

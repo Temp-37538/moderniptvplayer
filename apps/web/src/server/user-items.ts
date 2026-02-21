@@ -5,7 +5,7 @@ import prisma from "../../../../packages/db/src/index";
 import type { ItemType, UserItemStatus } from "@/components/types";
 import { getAuthenticatedUserId } from "./auth-utils";
 import { revalidatePath } from "next/cache";
- 
+
 async function verifyPlaylistOwnership(playlistId: string) {
 	const userId = await getAuthenticatedUserId();
 
@@ -22,7 +22,7 @@ async function verifyPlaylistOwnership(playlistId: string) {
 
 	return playlist;
 }
- 
+
 export async function getItemStatus(
 	playlistId: string,
 	itemId: string,
@@ -97,7 +97,7 @@ export async function toggleWatchLater(
 	revalidatePath("/dashboard", "layout");
 	return true;
 }
- 
+
 export async function toggleFavorite(
 	playlistId: string,
 	itemId: string,
@@ -139,7 +139,6 @@ export async function toggleFavorite(
 	return true;
 }
 
-
 export async function getWatchLaterItems(playlistId: string) {
 	await verifyPlaylistOwnership(playlistId);
 
@@ -148,7 +147,7 @@ export async function getWatchLaterItems(playlistId: string) {
 		orderBy: { createdAt: "desc" },
 	});
 }
- 
+
 export async function getFavoriteItems(playlistId: string) {
 	await verifyPlaylistOwnership(playlistId);
 

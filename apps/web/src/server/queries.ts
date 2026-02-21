@@ -1,6 +1,6 @@
 import "server-only";
 import prisma from "../../../../packages/db/src/index";
-import Cryptr from "cryptr"; 
+import Cryptr from "cryptr";
 import { revalidatePath } from "next/cache";
 import { getAuthenticatedUserId } from "./auth-utils";
 

@@ -7,17 +7,21 @@
   ],
   "type": "module",
   "scripts": {
-    "dev": "turbo dev",
-    "build": "turbo build",
-    "check-types": "turbo check-types",
+    "dev": "pnpm --filter web dev",
+    "build": "pnpm --filter web build",
+    "dev:turbo": "turbo run dev",
+    "build:turbo": "turbo run build",
+    "check-types": "pnpm --filter web check-types",
     "dev:native": "turbo -F native dev",
-    "dev:web": "turbo -F web dev",
+    "dev:web": "pnpm --filter web dev",
     "db:push": "turbo -F @moderniptvplayer/db db:push",
     "db:studio": "turbo -F @moderniptvplayer/db db:studio",
     "db:generate": "turbo -F @moderniptvplayer/db db:generate",
     "db:migrate": "turbo -F @moderniptvplayer/db db:migrate",
-    "check": "biome check",
-    "lint": "biome lint"
+    "check": "biome check apps/web/src",
+    "lint": "biome lint apps/web/src",
+    "format": "biome format --write apps/web/src",
+    "start": "pnpm --filter web start"
   },
   "dependencies": {
     "@moderniptvplayer/env": "workspace:*",

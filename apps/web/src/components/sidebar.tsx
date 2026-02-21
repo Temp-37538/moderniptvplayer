@@ -22,10 +22,10 @@ import type { Playlist } from "./types";
 
 function Sidebar({
 	children,
-	playlists,  
+	playlists,
 }: {
 	children: React.ReactNode;
-	playlists: Playlist[];  
+	playlists: Playlist[];
 }) {
 	return (
 		<PlaylistProvider playlists={playlists}>
@@ -83,17 +83,14 @@ function SidebarContent({ children }: { children: React.ReactNode }) {
 											}
 										}
 
-										label =
-											label.charAt(0).toUpperCase() + label.slice(1);
+										label = label.charAt(0).toUpperCase() + label.slice(1);
 
 										return (
 											<React.Fragment key={href}>
 												<BreadcrumbItem className="hidden md:block">
 													{!isLast ? (
 														<BreadcrumbLink
-															render={
-																<Link href={href as any} />
-															}
+															render={<Link href={href as any} />}
 														>
 															{label}
 														</BreadcrumbLink>
@@ -127,7 +124,9 @@ function SidebarContent({ children }: { children: React.ReactNode }) {
 						</SignedIn>
 					</div>
 				</header>
-				<div className="flex flex-1 flex-col gap-4 p-4 overflow-hidden">{children}</div>
+				<div className="flex flex-1 flex-col gap-4 p-4 overflow-hidden">
+					{children}
+				</div>
 			</SidebarInset>
 		</>
 	);

@@ -9,40 +9,40 @@ import { TooltipProvider } from "./ui/tooltip";
 import { useRouter } from "next/navigation";
 
 export default function Providers({ children }: { children: React.ReactNode }) {
-  const router = useRouter();
+	const router = useRouter();
 
-  return (
-    <ThemeProvider
-      attribute="class"
-      defaultTheme="system"
-      enableSystem
-      disableTransitionOnChange
-    >
-      <SidebarProvider>
-        <TooltipProvider>
-          <AuthUIProvider
-            authClient={authClient}
-            navigate={router.push}
-            replace={router.replace}
-            onSessionChange={() => {
-              router.refresh(); 
-            }}
-            account={{
-              basePath: "/dashboard/account",
-            }}
-            nameRequired={false}
-            redirectTo="/dashboard/auth/sign-in"
-            changeEmail={false}
-            signUp={{ fields: [] }}
-            Link={Link}
-            deleteUser={true}
-            credentials={{ confirmPassword: true, forgotPassword: false }}
-          >
-            {children}
-          </AuthUIProvider>
-        </TooltipProvider>
-      </SidebarProvider>
-      <Toaster richColors />
-    </ThemeProvider>
-  );
+	return (
+		<ThemeProvider
+			attribute="class"
+			defaultTheme="system"
+			enableSystem
+			disableTransitionOnChange
+		>
+			<SidebarProvider>
+				<TooltipProvider>
+					<AuthUIProvider
+						authClient={authClient}
+						navigate={router.push}
+						replace={router.replace}
+						onSessionChange={() => {
+							router.refresh();
+						}}
+						account={{
+							basePath: "/dashboard/account",
+						}}
+						nameRequired={false}
+						redirectTo="/dashboard/auth/sign-in"
+						changeEmail={false}
+						signUp={{ fields: [] }}
+						Link={Link}
+						deleteUser={true}
+						credentials={{ confirmPassword: true, forgotPassword: false }}
+					>
+						{children}
+					</AuthUIProvider>
+				</TooltipProvider>
+			</SidebarProvider>
+			<Toaster richColors />
+		</ThemeProvider>
+	);
 }

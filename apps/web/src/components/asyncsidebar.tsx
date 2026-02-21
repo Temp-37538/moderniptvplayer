@@ -28,7 +28,7 @@ export async function AsyncSidebar({
 }: Readonly<{
 	children: React.ReactNode;
 }>) {
-	const playlists = await getPlaylists(); 
+	const playlists = await getPlaylists();
 
 	return <Sidebar playlists={playlists}>{children}</Sidebar>;
 }

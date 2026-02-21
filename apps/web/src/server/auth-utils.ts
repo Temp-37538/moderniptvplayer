@@ -1,7 +1,7 @@
 import "server-only";
 import { auth } from "@moderniptvplayer/auth";
 import { headers } from "next/headers";
- 
+
 export async function getAuthenticatedUserId(): Promise<string> {
 	const session = await auth.api.getSession({
 		headers: await headers(),
