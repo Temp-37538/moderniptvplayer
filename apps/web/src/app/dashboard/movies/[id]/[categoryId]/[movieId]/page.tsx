@@ -83,10 +83,10 @@ export default async function MovieDetailPage({ params }: PageProps) {
 										{Number(movie.voteAverage).toFixed(1)}
 									</span>
 								)}
-								{movie.durationFormatted && (
+								{movie.duration && (
 									<span className="inline-flex items-center gap-1 rounded-md bg-muted px-2.5 py-1 text-sm text-muted-foreground">
 										<Clock className="size-3.5" />
-										{movie.durationFormatted}
+										{new Date(parseInt(movie.duration, 10) * 60 * 1000).toISOString().substr(11, 8)}
 									</span>
 								)}
 								{movie.releaseDate && (
@@ -131,6 +131,14 @@ export default async function MovieDetailPage({ params }: PageProps) {
 										<span className="font-medium">
 											{movie.director.join(", ")}
 										</span>
+									</p>
+								)}
+								{movie.createdAt && (
+									<p>
+										<span className="text-muted-foreground">Release date : </span>
+										<span className="font-medium">
+											  {`${movie.createdAt.getDate().toString().padStart(2,"0")}/${(movie.createdAt.getMonth()+1).toString().padStart(2,"0")}/${movie.createdAt.getFullYear()} `}
+										 </span>
 									</p>
 								)}
 								{movie.cast?.length > 0 && (
