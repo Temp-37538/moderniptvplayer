@@ -14,6 +14,57 @@ import type { StandardXtreamMovie } from "@iptv/xtream-api/standardized";
 import { Star, Clock, Calendar, Globe, ExternalLink, Film } from "lucide-react";
 import { toSafeImageSrc } from "@/lib/image-url";
 
+const MOVIE_FETCH_MAX_ATTEMPTS = 3;
+const RETRY_DELAY_MS = 150;
+
+async function wait(ms: number) {
+	return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function getMovieWithRetry({
+	xtream,
+	movieId,
+	playlistId,
+}: {
+	xtream: ReturnType<typeof createXtreamClient>;
+	movieId: string;
+	playlistId: string;
+}) {
+	let lastError: unknown;
+
+	for (let attempt = 1; attempt <= MOVIE_FETCH_MAX_ATTEMPTS; attempt += 1) {
+		try {
+			return (await xtream.getMovie({ movieId })) as StandardXtreamMovie;
+		} catch (error) {
+			lastError = error;
+			const reason = error instanceof Error ? error.message : "Unknown error";
+			const isMovieNotFound =
+				error instanceof Error && error.message === "Movie Not Found";
+
+			console.warn("[movie-detail] getMovie failed", {
+				playlistId,
+				movieId,
+				attempt,
+				maxAttempts: MOVIE_FETCH_MAX_ATTEMPTS,
+				reason,
+			});
+
+			if (isMovieNotFound && attempt === MOVIE_FETCH_MAX_ATTEMPTS) {
+				return null;
+			}
+
+			if (attempt < MOVIE_FETCH_MAX_ATTEMPTS) {
+				await wait(RETRY_DELAY_MS);
+				continue;
+			}
+
+			throw error;
+		}
+	}
+
+	throw lastError;
+}
+
 export default async function MovieDetailPage({ params }: PageProps) {
 	const { id, categoryId, movieId } = await params;
 
@@ -25,7 +76,11 @@ export default async function MovieDetailPage({ params }: PageProps) {
 
 	const xtream = createXtreamClient(playlist);
 
-	const movie = (await xtream.getMovie({ movieId })) as StandardXtreamMovie;
+	const movie = await getMovieWithRetry({
+		xtream,
+		movieId,
+		playlistId: id,
+	});
 
 	if (!movie) {
 		notFound();
