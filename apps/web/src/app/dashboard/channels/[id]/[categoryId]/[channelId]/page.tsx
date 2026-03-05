@@ -12,6 +12,7 @@ import type { StandardXtreamChannel } from "@iptv/xtream-api/standardized";
 import { ExternalLink, Hash, Radio, Satellite } from "lucide-react";
 import { notFound } from "next/navigation";
 import "server-only";
+import { toSafeImageSrc } from "@/lib/image-url";
 
 export default async function ChannelDetailPage({ params }: PageProps) {
 	const { id, categoryId, channelId } = await params;
@@ -44,15 +45,16 @@ export default async function ChannelDetailPage({ params }: PageProps) {
 	}
 
 	const itemStatus = await getItemStatus(id, channelId, "channel");
+	const safeLogoSrc = toSafeImageSrc(channel.logo);
 
 	return (
 		<div className="max-w-2xl">
 			<div className="rounded-xl border border-border/50 bg-card overflow-hidden">
 				<div className="flex items-center gap-6 p-6 bg-muted/20">
 					<div className="flex items-center justify-center size-24 rounded-xl bg-muted overflow-hidden shrink-0 border border-border/30">
-						{channel.logo ? (
+						{safeLogoSrc ? (
 							<img
-								src={channel.logo}
+								src={safeLogoSrc}
 								alt={channel.name}
 								className="size-full object-contain p-2"
 							/>

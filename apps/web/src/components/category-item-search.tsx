@@ -1,10 +1,11 @@
 "use client";
 
 import { EmptyState } from "@/components/empty-state";
+import { toSafeImageSrc } from "@/lib/image-url";
 import { Input } from "@/components/ui/input";
 import { Film, Loader2, Radio, SearchIcon, Tv } from "lucide-react";
 import Link from "next/link";
-import type { ComponentType } from "react";
+import type { ComponentType, ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 
 const SEARCH_DEBOUNCE_MS = 300;
@@ -38,6 +39,34 @@ type CategoryItemSearchProps = {
 	playlistId: string;
 	categoryId: string;
 };
+
+type ImageWithFallbackProps = {
+	src?: string;
+	alt: string;
+	className: string;
+	fallback: ReactNode;
+};
+
+function ImageWithFallback({
+	src,
+	alt,
+	className,
+	fallback,
+}: ImageWithFallbackProps) {
+	const [failed, setFailed] = useState(false);
+
+	useEffect(() => {
+		setFailed(false);
+	}, [src]);
+
+	if (!src || failed) {
+		return <>{fallback}</>;
+	}
+
+	return (
+		<img src={src} alt={alt} className={className} onError={() => setFailed(true)} />
+	);
+}
 
 const SECTION_CONFIG: Record<
 	SearchSection,
@@ -231,65 +260,69 @@ export function CategoryItemSearch({
 					/>
 				) : section === "channels" ? (
 					<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-						{items.map((item) => (
-							<Link
-								key={item.id}
-								href={
-									`/dashboard/channels/${playlistId}/${item.categoryId}/${item.id}` as any
-								}
-								className="group flex items-center gap-4 rounded-xl border border-border/50 bg-card p-4 transition-all duration-200 hover:border-primary/30 hover:bg-accent/50 hover:shadow-lg hover:shadow-primary/5"
-							>
-								<div className="flex items-center justify-center size-12 rounded-lg bg-muted overflow-hidden shrink-0">
-									{item.logo ? (
-										<img
-											src={item.logo}
+						{items.map((item) => {
+							const safeLogoSrc = toSafeImageSrc(item.logo);
+							return (
+								<Link
+									key={item.id}
+									href={
+										`/dashboard/channels/${playlistId}/${item.categoryId}/${item.id}` as any
+									}
+									className="group flex items-center gap-4 rounded-xl border border-border/50 bg-card p-4 transition-all duration-200 hover:border-primary/30 hover:bg-accent/50 hover:shadow-lg hover:shadow-primary/5"
+								>
+									<div className="flex items-center justify-center size-12 rounded-lg bg-muted overflow-hidden shrink-0">
+										<ImageWithFallback
+											src={safeLogoSrc}
 											alt={item.name}
 											className="size-full object-contain p-1"
+											fallback={
+												<Radio className="size-5 text-muted-foreground/40" />
+											}
 										/>
-									) : (
-										<Radio className="size-5 text-muted-foreground/40" />
-									)}
-								</div>
-								<div className="flex-1 min-w-0">
-									<h3 className="text-sm font-medium leading-tight line-clamp-1 group-hover:text-primary transition-colors">
-										{item.name}
-									</h3>
-								</div>
-							</Link>
-						))}
+									</div>
+									<div className="flex-1 min-w-0">
+										<h3 className="text-sm font-medium leading-tight line-clamp-1 group-hover:text-primary transition-colors">
+											{item.name}
+										</h3>
+									</div>
+								</Link>
+							);
+						})}
 					</div>
 				) : (
 					<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-						{items.map((item) => (
-							<Link
-								key={item.id}
-								href={
-									`/dashboard/${section}/${playlistId}/${item.categoryId}/${item.id}` as any
-								}
-								className="group"
-							>
-								<div className="relative aspect-2/3 overflow-hidden rounded-xl bg-muted border border-border/30">
-									{item.poster ? (
-										<img
-											src={item.poster}
+						{items.map((item) => {
+							const safePosterSrc = toSafeImageSrc(item.poster);
+							return (
+								<Link
+									key={item.id}
+									href={
+										`/dashboard/${section}/${playlistId}/${item.categoryId}/${item.id}` as any
+									}
+									className="group"
+								>
+									<div className="relative aspect-2/3 overflow-hidden rounded-xl bg-muted border border-border/30">
+										<ImageWithFallback
+											src={safePosterSrc}
 											alt={item.name}
 											className="size-full object-cover transition-transform duration-300 group-hover:scale-105"
+											fallback={
+												<div className="flex items-center justify-center size-full text-muted-foreground">
+													{section === "movies" ? (
+														<Film className="size-10 opacity-50" />
+													) : (
+														<Tv className="size-10 opacity-50" />
+													)}
+												</div>
+											}
 										/>
-									) : (
-										<div className="flex items-center justify-center size-full text-muted-foreground">
-											{section === "movies" ? (
-												<Film className="size-10 opacity-50" />
-											) : (
-												<Tv className="size-10 opacity-50" />
-											)}
-										</div>
-									)}
-								</div>
-								<h3 className="mt-2 text-sm font-medium leading-tight line-clamp-2 group-hover:text-primary transition-colors">
-									{item.name}
-								</h3>
-							</Link>
-						))}
+									</div>
+									<h3 className="mt-2 text-sm font-medium leading-tight line-clamp-2 group-hover:text-primary transition-colors">
+										{item.name}
+									</h3>
+								</Link>
+							);
+						})}
 					</div>
 				)}
 			</div>

@@ -12,44 +12,69 @@ const PLAYLIST_SECTIONS = [
 const NON_PLAYLIST_ROUTES = ["addplaylist", "account"] as const;
 const SEARCH_SUB_ROUTES = ["search"] as const;
 
+type ParsedPlaylistPath = {
+	section: PlaylistSection;
+	playlistId: string | null;
+};
+
+type PlaylistSectionValue = (typeof PLAYLIST_SECTIONS)[number];
+type NonPlaylistRoute = (typeof NON_PLAYLIST_ROUTES)[number];
+type SearchSubRoute = (typeof SEARCH_SUB_ROUTES)[number];
+
+function isPlaylistSection(value: string): value is PlaylistSectionValue {
+	return PLAYLIST_SECTIONS.includes(value as PlaylistSectionValue);
+}
+
+function isNonPlaylistRoute(value: string): value is NonPlaylistRoute {
+	return NON_PLAYLIST_ROUTES.includes(value as NonPlaylistRoute);
+}
+
+function isSearchSubRoute(value: string): value is SearchSubRoute {
+	return SEARCH_SUB_ROUTES.includes(value as SearchSubRoute);
+}
+
 export function usePlaylistIdFromPath() {
 	const pathname = usePathname();
 	return parsePlaylistFromPath(pathname);
 }
 
-export function parsePlaylistFromPath(pathname: string) {
+export function parsePlaylistFromPath(pathname: string): ParsedPlaylistPath {
 	const parts = pathname.split("/").filter(Boolean);
 
-	if (parts.length >= 3 && PLAYLIST_SECTIONS.includes(parts[1] as any)) {
-		if (SEARCH_SUB_ROUTES.includes(parts[2] as any)) {
+	if (parts.length >= 3 && isPlaylistSection(parts[1])) {
+		if (parts[2] && isSearchSubRoute(parts[2])) {
 			return {
-				section: parts[1] as PlaylistSection,
+				section: parts[1],
 				playlistId: parts[3] ?? null,
 			};
 		}
 		return {
-			section: parts[1] as PlaylistSection,
-			playlistId: parts[2],
+			section: parts[1],
+			playlistId: parts[2] ?? null,
 		};
 	}
 
 	if (
 		parts.length === 2 &&
-		!PLAYLIST_SECTIONS.includes(parts[1] as any) &&
-		!NON_PLAYLIST_ROUTES.includes(parts[1] as any)
+		!isPlaylistSection(parts[1]) &&
+		!isNonPlaylistRoute(parts[1])
 	) {
 		return {
-			section: null as PlaylistSection,
+			section: null,
 			playlistId: parts[1],
 		};
 	}
 
-	const hasValidSection =
-		parts.length >= 2 && PLAYLIST_SECTIONS.includes(parts[1] as any);
+	if (parts.length >= 2 && isPlaylistSection(parts[1])) {
+		return {
+			section: parts[1],
+			playlistId: null,
+		};
+	}
 
 	return {
-		section: hasValidSection ? (parts[1] as PlaylistSection) : null,
-		playlistId: null as string | null,
+		section: null,
+		playlistId: null,
 	};
 }
 

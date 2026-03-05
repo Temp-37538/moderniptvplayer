@@ -12,6 +12,7 @@ import { ItemActionButtons } from "@/components/item-action-buttons";
 import { getItemStatus } from "@/server/user-items";
 import type { StandardXtreamMovie } from "@iptv/xtream-api/standardized";
 import { Star, Clock, Calendar, Globe, ExternalLink, Film } from "lucide-react";
+import { toSafeImageSrc } from "@/lib/image-url";
 
 export default async function MovieDetailPage({ params }: PageProps) {
 	const { id, categoryId, movieId } = await params;
@@ -37,14 +38,16 @@ export default async function MovieDetailPage({ params }: PageProps) {
 	});
 
 	const itemStatus = await getItemStatus(id, movieId, "movie");
+	const safePosterSrc = toSafeImageSrc(movie.poster);
+	const safeCoverSrc = toSafeImageSrc(movie.cover) ?? safePosterSrc;
 
 	return (
 		<div className="min-h-full overflow-y-scroll no-scrollbar">
 			<div className="relative mb-4 md:mb-0">
-				{(movie.cover || movie.poster) && (
+				{safeCoverSrc && (
 					<div className="absolute inset-0 h-full overflow-hidden">
 						<img
-							src={movie.cover || movie.poster}
+							src={safeCoverSrc}
 							alt=""
 							className="size-full object-cover blur-2xl scale-110 opacity-20"
 						/>
@@ -53,10 +56,10 @@ export default async function MovieDetailPage({ params }: PageProps) {
 				)}
 				<div className="relative ">
 					<div className="flex  flex-col md:flex-row gap-8">
-						{movie.poster && (
+						{safePosterSrc && (
 							<div className="shrink-0">
 								<img
-									src={movie.poster}
+									src={safePosterSrc}
 									alt={movie.name}
 									className="w-48 md:w-56 rounded-xl shadow-2xl shadow-black/30 border border-border/30"
 								/>

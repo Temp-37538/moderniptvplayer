@@ -12,6 +12,7 @@ import type { StandardXtreamShow } from "@iptv/xtream-api/standardized";
 import { Calendar, Clock, ExternalLink, Film, Star, Tv } from "lucide-react";
 import { notFound } from "next/navigation";
 import "server-only";
+import { toSafeImageSrc } from "@/lib/image-url";
 
 export default async function ShowDetailPage({ params }: PageProps) {
 	const { id, categoryId, showId } = await params;
@@ -40,14 +41,16 @@ export default async function ShowDetailPage({ params }: PageProps) {
 	}
 
 	const itemStatus = await getItemStatus(id, showId, "series");
+	const safePosterSrc = toSafeImageSrc(show.poster);
+	const safeCoverSrc = toSafeImageSrc(show.cover) ?? safePosterSrc;
 
 	return (
 		<div className="min-h-full no-scrollbar overflow-y-scroll">
 			<div className="relative">
-				{(show.cover || show.poster) && (
+				{safeCoverSrc && (
 					<div className="absolute inset-0 h-100 overflow-hidden">
 						<img
-							src={show.cover || show.poster}
+							src={safeCoverSrc}
 							alt=""
 							className="size-full object-cover blur-2xl scale-110 opacity-20"
 						/>
@@ -56,10 +59,10 @@ export default async function ShowDetailPage({ params }: PageProps) {
 				)}
 				<div className="relative">
 					<div className="flex flex-col md:flex-row gap-8">
-						{show.poster && (
+						{safePosterSrc && (
 							<div className="shrink-0">
 								<img
-									src={show.poster}
+									src={safePosterSrc}
 									alt={show.name}
 									className="w-48 md:w-56 rounded-xl shadow-2xl shadow-black/30 border border-border/30"
 								/>
