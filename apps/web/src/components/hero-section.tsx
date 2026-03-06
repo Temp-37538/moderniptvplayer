@@ -82,16 +82,22 @@ export default function HeroSection() {
 					<div className="relative pt-24 md:pt-36">
 						<AnimatedGroup
 							variants={backgroundVariants}
-							className="mask-b-from-35% mask-b-to-90% absolute inset-0 top-56 -z-20 lg:top-32"
+							className="absolute inset-x-0 bottom-0 top-20 -z-20 overflow-hidden mask-[linear-gradient(to_bottom,transparent_0%,black_18%,black_74%,transparent_100%)] [-webkit-mask-image:linear-gradient(to_bottom,transparent_0%,black_18%,black_74%,transparent_100%)] lg:top-12"
 						>
 							<Image
-								src={`/lpbgs.png`}
+								src={`/hero_bg.webp`}
 								alt="background"
-								className="hidden dark:brightness-[0.6] dark:grayscale size-full dark:block"
-								width="3276"
-								height="4095"
+								className="block size-full scale-[1.03] brightness-[0.58] grayscale blur-[2px]"
+								loading="eager"  
+								width={3840}
+								height={2160}	
 							/>
 						</AnimatedGroup>
+
+						<div
+							aria-hidden
+							className="absolute inset-x-0 top-0 -z-10 h-40 bg-linear-to-b from-white via-white/90 to-transparent blur-3xl dark:hidden"
+						/>
 
 						<div
 							aria-hidden
@@ -163,7 +169,7 @@ export default function HeroSection() {
 									<Button
 										key={2}
 										size="lg"
-										variant="ghost"
+										variant="secondary"
 										className="h-10.5 rounded-xl px-5"
 										render={<Link href="/" />}
 										nativeButton={false}
@@ -178,18 +184,20 @@ export default function HeroSection() {
 							<div className="mask-b-from-55% relative -mr-56 mt-8 overflow-hidden px-2 sm:mr-0 sm:mt-12 md:mt-20">
 								<div className="inset-shadow-2xs ring-background dark:inset-shadow-white/20 bg-background relative mx-auto max-w-6xl overflow-hidden rounded-2xl border p-4 shadow-lg shadow-zinc-950/15 ring-1">
 									<Image
-										className="bg-background aspect-15/8 relative hidden rounded-2xl dark:block"
-										src="/mail2.webp"
+										className="  aspect-15/8 relative hidden rounded-2xl dark:block"
+										src="/dark_.webp"
 										alt="app screen"
-										width="2700"
-										height="1440"
+										loading="eager"
+										width="2507"
+										priority={true}
+										height="1256"
 									/>
 									<Image
-										className="z-2 border-border/25 aspect-15/8 relative rounded-2xl border dark:hidden"
-										src="/mail2-light.webp"
+										className="aspect-15/8 relative rounded-2xl block dark:hidden"
+										src="/light_.webp"
 										alt="app screen"
-										width="2700"
-										height="1440"
+										width="2507"
+										height="1256"
 									/>
 								</div>
 							</div>
