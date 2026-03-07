@@ -9,6 +9,20 @@ import { Toaster } from "./ui/sonner";
 import { TooltipProvider } from "./ui/tooltip";
 import { useRouter } from "next/navigation";
 
+type AuthLinkProps = {
+	href: string;
+	className?: string;
+	children: React.ReactNode;
+};
+
+function AuthLink({ href, className, children }: AuthLinkProps) {
+	return (
+		<Link href={href as Route} className={className}>
+			{children}
+		</Link>
+	);
+}
+
 export default function Providers({ children }: { children: React.ReactNode }) {
 	const router = useRouter();
 
@@ -35,7 +49,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
 						redirectTo="/dashboard/auth/sign-in"
 						changeEmail={false}
 						signUp={{ fields: [] }}
-						Link={Link}
+						Link={AuthLink}
 						deleteUser={true}
 						credentials={{ confirmPassword: true, forgotPassword: false }}
 					>
