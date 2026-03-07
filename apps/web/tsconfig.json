@@ -26,6 +26,9 @@
     "paths": {
       "@/*": [
         "./src/*"
+      ],
+      "@moderniptvplayer/db": [
+        "../../packages/db/src/index.ts"
       ]
     }
   },

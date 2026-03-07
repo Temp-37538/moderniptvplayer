@@ -1,7 +1,7 @@
 "use server";
 
 import "server-only";
-import prisma from "../../../../packages/db/src/index";
+import prisma from "@moderniptvplayer/db";
 import type { ItemType, UserItemStatus } from "@/components/types";
 import { getAuthenticatedUserId } from "./auth-utils";
 import { revalidatePath } from "next/cache";

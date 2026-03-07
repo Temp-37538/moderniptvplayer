@@ -1,4 +1,5 @@
 import "server-only";
+import { createPageMetadata, getMovieMetadataContext } from "@/app/metadata";
 import type { MovieDetailPageProps as PageProps } from "@/components/types";
 import {
 	Tooltip,
@@ -16,6 +17,25 @@ import { toSafeImageSrc } from "@/lib/image-url";
 
 const MOVIE_FETCH_MAX_ATTEMPTS = 3;
 const RETRY_DELAY_MS = 150;
+
+export async function generateMetadata({ params }: PageProps) {
+	const { id, categoryId, movieId } = await params;
+	const context = await getMovieMetadataContext(id, movieId);
+	const movieTitle = context?.movie?.name ?? "Movie Details";
+	const description = context?.movie?.plot?.trim();
+
+	return createPageMetadata({
+		title: movieTitle,
+		description:
+			description && description.length > 0
+				? description
+				: context?.playlist
+					? `View details, trailers, and actions for ${movieTitle} from ${context.playlist.playlistName}.`
+					: "View details for this movie.",
+		path: `/dashboard/movies/${id}/${categoryId}/${movieId}`,
+		noIndex: true,
+	});
+}
 
 async function wait(ms: number) {
 	return new Promise((resolve) => setTimeout(resolve, ms));
@@ -95,7 +115,6 @@ export default async function MovieDetailPage({ params }: PageProps) {
 	const itemStatus = await getItemStatus(id, movieId, "movie");
 	const safePosterSrc = toSafeImageSrc(movie.poster);
 	const safeCoverSrc = toSafeImageSrc(movie.cover) ?? safePosterSrc;
-
 	return (
 		<div className="min-h-full overflow-y-scroll no-scrollbar">
 			<div className="relative mb-4 md:mb-0">
@@ -138,10 +157,10 @@ export default async function MovieDetailPage({ params }: PageProps) {
 										{Number(movie.voteAverage).toFixed(1)}
 									</span>
 								)}
-								{movie.duration && (
+								{movie.durationFormatted && (
 									<span className="inline-flex items-center gap-1 rounded-md bg-muted px-2.5 py-1 text-sm text-muted-foreground">
 										<Clock className="size-3.5" />
-										{new Date(parseInt(movie.duration, 10) * 60 * 1000).toISOString().substr(11, 8)}
+										{movie.durationFormatted}
 									</span>
 								)}
 								{movie.releaseDate && (
@@ -190,10 +209,12 @@ export default async function MovieDetailPage({ params }: PageProps) {
 								)}
 								{movie.createdAt && (
 									<p>
-										<span className="text-muted-foreground">Release date : </span>
+										<span className="text-muted-foreground">
+											Release date :{" "}
+										</span>
 										<span className="font-medium">
-											  {`${movie.createdAt.getDate().toString().padStart(2,"0")}/${(movie.createdAt.getMonth()+1).toString().padStart(2,"0")}/${movie.createdAt.getFullYear()} `}
-										 </span>
+											{`${movie.createdAt.getDate().toString().padStart(2, "0")}/${(movie.createdAt.getMonth() + 1).toString().padStart(2, "0")}/${movie.createdAt.getFullYear()} `}
+										</span>
 									</p>
 								)}
 								{movie.cast?.length > 0 && (
@@ -211,35 +232,37 @@ export default async function MovieDetailPage({ params }: PageProps) {
 									</p>
 								)}
 							</div>
-							<div className="flex flex-wrap gap-3 pt-2">
-								<CopyStreamButton url={movie.url ? movie.url : streamUrl!} />
-								<Tooltip>
-									<TooltipTrigger
-										render={
-											<a
-												href={movie.url}
-												target="_blank"
-												rel="noopener noreferrer"
-												className="inline-flex cursor-pointer items-center justify-center size-8 rounded-[min(var(--radius-md),10px)] hover:bg-muted transition-colors"
-											>
-												<ExternalLink className="size-4" />
-											</a>
-										}
+							{streamUrl && (
+								<div className="flex flex-wrap gap-3 pt-2">
+									<CopyStreamButton url={movie.url ? movie.url : streamUrl} />
+									<Tooltip>
+										<TooltipTrigger
+											render={
+												<a
+													href={movie.url}
+													target="_blank"
+													rel="noopener noreferrer"
+													className="inline-flex cursor-pointer items-center justify-center size-8 rounded-[min(var(--radius-md),10px)] hover:bg-muted transition-colors"
+												>
+													<ExternalLink className="size-4" />
+												</a>
+											}
+										/>
+										<TooltipContent>
+											<p>{"Read the content in another player"}</p>
+										</TooltipContent>
+									</Tooltip>
+									<ItemActionButtons
+										playlistId={id}
+										itemId={movieId}
+										itemType="movie"
+										itemName={movie.name}
+										itemUrl={`/dashboard/movies/${id}/${categoryId}/${movieId}`}
+										isWatchLater={itemStatus.isWatchLater}
+										isFavorite={itemStatus.isFavorite}
 									/>
-									<TooltipContent>
-										<p>{"Read the content in another player"}</p>
-									</TooltipContent>
-								</Tooltip>
-								<ItemActionButtons
-									playlistId={id}
-									itemId={movieId}
-									itemType="movie"
-									itemName={movie.name}
-									itemUrl={`/dashboard/movies/${id}/${categoryId}/${movieId}`}
-									isWatchLater={itemStatus.isWatchLater}
-									isFavorite={itemStatus.isFavorite}
-								/>
-							</div>
+								</div>
+							)}
 						</div>
 					</div>
 				</div>

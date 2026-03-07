@@ -51,7 +51,8 @@ function SkeletonSidebar({ children }: { children: React.ReactNode }) {
 								</SidebarMenuButton>
 								<SidebarMenuSub>
 									{Array.from({ length: 2 }).map((_, i) => (
-										<SidebarMenuSubItem key={`sub-${i}`}>
+										// biome-ignore lint/suspicious/noArrayIndexKey: "Index is acceptable here since items are static placeholders"
+										<SidebarMenuSubItem key={i}>
 											<SidebarMenuSubButton className="pointer-events-none">
 												<Skeleton className="h-3 w-24 rounded" />
 											</SidebarMenuSubButton>
@@ -60,7 +61,8 @@ function SkeletonSidebar({ children }: { children: React.ReactNode }) {
 								</SidebarMenuSub>
 							</SidebarMenuItem>
 							{Array.from({ length: 2 }).map((_, i) => (
-								<SidebarMenuItem key={`nav-${i}`}>
+								// biome-ignore lint/suspicious/noArrayIndexKey: "Index is acceptable here since items are static placeholders"
+								<SidebarMenuItem key={i}>
 									<SidebarMenuButton className="pointer-events-none">
 										<Skeleton className="size-4 rounded shrink-0" />
 										<Skeleton className="h-3.5 w-20 rounded" />
@@ -76,7 +78,8 @@ function SkeletonSidebar({ children }: { children: React.ReactNode }) {
 						</SidebarGroupLabel>
 						<SidebarMenu>
 							{Array.from({ length: 3 }).map((_, i) => (
-								<SidebarMenuItem key={`proj-${i}`}>
+								// biome-ignore lint/suspicious/noArrayIndexKey: "Index is acceptable here since items are static placeholders"
+								<SidebarMenuItem key={i}>
 									<SidebarMenuButton className="pointer-events-none">
 										<Skeleton className="size-4 rounded shrink-0" />
 										<Skeleton className="h-3.5 w-24 rounded" />

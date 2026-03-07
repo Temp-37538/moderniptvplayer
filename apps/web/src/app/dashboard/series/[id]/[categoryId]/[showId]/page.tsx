@@ -1,3 +1,4 @@
+import { createPageMetadata, getShowMetadataContext } from "@/app/metadata";
 import { CopyStreamButton } from "@/components/copy-stream-button";
 import { ItemActionButtons } from "@/components/item-action-buttons";
 import type { PageProps } from "@/components/types";
@@ -13,6 +14,25 @@ import { Calendar, Clock, ExternalLink, Film, Star, Tv } from "lucide-react";
 import { notFound } from "next/navigation";
 import "server-only";
 import { toSafeImageSrc } from "@/lib/image-url";
+
+export async function generateMetadata({ params }: PageProps) {
+	const { id, categoryId, showId } = await params;
+	const context = await getShowMetadataContext(id, showId);
+	const showTitle = context?.show?.name ?? "Series Details";
+	const description = context?.show?.plot?.trim();
+
+	return createPageMetadata({
+		title: showTitle,
+		description:
+			description && description.length > 0
+				? description
+				: context?.playlist
+					? `View seasons, episodes, and actions for ${showTitle} from ${context.playlist.playlistName}.`
+					: "View details for this series.",
+		path: `/dashboard/series/${id}/${categoryId}/${showId}`,
+		noIndex: true,
+	});
+}
 
 export default async function ShowDetailPage({ params }: PageProps) {
 	const { id, categoryId, showId } = await params;
@@ -141,10 +161,10 @@ export default async function ShowDetailPage({ params }: PageProps) {
 				</div>
 			</div>
 			{show.youtubeId && (
-				<div className="px-6 md:px-8 pb-6">
+				<div className="px-6 py-4 md:px-8 pb-6">
 					<h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-						<Film className="size-5 text-primary" />
-						Trailer
+						<Film className="size-5 text-primary z-10" />
+						<p className="z-10">Trailer</p>
 					</h2>
 					<div className="relative w-full max-w-3xl rounded-xl overflow-hidden border border-border/50 shadow-xl aspect-video">
 						<iframe
@@ -212,28 +232,30 @@ export default async function ShowDetailPage({ params }: PageProps) {
 													</span>
 												)}
 											</div>
-											<div className="flex items-center gap-2 shrink-0">
-												<CopyStreamButton url={episode.url!} />
-												<Tooltip>
-													<TooltipTrigger
-														render={
-															<a
-																target="_blank"
-																aria-label="Watch episode in external window"
-																rel="noopener noreferrer"
-																href={episode.url}
-																type="button"
-																className="inline-flex cursor-pointer items-center justify-center size-8 rounded-[min(var(--radius-md),10px)] hover:bg-muted transition-colors"
-															>
-																<ExternalLink className="size-4" />
-															</a>
-														}
-													/>
-													<TooltipContent>
-														Watch in external window
-													</TooltipContent>
-												</Tooltip>
-											</div>
+											{episode.url && (
+												<div className="flex items-center gap-2 shrink-0">
+													<CopyStreamButton url={episode.url} />
+													<Tooltip>
+														<TooltipTrigger
+															render={
+																<a
+																	target="_blank"
+																	aria-label="Watch episode in external window"
+																	rel="noopener noreferrer"
+																	href={episode.url}
+																	type="button"
+																	className="inline-flex cursor-pointer items-center justify-center size-8 rounded-[min(var(--radius-md),10px)] hover:bg-muted transition-colors"
+																>
+																	<ExternalLink className="size-4" />
+																</a>
+															}
+														/>
+														<TooltipContent>
+															Watch in external window
+														</TooltipContent>
+													</Tooltip>
+												</div>
+											)}
 										</div>
 									);
 								})}

@@ -5,8 +5,7 @@ import { type NextRequest, NextResponse } from "next/server";
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 const REQUEST_TIMEOUT_MS = 8_000;
 const MAX_REDIRECTS = 3;
-const CACHE_CONTROL =
-	"public, max-age=86400, stale-while-revalidate=86400";
+const CACHE_CONTROL = "public, max-age=86400, stale-while-revalidate=86400";
 
 const blockedHosts = new Set([
 	"localhost",
@@ -86,7 +85,10 @@ async function validatePublicHost(targetUrl: URL) {
 
 	if (!isIP(hostForIpCheck)) {
 		try {
-			const records = await lookup(hostForIpCheck, { all: true, verbatim: true });
+			const records = await lookup(hostForIpCheck, {
+				all: true,
+				verbatim: true,
+			});
 			if (records.length === 0) {
 				logProxyFailure("dns-empty", { host: normalizedHostname });
 				return makeError(502, "Unable to fetch image.");
@@ -156,7 +158,11 @@ async function fetchWithValidatedRedirects(
 ) {
 	let currentUrl = initialUrl;
 
-	for (let redirectCount = 0; redirectCount <= MAX_REDIRECTS; redirectCount += 1) {
+	for (
+		let redirectCount = 0;
+		redirectCount <= MAX_REDIRECTS;
+		redirectCount += 1
+	) {
 		const hostError = await validatePublicHost(currentUrl);
 		if (hostError) {
 			return { response: hostError, finalUrl: currentUrl } as const;
@@ -182,7 +188,10 @@ async function fetchWithValidatedRedirects(
 				host: currentUrl.hostname,
 				status: upstreamResponse.status,
 			});
-			return { response: makeError(502, "Unable to fetch image."), finalUrl: currentUrl } as const;
+			return {
+				response: makeError(502, "Unable to fetch image."),
+				finalUrl: currentUrl,
+			} as const;
 		}
 
 		let nextUrl: URL;
@@ -192,7 +201,10 @@ async function fetchWithValidatedRedirects(
 			logProxyFailure("invalid-redirect-location", {
 				host: currentUrl.hostname,
 			});
-			return { response: makeError(502, "Unable to fetch image."), finalUrl: currentUrl } as const;
+			return {
+				response: makeError(502, "Unable to fetch image."),
+				finalUrl: currentUrl,
+			} as const;
 		}
 
 		if (nextUrl.protocol !== "http:" && nextUrl.protocol !== "https:") {
@@ -200,7 +212,10 @@ async function fetchWithValidatedRedirects(
 				from: currentUrl.hostname,
 				protocol: nextUrl.protocol,
 			});
-			return { response: makeError(502, "Unable to fetch image."), finalUrl: currentUrl } as const;
+			return {
+				response: makeError(502, "Unable to fetch image."),
+				finalUrl: currentUrl,
+			} as const;
 		}
 
 		nextUrl.hash = "";
@@ -208,7 +223,10 @@ async function fetchWithValidatedRedirects(
 	}
 
 	logProxyFailure("too-many-redirects", { host: initialUrl.hostname });
-	return { response: makeError(502, "Unable to fetch image."), finalUrl: initialUrl } as const;
+	return {
+		response: makeError(502, "Unable to fetch image."),
+		finalUrl: initialUrl,
+	} as const;
 }
 
 export async function GET(request: NextRequest) {
@@ -235,7 +253,10 @@ export async function GET(request: NextRequest) {
 	targetUrl.hash = "";
 
 	const abortController = new AbortController();
-	const timeoutId = setTimeout(() => abortController.abort(), REQUEST_TIMEOUT_MS);
+	const timeoutId = setTimeout(
+		() => abortController.abort(),
+		REQUEST_TIMEOUT_MS,
+	);
 
 	try {
 		const upstream = await fetchWithValidatedRedirects(
@@ -279,11 +300,16 @@ export async function GET(request: NextRequest) {
 		}
 
 		if (!upstreamResponse.body) {
-			logProxyFailure("missing-response-body", { host: upstream.finalUrl.hostname });
+			logProxyFailure("missing-response-body", {
+				host: upstream.finalUrl.hostname,
+			});
 			return makeError(502, "Unable to fetch image.");
 		}
 
-		const body = await readBodyWithLimit(upstreamResponse.body, MAX_IMAGE_BYTES);
+		const body = await readBodyWithLimit(
+			upstreamResponse.body,
+			MAX_IMAGE_BYTES,
+		);
 		if (!body) {
 			logProxyFailure("payload-too-large-stream", {
 				host: upstream.finalUrl.hostname,

@@ -1,10 +1,25 @@
 import "server-only";
+import { createPageMetadata, getPlaylistMetadataContext } from "@/app/metadata";
 import type { PlaylistIdPageProps as PageProps } from "@/components/types";
 import { notFound } from "next/navigation";
 import { getPlaylistById } from "@/server/xtream";
 import { getFavoriteItems } from "@/server/user-items";
 import { SavedItemsList } from "@/components/saved-items-list";
 import { Heart } from "lucide-react";
+
+export async function generateMetadata({ params }: PageProps) {
+	const { playlistId } = await params;
+	const playlist = await getPlaylistMetadataContext(playlistId);
+
+	return createPageMetadata({
+		title: "Favorites",
+		description: playlist
+			? `Browse favorite items saved from ${playlist.playlistName}.`
+			: "Browse items saved to your favorites.",
+		path: `/dashboard/favorites/${playlistId}`,
+		noIndex: true,
+	});
+}
 
 export default async function FavoritesPage({ params }: PageProps) {
 	const { playlistId } = await params;

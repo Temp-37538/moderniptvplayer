@@ -1,4 +1,5 @@
 import type { PaginationNavProps } from "@/components/types";
+import type { Route } from "next";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -11,6 +12,9 @@ export function PaginationNav({
 }: PaginationNavProps) {
 	if (!hasPreviousPage && !hasNextPage) return null;
 
+	const previousHref = `${baseUrl}?page=${currentPage - 1}` as Route;
+	const nextHref = `${baseUrl}?page=${currentPage + 1}` as Route;
+
 	return (
 		<nav className="flex items-center justify-center gap-2 mt-8">
 			{hasPreviousPage ? (
@@ -18,7 +22,7 @@ export function PaginationNav({
 					nativeButton={false}
 					variant="outline"
 					size="sm"
-					render={<Link href={`${baseUrl}?page=${currentPage - 1}`} />}
+					render={<Link href={previousHref} />}
 				>
 					<ChevronLeft className="size-4" />
 					Previous
@@ -37,7 +41,7 @@ export function PaginationNav({
 					nativeButton={false}
 					variant="outline"
 					size="sm"
-					render={<Link href={`${baseUrl}?page=${currentPage + 1}`} />}
+					render={<Link href={nextHref} />}
 				>
 					Next
 					<ChevronRight className="size-4" />

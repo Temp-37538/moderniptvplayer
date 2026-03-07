@@ -7,6 +7,7 @@ import { Film, Loader2, Radio, SearchIcon, Tv } from "lucide-react";
 import Link from "next/link";
 import type { ComponentType, ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
+import type { Route } from "next";
 
 const SEARCH_DEBOUNCE_MS = 300;
 const MIN_QUERY_LENGTH = 2;
@@ -55,6 +56,7 @@ function ImageWithFallback({
 }: ImageWithFallbackProps) {
 	const [failed, setFailed] = useState(false);
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: <!-- We only want to reset on src change -->
 	useEffect(() => {
 		setFailed(false);
 	}, [src]);
@@ -64,7 +66,12 @@ function ImageWithFallback({
 	}
 
 	return (
-		<img src={src} alt={alt} className={className} onError={() => setFailed(true)} />
+		<img
+			src={src}
+			alt={alt}
+			className={className}
+			onError={() => setFailed(true)}
+		/>
 	);
 }
 
@@ -266,7 +273,7 @@ export function CategoryItemSearch({
 								<Link
 									key={item.id}
 									href={
-										`/dashboard/channels/${playlistId}/${item.categoryId}/${item.id}` as any
+										`/dashboard/channels/${playlistId}/${item.categoryId}/${item.id}` as Route
 									}
 									className="group flex items-center gap-4 rounded-xl border border-border/50 bg-card p-4 transition-all duration-200 hover:border-primary/30 hover:bg-accent/50 hover:shadow-lg hover:shadow-primary/5"
 								>
@@ -297,7 +304,7 @@ export function CategoryItemSearch({
 								<Link
 									key={item.id}
 									href={
-										`/dashboard/${section}/${playlistId}/${item.categoryId}/${item.id}` as any
+										`/dashboard/${section}/${playlistId}/${item.categoryId}/${item.id}` as Route
 									}
 									className="group"
 								>

@@ -1,3 +1,4 @@
+import { getAuthPageMetadata } from "@/app/metadata";
 import { AuthView } from "@daveyplate/better-auth-ui";
 import { authViewPaths } from "@daveyplate/better-auth-ui/server";
 import { Tv } from "lucide-react";
@@ -6,6 +7,15 @@ import { HeroOverlayV2 } from "../../../components/hero-overlay";
 
 export function generateStaticParams() {
 	return Object.values(authViewPaths).map((path) => ({ path }));
+}
+
+export async function generateMetadata({
+	params,
+}: {
+	params: Promise<{ path: string }>;
+}) {
+	const { path } = await params;
+	return getAuthPageMetadata(path);
 }
 
 export default async function AuthPage({

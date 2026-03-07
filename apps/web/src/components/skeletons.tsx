@@ -1,3 +1,4 @@
+/** biome-ignore-all lint/suspicious/noArrayIndexKey: Skeletons are static so index can be used as key */
 import { Skeleton } from "@/components/ui/skeleton";
 
 export function MediaGridSkeletonNoSearchBar({
@@ -15,7 +16,6 @@ export function MediaGridSkeletonNoSearchBar({
 						<Skeleton className="h-4 w-16" />
 					</div>
 				</div>
-				<Skeleton className="h-8 w-full md:w-70 rounded-md" />
 			</div>
 			<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
 				{Array.from({ length: count }).map((_, i) => (
@@ -28,11 +28,7 @@ export function MediaGridSkeletonNoSearchBar({
 	);
 }
 
-export function ChannelCategorySearchSkeleton({
-	count = 20,
-}: {
-	count?: number;
-}) {
+export function ChannelCategorySearchSkeleton() {
 	return (
 		<div className="h-full flex flex-col gap-4">
 			<div className="flex flex-col gap-3">
@@ -49,20 +45,13 @@ export function ChannelCategorySearchSkeleton({
 				<Skeleton className="h-4 w-48" />
 			</div>
 
-			<div className="flex-1 overflow-y-auto no-scrollbar pb-10">
-				<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-					{Array.from({ length: count }).map((_, i) => (
-						<div
-							key={i}
-							className="flex items-center gap-4 rounded-xl border border-border/50 p-4"
-						>
-							<Skeleton className="size-12 rounded-lg shrink-0" />
-							<div className="space-y-2 flex-1">
-								<Skeleton className="h-4 w-3/4" />
-								<Skeleton className="h-3 w-1/4" />
-							</div>
-						</div>
-					))}
+			<div className="flex-1  overflow-y-auto no-scrollbar pb-10">
+				<div className="flex justify-center items-center gap-3">
+					<div className="flex flex-col  items-center justify-center py-20 animate-pulse">
+						<div className="mb-4 size-12 rounded-md bg-muted  " />
+						<div className="h-5 w-40 rounded-md bg-muted mb-2  " />
+						<div className="h-4 w-56 rounded-md bg-muted  " />
+					</div>
 				</div>
 			</div>
 		</div>
@@ -147,11 +136,11 @@ export function CategoryGridSkeleton({ count = 35 }: { count?: number }) {
 				<div className="flex items-center gap-3">
 					<Skeleton className="size-10 rounded-xl" />
 					<div className="space-y-2">
-						<Skeleton className="h-7 w-32" />
-						<Skeleton className="h-4 w-48" />
+						<Skeleton className="h-7 w-22 md:w-32" />
+						<Skeleton className="h-4 w-22 md:w-48 " />
 					</div>
 				</div>
-				<Skeleton className="h-8 w-full md:w-70 rounded-md" />
+				<Skeleton className="h-8 w-60 md:w-70 rounded-md" />
 			</div>
 			<div className="flex-1 overflow-y-auto no-scrollbar">
 				<div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
@@ -195,8 +184,8 @@ export function MediaDetailSkeleton() {
 							</div>
 							<div className="space-y-2">
 								<Skeleton className="h-4 w-full max-w-2xl" />
-								<Skeleton className="h-4 w-full max-w-xl" />
-								<Skeleton className="h-4 w-full max-w-lg" />
+								<Skeleton className="h-4 w-full max-w-2xl" />
+								<Skeleton className="h-4 w-full max-w-2xl" />
 							</div>
 							<div className="space-y-2 pt-2">
 								<Skeleton className="h-4 w-64" />
@@ -205,7 +194,7 @@ export function MediaDetailSkeleton() {
 							</div>
 							<div className="flex flex-wrap gap-3 pt-2">
 								<Skeleton className="h-9 w-10 rounded-md" />
-								<Skeleton className="h-9 w-28 rounded-md" />
+								<Skeleton className="h-9 w-10 rounded-md" />
 								<Skeleton className="h-9 w-10 rounded-md" />
 								<Skeleton className="h-9 w-10 rounded-md" />
 							</div>

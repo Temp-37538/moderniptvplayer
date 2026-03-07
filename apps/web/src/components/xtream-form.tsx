@@ -18,6 +18,14 @@ const initialState: FormState = {
 
 export function XtreamCodesForm() {
 	const [state, formAction, isPending] = useActionState(validate, initialState);
+	const formKey = [
+		state.inputs?.username ?? "",
+		state.inputs?.password ?? "",
+		state.inputs?.serverUrl ?? "",
+		state.inputs?.playlistName ?? "",
+		state.message,
+		state.success ? "1" : "0",
+	].join("|");
 
 	return (
 		<>
@@ -25,7 +33,7 @@ export function XtreamCodesForm() {
 				Add Xtream Codes Playlist
 			</h1>
 			<form
-				key={state.message}
+				key={formKey}
 				action={formAction}
 				className="flex flex-col p-4 md:w-[50%] gap-5"
 			>
@@ -41,7 +49,6 @@ export function XtreamCodesForm() {
 						<Input
 							id="xtream-username"
 							name="username"
-							key={1}
 							required
 							defaultValue={state.inputs?.username ?? ""}
 							minLength={1}
@@ -77,7 +84,6 @@ export function XtreamCodesForm() {
 							id="xtream-password"
 							name="password"
 							defaultValue={state.inputs?.password ?? ""}
-							key={1}
 							required
 							minLength={1}
 							maxLength={100}
@@ -110,7 +116,6 @@ export function XtreamCodesForm() {
 						<Globe className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
 						<Input
 							id="xtream-serverUrl"
-							key={1}
 							name="serverUrl"
 							required
 							autoComplete="url"
@@ -143,7 +148,6 @@ export function XtreamCodesForm() {
 						<Input
 							id="xtream-playlistName"
 							name="playlistName"
-							key={1}
 							required
 							minLength={1}
 							maxLength={50}

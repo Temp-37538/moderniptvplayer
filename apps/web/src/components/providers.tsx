@@ -1,6 +1,7 @@
 "use client";
 import { authClient } from "@/lib/auth-client";
 import { AuthUIProvider } from "@daveyplate/better-auth-ui";
+import type { Route } from "next";
 import Link from "next/link";
 import { ThemeProvider } from "./theme-provider";
 import { SidebarProvider } from "./ui/sidebar";
@@ -22,8 +23,8 @@ export default function Providers({ children }: { children: React.ReactNode }) {
 				<TooltipProvider>
 					<AuthUIProvider
 						authClient={authClient}
-						navigate={router.push}
-						replace={router.replace}
+						navigate={(href) => router.push(href as Route)}
+						replace={(href) => router.replace(href as Route)}
 						onSessionChange={() => {
 							router.refresh();
 						}}

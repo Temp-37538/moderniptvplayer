@@ -1,3 +1,4 @@
+import { createPageMetadata, getChannelMetadataContext } from "@/app/metadata";
 import type { ChannelDetailPageProps as PageProps } from "@/components/types";
 import { CopyStreamButton } from "@/components/copy-stream-button";
 import { ItemActionButtons } from "@/components/item-action-buttons";
@@ -13,6 +14,21 @@ import { ExternalLink, Hash, Radio, Satellite } from "lucide-react";
 import { notFound } from "next/navigation";
 import "server-only";
 import { toSafeImageSrc } from "@/lib/image-url";
+
+export async function generateMetadata({ params }: PageProps) {
+	const { id, categoryId, channelId } = await params;
+	const context = await getChannelMetadataContext(id, categoryId, channelId);
+	const channelName = context?.channel?.name ?? "Channel Details";
+
+	return createPageMetadata({
+		title: channelName,
+		description: context?.playlist
+			? `View stream details for ${channelName} from ${context.playlist.playlistName}.`
+			: "View stream details for this channel.",
+		path: `/dashboard/channels/${id}/${categoryId}/${channelId}`,
+		noIndex: true,
+	});
+}
 
 export default async function ChannelDetailPage({ params }: PageProps) {
 	const { id, categoryId, channelId } = await params;

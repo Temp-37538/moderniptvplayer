@@ -19,6 +19,7 @@ import { Button } from "./ui/button";
 import { Separator } from "./ui/separator";
 import { SidebarInset, SidebarTrigger } from "./ui/sidebar";
 import type { Playlist } from "./types";
+import type { Route } from "next";
 
 function Sidebar({
 	children,
@@ -71,6 +72,7 @@ function SidebarContent({ children }: { children: React.ReactNode }) {
 										if (segment === "series") label = "Series";
 
 										const playlist = playlists?.find((p) => p.id === segment);
+										
 										if (playlist) {
 											label = playlist.playlistName;
 										} else if (index > 0) {
@@ -90,9 +92,9 @@ function SidebarContent({ children }: { children: React.ReactNode }) {
 												<BreadcrumbItem className="hidden md:block">
 													{!isLast ? (
 														<BreadcrumbLink
-															render={<Link href={href as any} />}
+															render={<Link href={href as Route} />}
 														>
-															{label}
+															{label} 
 														</BreadcrumbLink>
 													) : (
 														<BreadcrumbPage>{label}</BreadcrumbPage>
@@ -109,7 +111,7 @@ function SidebarContent({ children }: { children: React.ReactNode }) {
 					</div>
 					<div className="flex items-center gap-2">
 						<Button className={"p-0"} variant="outline" size="sm">
-							<Link className="py-4 px-4 m-0" href={"/dashboard" as any}>
+							<Link className="py-4 px-4 m-0" href={"/dashboard" as Route}>
 								<House />
 							</Link>
 						</Button>

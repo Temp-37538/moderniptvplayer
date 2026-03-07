@@ -1,4 +1,5 @@
 import "server-only";
+import { createPageMetadata, getCategoryMetadataContext } from "@/app/metadata";
 import type { IdCategoryPageProps as PageProps } from "@/components/types";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -11,6 +12,27 @@ import { PaginationNav } from "@/components/pagination-nav";
 import { toSafeImageSrc } from "@/lib/image-url";
 
 const ITEMS_PER_PAGE = 20;
+
+export async function generateMetadata({ params, searchParams }: PageProps) {
+	const { id, categoryId } = await params;
+	const { page: pageParam } = await searchParams;
+	const currentPage = Number(pageParam) || 1;
+	const context = await getCategoryMetadataContext("movies", id, categoryId);
+	const categoryTitle = context?.categoryName ?? "Movies";
+	const pageSuffix = currentPage > 1 ? `, page ${currentPage}` : "";
+
+	return createPageMetadata({
+		title: categoryTitle,
+		description: context?.playlist
+			? `Browse ${categoryTitle.toLowerCase()} from ${context.playlist.playlistName}${pageSuffix}.`
+			: `Browse movies in this category${pageSuffix}.`,
+		path:
+			currentPage > 1
+				? `/dashboard/movies/${id}/${categoryId}?page=${currentPage}`
+				: `/dashboard/movies/${id}/${categoryId}`,
+		noIndex: true,
+	});
+}
 
 export default async function MoviesByCategoryPage({
 	params,

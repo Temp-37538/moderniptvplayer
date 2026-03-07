@@ -6,14 +6,10 @@
     "packages/*"
   ],
   "type": "module",
-  "scripts": {
-    "dev": "pnpm --filter web dev",
-    "build": "pnpm --filter web build",
-    "dev:turbo": "turbo run dev",
-    "build:turbo": "turbo run build",
-    "check-types": "pnpm --filter web check-types",
-    "dev:native": "turbo -F native dev",
-    "dev:web": "pnpm --filter web dev",
+  "scripts": {  
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "check-types": "turbo run check-types", 
     "db:push": "turbo -F @moderniptvplayer/db db:push",
     "db:studio": "turbo -F @moderniptvplayer/db db:studio",
     "db:generate": "turbo -F @moderniptvplayer/db db:generate",
@@ -21,7 +17,7 @@
     "check": "biome check apps/web/src",
     "lint": "biome lint apps/web/src",
     "format": "biome format --write apps/web/src",
-    "start": "pnpm --filter web start"
+    "start": "turbo run start"
   },
   "dependencies": {
     "@moderniptvplayer/env": "workspace:*",
@@ -33,7 +29,7 @@
     "@biomejs/biome": "2.3.15",
     "@moderniptvplayer/config": "workspace:*",
     "@types/node": "^22.13.14",
-    "turbo": "^2.6.3"
+    "turbo": "^2.8.14"
   },
   "packageManager": "pnpm@10.28.2"
 }

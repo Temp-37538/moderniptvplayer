@@ -20,9 +20,10 @@ import {
 	PlusIcon,
 	Trash2Icon,
 } from "lucide-react";
+import type { Route } from "next";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { useEffect, useTransition } from "react";
+import { useCallback, useEffect, useTransition } from "react";
 import { deletePlaylistAction } from "@/server/forms";
 import {
 	usePlaylistIdFromPath,
@@ -51,13 +52,25 @@ export function PlaylistSwitcher() {
 		return playlists[0] || null;
 	})();
 
+	const buildSectionRoute = useCallback(
+		(targetSection: typeof section) =>
+			(targetSection ? `/dashboard/${targetSection}` : "/dashboard") as Route,
+		[],
+	);
+
+	const buildPlaylistRoute = useCallback(
+		(basePath: Route, playlistId: string) =>
+			`${basePath}/${playlistId}` as Route,
+		[],
+	);
+
 	const setActivePlaylist = (playlist: Playlist) => {
-		const basePath = section ? `/dashboard/${section}` : "/dashboard";
+		const basePath = buildSectionRoute(section);
 		if (playlist.id === NO_PLAYLIST_ID) {
-			router.replace(basePath as any);
+			router.replace(basePath);
 			return;
 		}
-		router.replace(`${basePath}/${playlist.id}`);
+		router.replace(buildPlaylistRoute(basePath, playlist.id));
 	};
 
 	useEffect(() => {
@@ -84,9 +97,17 @@ export function PlaylistSwitcher() {
 		if (isNonPlaylistRoute || isSearchSubRoute) {
 			return;
 		}
-		const basePath = section ? `/dashboard/${section}` : "/dashboard";
-		router.replace(`${basePath}/${activePlaylist.id}` as any);
-	}, [activePlaylist, playlistIdFromPath, section, pathname, router]);
+		const basePath = buildSectionRoute(section);
+		router.replace(buildPlaylistRoute(basePath, activePlaylist.id));
+	}, [
+		activePlaylist,
+		playlistIdFromPath,
+		section,
+		pathname,
+		router,
+		buildPlaylistRoute,
+		buildSectionRoute,
+	]);
 
 	if (!activePlaylist) {
 		return null;
@@ -124,7 +145,7 @@ export function PlaylistSwitcher() {
 					>
 						<DropdownMenuGroup>
 							<DropdownMenuLabel className="text-muted-foreground text-xs">
-								Mes Playlists
+								My Playlists
 							</DropdownMenuLabel>
 							{playlists[0].id ===
 							"NoPlaylisfreàçuhgpzfiru_thgrpituehgriptgrt" ? (
@@ -133,9 +154,9 @@ export function PlaylistSwitcher() {
 										<ListVideoIcon className="size-4" />
 									</div>
 									<div className="flex-1 min-w-0">
-										<div className="truncate font-medium">Aucune playlist</div>
+										<div className="truncate font-medium">No playlist</div>
 										<div className="truncate text-xs text-muted-foreground">
-											Veuillez ajouter une playlist
+											Add a playlist to get started
 										</div>
 									</div>
 								</DropdownMenuItem>
@@ -189,7 +210,7 @@ export function PlaylistSwitcher() {
 									href="/dashboard/addplaylist"
 									className="text-muted-foreground font-medium"
 								>
-									Ajouter une playlist
+									Add a playlist
 								</Link>
 							</DropdownMenuItem>
 						</DropdownMenuGroup>

@@ -149,8 +149,6 @@ export type UserItemStatus = {
 	isFavorite: boolean;
 };
 
-// ─── Component props types ────────────────────────────────────────────────────
-
 export type CopyStreamButtonProps = {
 	url: string;
 };
@@ -225,8 +223,6 @@ export type PlaylistSection =
 	| "watchlater"
 	| "favorites"
 	| null;
-
-// ─── Named page route props ────────────────────────────────────────────────────
 
 export type PlaylistIdPageProps = {
 	params: Promise<{ playlistId: string }>;

@@ -1,11 +1,7 @@
-import type {
-	ItemType,
-	SavedItem,
-	SavedItemsListProps,
-} from "@/components/types";
 import { EmptyState } from "@/components/empty-state";
-import { Clock, Film, Heart, Tv, ClapperboardIcon } from "lucide-react";
 import { RemoveItemButton } from "@/components/remove-item-button";
+import type { ItemType, SavedItemsListProps } from "@/components/types";
+import { ClapperboardIcon, Clock, Film, Heart, Tv } from "lucide-react";
 
 const typeIcons: Record<string, React.ReactNode> = {
 	channel: <Tv className="size-4 text-blue-500" />,

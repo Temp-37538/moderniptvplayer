@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/sidebar";
 import { usePlaylistIdFromPath } from "@/hooks/use-playlist-id";
 import { ChevronRightIcon } from "lucide-react";
+import type { Route } from "next";
 import Link from "next/link";
 
 export function NavMain({
@@ -34,11 +35,10 @@ export function NavMain({
 }) {
 	const { playlistId } = usePlaylistIdFromPath();
 
-	function buildHref(url: string) {
-		if (!url) return url;
-		if (!playlistId) return url;
-		if (url.startsWith("/dashboard/")) return `${url}/${playlistId}`;
-		return url;
+	function buildHref(url: string): Route {
+		if (!playlistId) return url as Route;
+		if (url.startsWith("/dashboard/")) return `${url}/${playlistId}` as Route;
+		return url as Route;
 	}
 
 	return (
@@ -53,7 +53,7 @@ export function NavMain({
 						render={<SidebarMenuItem />}
 					>
 						<CollapsibleTrigger
-							className={"cursor-pointer"}
+							className="cursor-pointer"
 							render={<SidebarMenuButton tooltip={item.title} />}
 						>
 							{item.icon}
@@ -65,7 +65,7 @@ export function NavMain({
 								{item.items?.map((subItem) => (
 									<SidebarMenuSubItem key={subItem.title}>
 										<SidebarMenuSubButton
-											render={<Link href={buildHref(subItem.url) as string} />}
+											render={<Link href={buildHref(subItem.url)} />}
 										>
 											<span>{subItem.title}</span>
 										</SidebarMenuSubButton>

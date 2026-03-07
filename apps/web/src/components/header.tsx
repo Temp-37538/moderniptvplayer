@@ -1,12 +1,14 @@
+"use client";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Menu, X } from "lucide-react";
 import { TvMinimal } from "lucide-react";
+import type { Route } from "next";
 import Link from "next/link";
 import React from "react";
 import { ModeToggle } from "./mode-toggle";
 
-const menuItems = [
+const menuItems: Array<{ name: string; href: Route }> = [
 	{ name: "Add Playlist", href: "/dashboard/addplaylist" },
 	{ name: "Xtream Codes", href: "/dashboard/addplaylist/xtream" },
 	{ name: "M3U URL", href: "/dashboard/addplaylist/m3u" },

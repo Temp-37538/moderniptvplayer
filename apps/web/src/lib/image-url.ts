@@ -3,7 +3,7 @@ const IMAGE_PROXY_PATH = "/api/image-proxy?url=";
 function parseUrl(raw: string) {
 	try {
 		return new URL(raw);
-	} catch (error) {
+	} catch {
 		console.log("parseUrl: invalid URL:", raw);
 		return undefined;
 	}
@@ -23,7 +23,7 @@ export function toSafeImageSrc(raw: string | undefined): string | undefined {
 			return undefined;
 		}
 		return protocolRelative.toString();
-	} 
+	}
 	if (trimmed.startsWith("/")) {
 		return trimmed;
 	}
@@ -42,6 +42,10 @@ export function toSafeImageSrc(raw: string | undefined): string | undefined {
 		return `${IMAGE_PROXY_PATH}${encodeURIComponent(parsed.toString())}`;
 	}
 
-	console.log("toSafeImageSrc: unsupported protocol:", parsed.protocol, parsed.toString());
+	console.log(
+		"toSafeImageSrc: unsupported protocol:",
+		parsed.protocol,
+		parsed.toString(),
+	);
 	return undefined;
 }

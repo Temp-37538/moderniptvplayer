@@ -65,6 +65,23 @@ export async function validate(
 		validatedData.data.password,
 	);
 
+	if (valid.error === "network") {
+		return {
+			errors: {
+				properties: {
+					serverUrl: {
+						errors: [
+							"Unable to reach the playlist server. Check the URL or DNS.",
+						],
+					},
+				},
+			},
+			success: false,
+			inputs: rawData,
+			message: "Playlist server is unreachable.",
+		};
+	}
+
 	if (!valid.ok) {
 		return {
 			errors: {

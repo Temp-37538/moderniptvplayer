@@ -88,9 +88,9 @@ export default function HeroSection() {
 								src={`/hero_bg.webp`}
 								alt="background"
 								className="block size-full scale-[1.03] brightness-[0.58] grayscale blur-[2px]"
-								loading="eager"  
+								loading="eager"
 								width={3840}
-								height={2160}	
+								height={2160}
 							/>
 						</AnimatedGroup>
 

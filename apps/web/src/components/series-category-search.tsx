@@ -5,6 +5,7 @@ import type {
 	CategorySearchProps,
 } from "@/components/types";
 import { Film, FolderOpen, Radio, Tv } from "lucide-react";
+import type { Route } from "next";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -40,6 +41,9 @@ function CategorySearchBase({
 				toLowerCaseSafe(category.name).includes(normalized),
 			)
 		: categories;
+
+	const buildCategoryHref = (categoryId: string) =>
+		`${hrefPrefix}/${id}/${categoryId}` as Route;
 
 	return (
 		<div className="h-full flex flex-col gap-4 no-scrollbar">
@@ -83,7 +87,7 @@ function CategorySearchBase({
 					{filteredCategories.map((category, i) => (
 						<Link
 							key={category.id}
-							href={`${hrefPrefix}/${id}/${category.id}` as string}
+							href={buildCategoryHref(category.id)}
 							className="group relative flex flex-col items-center gap-3 rounded-xl border border-border/50 bg-card p-5 transition-all duration-200 hover:border-primary/30 hover:bg-accent/50 hover:shadow-lg hover:shadow-primary/5 hover:translate-y-1"
 							style={{
 								animationDelay: `${Math.min(i * 30, 500)}ms`,

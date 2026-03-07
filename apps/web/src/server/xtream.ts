@@ -1,5 +1,6 @@
 import "server-only";
-import prisma from "../../../../packages/db/src/index";
+import prisma from "@moderniptvplayer/db";
+import { env } from "@moderniptvplayer/env/server";
 import Cryptr from "cryptr";
 import {
 	defineSerializers,
@@ -10,10 +11,16 @@ import { standardizedSerializer } from "@iptv/xtream-api/standardized";
 import camelcaseKeys from "camelcase-keys";
 import { getAuthenticatedUserId } from "./auth-utils";
 
-const cryptr = new Cryptr(process.env.SECRET_KEY!);
+const cryptr = new Cryptr(env.SECRET_KEY);
 
 const toStringSafe = (value: unknown) =>
 	value === undefined || value === null ? "" : String(value);
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+	typeof value === "object" && value !== null;
+
+const toRecordSafe = (value: unknown): Record<string, unknown> =>
+	isRecord(value) ? value : {};
 
 const toNumberSafe = (value: unknown) => {
 	const number = Number(value);
@@ -152,27 +159,31 @@ const safeSerializer = defineSerializers("StandardizedSafe", {
 		});
 	},
 	show: (input: unknown) => {
-		const data = camelcaseKeys(input as Record<string, unknown>, {
-			deep: true,
-		}) as Record<string, any>;
-		const info = data.info ?? {};
-		const seasons = Array.isArray(data.seasons) ? data.seasons : [];
-		const episodesBySeason =
-			data.episodes && typeof data.episodes === "object" ? data.episodes : {};
+		const data = toRecordSafe(
+			camelcaseKeys(input as Record<string, unknown>, {
+				deep: true,
+			}),
+		);
+		const info = toRecordSafe(data.info);
+		const seasons = Array.isArray(data.seasons)
+			? data.seasons.map(toRecordSafe)
+			: [];
+		const episodesBySeason = isRecord(data.episodes) ? data.episodes : {};
 		const seriesId = info.seriesId ?? info.series_id ?? info.id;
 		const showId = toStringSafe(seriesId);
 		if (!showId) {
 			throw new Error("seriesId is required");
 		}
-		const flatEpisodes = Object.values(episodesBySeason).flatMap((value) =>
-			Array.isArray(value) ? value : [],
+		const flatEpisodes = Object.values(episodesBySeason).flatMap(
+			(value): Record<string, unknown>[] =>
+				Array.isArray(value) ? value.map(toRecordSafe) : [],
 		);
-		const episodes = flatEpisodes.map((episode: any) => {
-			const episodeInfo = episode.info ?? {};
+		const episodes = flatEpisodes.map((episode) => {
+			const episodeInfo = toRecordSafe(episode.info);
 			const seasonNumber =
 				episode.season ?? episode.seasonNumber ?? episodeInfo.season;
 			const seasonEntry = seasons.find(
-				(season: any) => season.seasonNumber === seasonNumber,
+				(season) => season.seasonNumber === seasonNumber,
 			);
 			const seasonIdValue = seasonEntry?.id ?? seasonNumber;
 			const seasonId = toStringSafe(seasonIdValue);
@@ -180,32 +191,32 @@ const safeSerializer = defineSerializers("StandardizedSafe", {
 			return {
 				id: episodeId,
 				number: Number(episode.episodeNum ?? episode.number ?? 0),
-				plot: episodeInfo.plot ?? "",
-				title: episode.title ?? "",
-				poster: episodeInfo.movieImage,
-				cover: episodeInfo.coverBig,
-				duration: episodeInfo.durationSecs,
-				durationFormatted: episodeInfo.duration,
-				voteAverage: episodeInfo.rating,
-				releaseDate: episodeInfo.releaseDate
-					? new Date(episodeInfo.releaseDate)
+				plot: toStringSafe(episodeInfo.plot),
+				title: toStringSafe(episode.title),
+				poster: toStringSafe(episodeInfo.movieImage),
+				cover: toStringSafe(episodeInfo.coverBig),
+				duration: toNumberSafe(episodeInfo.durationSecs),
+				durationFormatted: toStringSafe(episodeInfo.duration),
+				voteAverage: toNumberSafe(episodeInfo.rating),
+				releaseDate: toDateSafe(episodeInfo.releaseDate),
+				createdAt: episode.added
+					? toDateSafe(toNumberSafe(episode.added) * 1e3)
 					: null,
-				createdAt: episode.added ? new Date(Number(episode.added) * 1e3) : null,
 				showId,
 				seasonId,
-				url: episode.url,
-				subtitles: episode.subtitles ?? [],
-				bitrate: episodeInfo.bitrate,
+				url: toStringSafe(episode.url),
+				subtitles: toStringListSafe(episode.subtitles),
+				bitrate: toNumberSafe(episodeInfo.bitrate),
 			};
 		});
-		let seasonList = seasons;
+		let seasonList: Record<string, unknown>[] = seasons;
 		if (!Array.isArray(seasonList) || seasonList.length === 0) {
 			seasonList = Object.keys(episodesBySeason).map((key) => {
 				const seasonEpisodes = Array.isArray(episodesBySeason[key])
-					? episodesBySeason[key]
+					? episodesBySeason[key].map(toRecordSafe)
 					: [];
-				const firstEpisode = seasonEpisodes[0] ?? {};
-				const firstInfo = firstEpisode.info ?? {};
+				const firstEpisode = toRecordSafe(seasonEpisodes[0]);
+				const firstInfo = toRecordSafe(firstEpisode.info);
 				return {
 					id: Number(key),
 					name: `Season ${key}`,
@@ -219,27 +230,30 @@ const safeSerializer = defineSerializers("StandardizedSafe", {
 				};
 			});
 		}
-		const normalizedSeasons = seasonList.map((season: any, index: number) => {
+		const normalizedSeasons = seasonList.map((season, index: number) => {
 			const seasonIdValue =
 				season?.id ?? season?.seasonNumber ?? season?.number ?? index;
 			const seasonId = toStringSafe(seasonIdValue);
-			const seasonNumber = season?.seasonNumber ?? season?.number ?? index + 1;
+			const seasonNumber = toNumberSafe(
+				season?.seasonNumber ?? season?.number ?? index + 1,
+			);
 			const episodesForSeason = episodes.filter(
 				(episode) => episode.seasonId === seasonId,
 			);
-			const episodeCount = Number.isFinite(season?.episodeCount)
-				? season.episodeCount
-				: episodesForSeason.length;
+			const episodeCount =
+				season.episodeCount !== undefined && season.episodeCount !== null
+					? toNumberSafe(season.episodeCount)
+					: episodesForSeason.length;
 			const releaseDate = season?.airDate ?? season?.releaseDate;
 			return {
 				id: seasonId,
-				name: season?.name ?? `Season ${seasonNumber}`,
+				name: toStringSafe(season?.name) || `Season ${seasonNumber}`,
 				episodeCount,
-				overview: season?.overview ?? "",
-				voteAverage: season?.voteAverage ?? 0,
-				releaseDate: releaseDate ? new Date(releaseDate) : null,
+				overview: toStringSafe(season?.overview),
+				voteAverage: toNumberSafe(season?.voteAverage),
+				releaseDate: toDateSafe(releaseDate),
 				number: Number(seasonNumber),
-				cover: season?.coverBig ?? season?.cover,
+				cover: toStringSafe(season?.coverBig ?? season?.cover),
 				showId,
 				episodes: episodesForSeason,
 			};
@@ -251,33 +265,9 @@ const safeSerializer = defineSerializers("StandardizedSafe", {
 			info.coverBig ??
 			info.cover ??
 			info.poster;
-		const cast =
-			typeof info.cast === "string"
-				? info.cast
-						.split(",")
-						.map((d: string) => d.trim())
-						.filter(Boolean)
-				: Array.isArray(info.cast)
-					? info.cast.filter(Boolean)
-					: [];
-		const director =
-			typeof info.director === "string"
-				? info.director
-						.split(",")
-						.map((d: string) => d.trim())
-						.filter(Boolean)
-				: Array.isArray(info.director)
-					? info.director.filter(Boolean)
-					: [];
-		const genre =
-			typeof info.genre === "string"
-				? info.genre
-						.split(",")
-						.map((d: string) => d.trim())
-						.filter(Boolean)
-				: Array.isArray(info.genre)
-					? info.genre.filter(Boolean)
-					: [];
+		const cast = toStringListSafe(info.cast);
+		const director = toStringListSafe(info.director);
+		const genre = toStringListSafe(info.genre);
 		return {
 			id: showId,
 			name: info.title ?? info.name ?? "",
@@ -290,7 +280,7 @@ const safeSerializer = defineSerializers("StandardizedSafe", {
 			director,
 			genre,
 			youtubeId: info.youtubeTrailer ?? info.youtubeId,
-			releaseDate: info.releaseDate ? new Date(info.releaseDate) : null,
+			releaseDate: toDateSafe(info.releaseDate),
 			updatedAt: info.lastModified
 				? new Date(Number(info.lastModified) * 1e3)
 				: null,

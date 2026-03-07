@@ -6,6 +6,7 @@ import {
 	SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { usePlaylistIdFromPath } from "@/hooks/use-playlist-id";
+import type { Route } from "next";
 import Link from "next/link";
 
 export function NavProjects({
@@ -19,11 +20,10 @@ export function NavProjects({
 }) {
 	const { playlistId } = usePlaylistIdFromPath();
 
-	function buildHref(url: string) {
-		if (!url || url === "#") return url;
-		if (!playlistId) return url;
-		if (url.startsWith("/dashboard/")) return `${url}/${playlistId}`;
-		return url;
+	function buildHref(url: string): Route {
+		if (!playlistId) return url as Route;
+		if (url.startsWith("/dashboard/")) return `${url}/${playlistId}` as Route;
+		return url as Route;
 	}
 
 	return (
@@ -32,9 +32,7 @@ export function NavProjects({
 			<SidebarMenu>
 				{projects.map((item) => (
 					<SidebarMenuItem key={item.name}>
-						<SidebarMenuButton
-							render={<Link href={buildHref(item.url) as string} />}
-						>
+						<SidebarMenuButton render={<Link href={buildHref(item.url)} />}>
 							{item.icon}
 							<span>{item.name}</span>
 						</SidebarMenuButton>

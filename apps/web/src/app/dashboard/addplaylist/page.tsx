@@ -5,8 +5,17 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
+import { createPageMetadata } from "@/app/metadata";
 import { FileText, RadioTower, Tv } from "lucide-react";
 import Link from "next/link";
+
+export const metadata = createPageMetadata({
+	title: "Add a Playlist",
+	description:
+		"Choose how you want to import your IPTV library with Xtream Codes, M3U, or Stalker Portal.",
+	path: "/dashboard/addplaylist",
+	noIndex: true,
+});
 
 function Page() {
 	return (

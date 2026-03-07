@@ -21,10 +21,7 @@ const legacyAllRedirects = routeSections.flatMap((section) => [
 	},
 ]);
 
-const nextConfig: NextConfig = {
-	typescript: {
-		ignoreBuildErrors: true,
-	},  
+const nextConfig: NextConfig = { 
 	cacheComponents: true,
 	typedRoutes: true,
 	reactCompiler: true,
