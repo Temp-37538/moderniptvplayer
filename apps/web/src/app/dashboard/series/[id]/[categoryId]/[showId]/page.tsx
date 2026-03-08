@@ -11,8 +11,7 @@ import { getItemStatus } from "@/server/user-items";
 import { getPlaylistById, getShowSafe } from "@/server/xtream";
 import type { StandardXtreamShow } from "@iptv/xtream-api/standardized";
 import { Calendar, Clock, ExternalLink, Film, Star, Tv } from "lucide-react";
-import { notFound } from "next/navigation";
-import "server-only";
+import { notFound } from "next/navigation"; 
 import { toSafeImageSrc } from "@/lib/image-url";
 
 export async function generateMetadata({ params }: PageProps) {

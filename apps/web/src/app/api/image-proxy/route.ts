@@ -1,5 +1,6 @@
 import { lookup } from "node:dns/promises";
 import { BlockList, isIP } from "node:net";
+import { auth } from "@moderniptvplayer/auth";
 import { type NextRequest, NextResponse } from "next/server";
 
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
@@ -230,6 +231,15 @@ async function fetchWithValidatedRedirects(
 }
 
 export async function GET(request: NextRequest) {
+	const session = await auth.api.getSession({
+		headers: request.headers,
+	});
+
+	if (!session?.user.id) {
+		logProxyRefusal("unauthenticated", {});
+		return makeError(401, "Authentication required.");
+	}
+
 	const rawUrl = request.nextUrl.searchParams.get("url")?.trim();
 
 	if (!rawUrl) {

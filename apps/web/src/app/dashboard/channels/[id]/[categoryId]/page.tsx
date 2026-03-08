@@ -1,4 +1,3 @@
-import "server-only";
 import { createPageMetadata, getCategoryMetadataContext } from "@/app/metadata";
 import type { IdCategoryPageProps as PageProps } from "@/components/types";
 import Link from "next/link";

@@ -1,23 +1,9 @@
-import "server-only";
 import { createPageMetadata, getPlaylistMetadataContext } from "@/app/metadata";
 import type { IdPageProps as PageProps } from "@/components/types";
+import { getCachedSeriesCategories } from "@/server/cached-content";
+import { getPlaylistById } from "@/server/xtream";
 import { notFound } from "next/navigation";
-import { cacheLife, cacheTag } from "next/cache";
-import { getPlaylistById, createXtreamClient } from "@/server/xtream";
-import type { StandardXtreamCategory } from "@iptv/xtream-api/standardized";
 import { SeriesCategorySearch } from "@/components/series-category-search";
-
-async function getCachedShowCategories(
-	playlistId: string,
-	playlist: { serverUrl: string; username: string; password: string },
-) {
-	"use cache";
-	cacheLife("hours");
-	cacheTag(`playlist-${playlistId}-series-categories`);
-	const xtream = createXtreamClient(playlist);
-	const categories = await xtream.getShowCategories();
-	return categories as StandardXtreamCategory[];
-}
 
 export async function generateMetadata({ params }: PageProps) {
 	const { id } = await params;
@@ -49,7 +35,7 @@ export default async function SeriesCategoriesPage({ params }: PageProps) {
 		notFound();
 	}
 
-	const typedCategories = await getCachedShowCategories(id, playlist);
+	const typedCategories = await getCachedSeriesCategories(id, playlist);
 
 	return (
 		<SeriesCategorySearch
