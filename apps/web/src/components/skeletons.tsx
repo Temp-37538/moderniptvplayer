@@ -140,7 +140,7 @@ export function CategoryGridSkeleton({ count = 35 }: { count?: number }) {
 						<Skeleton className="h-4 w-22 md:w-48 " />
 					</div>
 				</div>
-				<Skeleton className="h-8 w-60 md:w-70 rounded-md" />
+				<Skeleton className="h-8 w-40 md:w-70 rounded-md" />
 			</div>
 			<div className="flex-1 overflow-y-auto no-scrollbar">
 				<div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
@@ -189,8 +189,8 @@ export function MediaDetailSkeleton() {
 							</div>
 							<div className="space-y-2 pt-2">
 								<Skeleton className="h-4 w-64" />
-								<Skeleton className="h-4 w-80" />
-								<Skeleton className="h-4 w-56" />
+								<Skeleton className="h-4 w-64" />
+								<Skeleton className="h-4 w-64" />
 							</div>
 							<div className="flex flex-wrap gap-3 pt-2">
 								<Skeleton className="h-9 w-10 rounded-md" />
@@ -223,9 +223,11 @@ export function ChannelDetailSkeleton() {
 						</div>
 					</div>
 				</div>
-				<div className="flex flex-wrap gap-3 p-6 border-t border-border/30">
-					<Skeleton className="h-9 w-32 rounded-md" />
-					<Skeleton className="h-9 w-32 rounded-md" />
+				<div className="flex flex-wrap gap-5 p-6 border-t border-border/30">
+					<Skeleton className="h-6 w-6 rounded-md" />
+					<Skeleton className="h-6 w-6 rounded-md" />
+					<Skeleton className="h-6 w-6 rounded-md" />
+					<Skeleton className="h-6 w-6 rounded-md" />
 				</div>
 			</div>
 		</div>

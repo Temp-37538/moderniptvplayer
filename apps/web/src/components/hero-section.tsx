@@ -196,6 +196,7 @@ export default function HeroSection() {
 										className="aspect-15/8 relative rounded-2xl block dark:hidden"
 										src="/light_.webp"
 										alt="app screen"
+										loading="eager"
 										width="2507"
 										height="1256"
 									/>

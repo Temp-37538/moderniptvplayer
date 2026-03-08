@@ -1,6 +1,7 @@
 import "server-only";
 import { auth } from "@moderniptvplayer/auth";
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 
 export async function getAuthenticatedUserId(): Promise<string> {
 	const session = await auth.api.getSession({
@@ -8,7 +9,7 @@ export async function getAuthenticatedUserId(): Promise<string> {
 	});
 
 	if (!session?.user.id) {
-		throw new Error("User not authenticated");
+		redirect("/auth/sign-in");
 	}
 
 	return session.user.id;

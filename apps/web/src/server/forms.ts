@@ -1,12 +1,15 @@
 "use server";
 import type { FormState, xtreamFormData } from "@/components/types";
+import { updateTag } from "next/cache";
 import { z } from "zod";
+import { getPlaylistCacheTags } from "./cached-content";
 import {
 	addPlaylist,
 	deletePlaylist,
 	doesPlaylistExist,
 	isPlaylistValid,
 } from "./queries";
+import { getPlaylistById } from "./xtream";
 
 export async function validate(
 	_prev: FormState,
@@ -112,6 +115,42 @@ export async function validate(
 	};
 }
 
+async function assertPlaylistAccess(playlistId: string) {
+	const playlist = await getPlaylistById(playlistId);
+
+	if (!playlist) {
+		throw new Error("Playlist not found");
+	}
+}
+
+function expirePlaylistCacheTags(playlistId: string) {
+	for (const tag of getPlaylistCacheTags(playlistId)) {
+		updateTag(tag);
+	}
+}
+
 export async function deletePlaylistAction(playlistId: string) {
+	await assertPlaylistAccess(playlistId);
+	expirePlaylistCacheTags(playlistId);
 	await deletePlaylist(playlistId);
+}
+
+export async function refreshPlaylistCacheAction(playlistId: string) {
+	await assertPlaylistAccess(playlistId);
+	expirePlaylistCacheTags(playlistId);
+}
+
+export async function preparePlaylistSwitchAction(
+	previousPlaylistId: string | null | undefined,
+	nextPlaylistId: string | null | undefined,
+) {
+	const playlistIds = [previousPlaylistId, nextPlaylistId].filter(
+		(playlistId, index, ids): playlistId is string =>
+			Boolean(playlistId) && ids.indexOf(playlistId) === index,
+	);
+
+	for (const playlistId of playlistIds) {
+		await assertPlaylistAccess(playlistId);
+		expirePlaylistCacheTags(playlistId);
+	}
 }

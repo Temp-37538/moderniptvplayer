@@ -1,4 +1,3 @@
-import "server-only";
 import { createPageMetadata, getPlaylistMetadataContext } from "@/app/metadata";
 import type { PlaylistIdPageProps as PageProps } from "@/components/types";
 import { notFound } from "next/navigation";

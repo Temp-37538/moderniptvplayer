@@ -1,4 +1,3 @@
-import "server-only";
 import { createPageMetadata, getCategoryMetadataContext } from "@/app/metadata";
 import { CategoryItemSearch } from "@/components/category-item-search";
 import { getPlaylistById } from "@/server/xtream";

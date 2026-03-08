@@ -1,6 +1,4 @@
-"use server";
-
-import "server-only";
+"use server";  
 import prisma from "@moderniptvplayer/db";
 import type { ItemType, UserItemStatus } from "@/components/types";
 import { getAuthenticatedUserId } from "./auth-utils";

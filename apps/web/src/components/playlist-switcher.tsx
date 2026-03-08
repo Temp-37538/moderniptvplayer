@@ -20,11 +20,17 @@ import {
 	PlusIcon,
 	Trash2Icon,
 } from "lucide-react";
+import { RefreshCwIcon } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { useCallback, useEffect, useTransition } from "react";
-import { deletePlaylistAction } from "@/server/forms";
+import { toast } from "sonner";
+import {
+	deletePlaylistAction,
+	preparePlaylistSwitchAction,
+	refreshPlaylistCacheAction,
+} from "@/server/forms";
 import {
 	usePlaylistIdFromPath,
 	NON_PLAYLIST_ROUTES,
@@ -65,12 +71,31 @@ export function PlaylistSwitcher() {
 	);
 
 	const setActivePlaylist = (playlist: Playlist) => {
-		const basePath = buildSectionRoute(section);
-		if (playlist.id === NO_PLAYLIST_ID) {
-			router.replace(basePath);
+		if (playlist.id === activePlaylist?.id) {
 			return;
 		}
-		router.replace(buildPlaylistRoute(basePath, playlist.id));
+
+		const basePath = buildSectionRoute(section);
+		const previousPlaylistId =
+			activePlaylist?.id && activePlaylist.id !== NO_PLAYLIST_ID
+				? activePlaylist.id
+				: null;
+		const nextPlaylistId = playlist.id !== NO_PLAYLIST_ID ? playlist.id : null;
+		const nextRoute =
+			nextPlaylistId === null
+				? basePath
+				: buildPlaylistRoute(basePath, nextPlaylistId);
+
+		startTransition(async () => {
+			try {
+				if (previousPlaylistId || nextPlaylistId) {
+					await preparePlaylistSwitchAction(previousPlaylistId, nextPlaylistId);
+				}
+				router.replace(nextRoute);
+			} catch {
+				toast.error("Unable to switch playlist");
+			}
+		});
 	};
 
 	useEffect(() => {
@@ -185,12 +210,41 @@ export function PlaylistSwitcher() {
 											variant="ghost"
 											size="sm"
 											disabled={isPending}
-											className="ml-2 text-red-500  z-10000 cursor-pointer hover:text-red-600"
+											className="ml-2 text-green-500  z-10000 cursor-pointer hover:text-green-600"
 											onClick={(e) => {
 												e.stopPropagation();
 												startTransition(async () => {
-													await deletePlaylistAction(playlist.id);
-													router.replace("/dashboard");
+													try {
+														await refreshPlaylistCacheAction(playlist.id);
+														router.refresh();
+														toast.success(
+															`Cache refreshed for ${playlist.playlistName}`,
+														);
+													} catch {
+														toast.error("Unable to refresh playlist cache");
+													}
+												});
+											}}
+										>
+											<RefreshCwIcon className="size-4" />
+										</Button>
+										<Button
+											variant="ghost"
+											size="sm"
+											disabled={isPending}
+											className="ml-2 text-red-500 z-10000 cursor-pointer hover:text-red-600"
+											onClick={(e) => {
+												e.stopPropagation();
+												startTransition(async () => {
+													try {
+														await deletePlaylistAction(playlist.id);
+														router.replace("/dashboard");
+														toast.success(
+															`Playlist deleted: ${playlist.playlistName}`,
+														);
+													} catch {
+														toast.error("Unable to delete playlist ");
+													}
 												});
 											}}
 										>

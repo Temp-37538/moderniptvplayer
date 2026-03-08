@@ -1,4 +1,3 @@
-import "server-only";
 import { createPageMetadata, getMovieMetadataContext } from "@/app/metadata";
 import type { MovieDetailPageProps as PageProps } from "@/components/types";
 import {
