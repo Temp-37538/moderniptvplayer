@@ -1,6 +1,7 @@
 import Providers from "@/components/providers";
 import { APP_DESCRIPTION, APP_NAME, getMetadataBase } from "@/app/metadata";
 import type { Metadata } from "next";
+import { Analytics } from "@vercel/analytics/next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "../index.css";
 
@@ -80,6 +81,7 @@ export default function RootLayout({
 				<Providers>
 					<div className="flex h-screen w-screen overflow-hidden">
 						{children}
+						<Analytics />
 					</div>
 				</Providers>
 			</body>
