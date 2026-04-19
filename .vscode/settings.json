@@ -1,5 +1,5 @@
 {
-  "emmet.showExpandedAbbreviation": "never",
+  "emmet.showExpandedAbbreviation": "always",
   "[javascript]": {
     "editor.defaultFormatter": "rvest.vs-code-prettier-eslint"
   },
