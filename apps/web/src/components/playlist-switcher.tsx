@@ -256,14 +256,12 @@ export function PlaylistSwitcher() {
 						</DropdownMenuGroup>
 						<DropdownMenuSeparator />
 						<DropdownMenuGroup>
-							<DropdownMenuItem className="gap-2 p-2 cursor-pointer">
-								<div className="flex size-6 items-center justify-center rounded-md border bg-transparent">
-									<PlusIcon className="size-4" />
-								</div>
+							<DropdownMenuItem className="cursor-pointer p-0" > 
 								<Link
 									href="/dashboard/addplaylist"
-									className="text-muted-foreground font-medium"
+									className="bg-transparent flex gap-2 justify-content p-2 items-center font-medium hover:bg-muted w-full h-full"
 								>
+									<PlusIcon className="size-4" />
 									Add a playlist
 								</Link>
 							</DropdownMenuItem>
