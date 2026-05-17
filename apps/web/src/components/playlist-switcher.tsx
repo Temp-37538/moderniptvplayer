@@ -210,7 +210,7 @@ export function PlaylistSwitcher() {
 											variant="ghost"
 											size="sm"
 											disabled={isPending}
-											className="ml-2 text-green-500  z-10000 cursor-pointer hover:text-green-600"
+											className="ml-2 text-green-500  z-10000 hover:text-green-600"
 											onClick={(e) => {
 												e.stopPropagation();
 												startTransition(async () => {
@@ -232,7 +232,7 @@ export function PlaylistSwitcher() {
 											variant="ghost"
 											size="sm"
 											disabled={isPending}
-											className="ml-2 text-red-500 z-10000 cursor-pointer hover:text-red-600"
+											className="ml-2 text-red-500 z-10000  hover:text-red-600"
 											onClick={(e) => {
 												e.stopPropagation();
 												startTransition(async () => {

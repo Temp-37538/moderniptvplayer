@@ -119,7 +119,7 @@ function SidebarContent({ children }: { children: React.ReactNode }) {
 							<Button
 								onClick={handleLogout}
 								size={"sm"}
-								className="cursor-pointer w-fit  "
+								className=" w-fit  "
 							>
 								Logout
 							</Button>
