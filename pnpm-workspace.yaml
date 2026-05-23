@@ -4,7 +4,7 @@ packages:
 
 catalog:
   '@prisma/client': ^7.2.0
-  better-auth: 'catalog:'
+  better-auth: 1.4.18
   dotenv: ^17.2.2
   typescript: ^5.9.3
   zod: ^4.1.13
