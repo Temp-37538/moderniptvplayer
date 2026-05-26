@@ -27,7 +27,7 @@ function Page() {
 			<p className="text-muted-foreground text-center mb-8 max-w-md">
 				Choose how you want to add your IPTV playlist to get started
 			</p>
-			<div className="grid gap-6 md:grid-cols-3 w-full max-w-4xl">
+			<div className="grid gap-6 md:grid-cols-2 w-full max-w-4xl">
 				<Link href="/dashboard/addplaylist/xtream" className="group">
 					<Card className="h-full transition-all duration-300 hover:shadow-lg hover:border-primary/50 hover:-translate-y-1 cursor-pointer">
 						<CardHeader className="text-center pb-2">

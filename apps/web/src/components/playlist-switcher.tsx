@@ -174,7 +174,7 @@ export function PlaylistSwitcher() {
 							</DropdownMenuLabel>
 							{playlists[0].id ===
 							"NoPlaylisfreàçuhgpzfiru_thgrpituehgriptgrt" ? (
-								<DropdownMenuItem className="gap-2 p-2 cursor-default">
+								<DropdownMenuItem className="gap-2 p-2 cursor-pointer">
 									<div className="flex size-6 items-center justify-center rounded-md border">
 										<ListVideoIcon className="size-4" />
 									</div>
@@ -256,10 +256,10 @@ export function PlaylistSwitcher() {
 						</DropdownMenuGroup>
 						<DropdownMenuSeparator />
 						<DropdownMenuGroup>
-							<DropdownMenuItem className="cursor-pointer p-0" > 
+							<DropdownMenuItem className="cursor-pointer hover:bg-primary p-0" > 
 								<Link
 									href="/dashboard/addplaylist"
-									className="bg-transparent flex gap-2 justify-content p-2 items-center font-medium hover:bg-muted w-full h-full"
+									className="bg-transparent flex gap-2 justify-content p-2 items-center font-medium w-full h-full"
 								>
 									<PlusIcon className="size-4" />
 									Add a playlist
