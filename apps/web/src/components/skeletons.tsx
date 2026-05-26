@@ -191,11 +191,11 @@ export function ChannelDetailSkeleton() {
 						</div>
 					</div>
 				</div>
-				<div className="flex flex-wrap gap-5 p-6 border-t border-border/30">
-					<Skeleton className="h-6 w-6 rounded-md" />
-					<Skeleton className="h-6 w-6 rounded-md" />
-					<Skeleton className="h-6 w-6 rounded-md" />
-					<Skeleton className="h-6 w-6 rounded-md" />
+				<div className="flex flex-wrap gap-3 p-6 border-t border-border/30">
+					<Skeleton className="h-8 w-8 rounded-md" />
+					<Skeleton className="h-8 w-8 rounded-md" />
+					<Skeleton className="h-8 w-8 rounded-md" />
+					<Skeleton className="h-8 w-8 rounded-md" />
 				</div>
 			</div>
 		</div>
