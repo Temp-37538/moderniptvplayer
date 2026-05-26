@@ -38,7 +38,7 @@ export function usePlaylistIdFromPath() {
 	return parsePlaylistFromPath(pathname);
 }
 
-export function parsePlaylistFromPath(pathname: string): ParsedPlaylistPath {
+function parsePlaylistFromPath(pathname: string): ParsedPlaylistPath {
 	const parts = pathname.split("/").filter(Boolean);
 
 	if (parts.length >= 3 && isPlaylistSection(parts[1])) {

@@ -1,8 +1,8 @@
 "use client";
-import type * as React from "react";
-import { Menu as MenuPrimitive } from "@base-ui/react/menu";
 import { cn } from "@/lib/utils";
-import { ChevronRightIcon, CheckIcon } from "lucide-react";
+import { Menu as MenuPrimitive } from "@base-ui/react/menu";
+import { CheckIcon } from "lucide-react";
+import type * as React from "react";
 
 function DropdownMenu({ ...props }: MenuPrimitive.Root.Props) {
 	return <MenuPrimitive.Root data-slot="dropdown-menu" {...props} />;
@@ -31,7 +31,7 @@ function DropdownMenuContent({
 	return (
 		<MenuPrimitive.Portal>
 			<MenuPrimitive.Positioner
-				className="isolate z-50 outline-none"
+				className="isolate z-1000 outline-none"
 				align={align}
 				alignOffset={alignOffset}
 				side={side}
@@ -40,7 +40,7 @@ function DropdownMenuContent({
 				<MenuPrimitive.Popup
 					data-slot="dropdown-menu-content"
 					className={cn(
-						"data-open:animate-in data-closed:animate-out data-closed:fade-out-0 data-open:fade-in-0 data-closed:zoom-out-95 data-open:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 ring-foreground/10 bg-popover text-popover-foreground min-w-32 rounded-md p-1 shadow-md ring-1 duration-100 data-[side=inline-start]:slide-in-from-right-2 data-[side=inline-end]:slide-in-from-left-2 z-50 max-h-(--available-height) w-(--anchor-width) origin-(--transform-origin) overflow-x-hidden overflow-y-auto outline-none data-closed:overflow-hidden",
+						"data-open:animate-in data-closed:animate-out data-closed:fade-out-0 data-open:fade-in-0 data-closed:zoom-out-95 data-open:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 ring-foreground/10 bg-popover text-popover-foreground min-w-32 rounded-md p-1 shadow-md ring-1 duration-100 data-[side=inline-start]:slide-in-from-right-2 data-[side=inline-end]:slide-in-from-left-2 z-1000 max-h-(--available-height) w-(--anchor-width) origin-(--transform-origin) overflow-x-hidden overflow-y-auto outline-none data-closed:overflow-hidden",
 						className,
 					)}
 					{...props}
@@ -96,58 +96,7 @@ function DropdownMenuItem({
 		/>
 	);
 }
-
-function DropdownMenuSub({ ...props }: MenuPrimitive.SubmenuRoot.Props) {
-	return <MenuPrimitive.SubmenuRoot data-slot="dropdown-menu-sub" {...props} />;
-}
-
-function DropdownMenuSubTrigger({
-	className,
-	inset,
-	children,
-	...props
-}: MenuPrimitive.SubmenuTrigger.Props & {
-	inset?: boolean;
-}) {
-	return (
-		<MenuPrimitive.SubmenuTrigger
-			data-slot="dropdown-menu-sub-trigger"
-			data-inset={inset}
-			className={cn(
-				"focus:bg-accent focus:text-accent-foreground data-open:bg-accent data-open:text-accent-foreground not-data-[variant=destructive]:focus:**:text-accent-foreground gap-2 rounded-sm px-2 py-1.5 text-sm data-inset:pl-8 [&_svg:not([class*='size-'])]:size-4 data-popup-open:bg-accent data-popup-open:text-accent-foreground flex cursor-default items-center outline-hidden select-none [&_svg]:pointer-events-none [&_svg]:shrink-0",
-				className,
-			)}
-			{...props}
-		>
-			{children}
-			<ChevronRightIcon className="ml-auto" />
-		</MenuPrimitive.SubmenuTrigger>
-	);
-}
-
-function DropdownMenuSubContent({
-	align = "start",
-	alignOffset = -3,
-	side = "right",
-	sideOffset = 0,
-	className,
-	...props
-}: React.ComponentProps<typeof DropdownMenuContent>) {
-	return (
-		<DropdownMenuContent
-			data-slot="dropdown-menu-sub-content"
-			className={cn(
-				"data-open:animate-in data-closed:animate-out data-closed:fade-out-0 data-open:fade-in-0 data-closed:zoom-out-95 data-open:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 ring-foreground/10 bg-popover text-popover-foreground min-w-24 rounded-md p-1 shadow-lg ring-1 duration-100 w-auto",
-				className,
-			)}
-			align={align}
-			alignOffset={alignOffset}
-			side={side}
-			sideOffset={sideOffset}
-			{...props}
-		/>
-	);
-}
+ 
 
 function DropdownMenuCheckboxItem({
 	className,
@@ -253,18 +202,16 @@ function DropdownMenuShortcut({
 
 export {
 	DropdownMenu,
-	DropdownMenuPortal,
-	DropdownMenuTrigger,
+	DropdownMenuCheckboxItem,
 	DropdownMenuContent,
 	DropdownMenuGroup,
-	DropdownMenuLabel,
 	DropdownMenuItem,
-	DropdownMenuCheckboxItem,
+	DropdownMenuLabel,
+	DropdownMenuPortal,
 	DropdownMenuRadioGroup,
 	DropdownMenuRadioItem,
 	DropdownMenuSeparator,
 	DropdownMenuShortcut,
-	DropdownMenuSub,
-	DropdownMenuSubTrigger,
-	DropdownMenuSubContent,
+	DropdownMenuTrigger
 };
+

@@ -1,3 +1,4 @@
+import { createPageMetadata } from "@/app/metadata";
 import {
 	Card,
 	CardContent,
@@ -5,14 +6,14 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import { createPageMetadata } from "@/app/metadata";
-import { FileText, RadioTower, Tv } from "lucide-react";
+import { FileText, RadioTower } from "lucide-react";
 import Link from "next/link";
+import type { Metadata } from "next";
 
-export const metadata = createPageMetadata({
+export const metadata: Metadata = createPageMetadata({
 	title: "Add a Playlist",
 	description:
-		"Choose how you want to import your IPTV library with Xtream Codes, M3U, or Stalker Portal.",
+		"Choose how you want to import your IPTV library with Xtream Codes or M3U.",
 	path: "/dashboard/addplaylist",
 	noIndex: true,
 });
@@ -59,24 +60,7 @@ function Page() {
 							</CardDescription>
 						</CardContent>
 					</Card>
-				</Link>
-
-				<Link href="/dashboard/addplaylist/stalker" className="group">
-					<Card className="h-full transition-all duration-300 hover:shadow-lg hover:border-primary/50 hover:-translate-y-1 cursor-pointer">
-						<CardHeader className="text-center pb-2">
-							<div className="mx-auto mb-4 p-4 rounded-full bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-all duration-300">
-								<Tv className="h-8 w-8" />
-							</div>
-							<CardTitle className="text-xl">Portal Stalker</CardTitle>
-						</CardHeader>
-						<CardContent className="text-center">
-							<CardDescription className="text-sm">
-								Connect to Stalker Portal using MAC address and server URL for
-								MAG-style access
-							</CardDescription>
-						</CardContent>
-					</Card>
-				</Link>
+				</Link> 
 			</div>
 		</div>
 	);

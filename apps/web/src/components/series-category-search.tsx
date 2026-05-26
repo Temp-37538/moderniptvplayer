@@ -84,14 +84,11 @@ function CategorySearchBase({
 			</div>
 			<div className="flex-1 overflow-y-auto no-scrollbar">
 				<div className="grid grid-cols-2 sm:grid-cols-3   lg:grid-cols-4 xl:grid-cols-5 gap-3">
-					{filteredCategories.map((category, i) => (
+					{filteredCategories.map((category) => (
 						<Link
 							key={category.id}
 							href={buildCategoryHref(category.id)}
 							className="group relative flex flex-col items-center gap-3 rounded-xl border border-border/50 bg-card p-5 transition-all duration-200 hover:border-primary/30 hover:bg-accent/50 hover:shadow-lg hover:shadow-primary/5 hover:translate-y-1"
-							style={{
-								animationDelay: `${Math.min(i * 30, 500)}ms`,
-							}}
 						>
 							<div className="flex items-center justify-center size-10 rounded-lg bg-muted/50 text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-colors duration-200">
 								<FolderOpen className="size-5" />

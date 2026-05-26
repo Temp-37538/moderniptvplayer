@@ -1,17 +1,24 @@
 import Providers from "@/components/providers";
 import { APP_DESCRIPTION, APP_NAME, getMetadataBase } from "@/app/metadata";
-import type { Metadata } from "next"; 
-import { Geist, Geist_Mono } from "next/font/google";
+import type { Metadata } from "next";
+import { Inter, Instrument_Serif, Fira_Code } from "next/font/google";
 import "../index.css";
 
-const geistSans = Geist({
-	variable: "--font-geist-sans",
+const fontSans = Inter({
 	subsets: ["latin"],
+	variable: "--font-sans",
 });
 
-const geistMono = Geist_Mono({
-	variable: "--font-geist-mono",
+const fontSerif = Instrument_Serif({
 	subsets: ["latin"],
+	variable: "--font-serif",
+	weight: ["400"],
+	style: ["italic"],
+});
+
+const fontMono = Fira_Code({
+	subsets: ["latin"],
+	variable: "--font-mono",
 });
 
 export const metadata: Metadata = {
@@ -25,8 +32,7 @@ export const metadata: Metadata = {
 	keywords: [
 		"IPTV",
 		"Xtream Codes",
-		"M3U",
-		"Stalker Portal",
+		"M3U", 
 		"live TV",
 		"movies",
 		"series",
@@ -52,18 +58,11 @@ export const metadata: Metadata = {
 		url: "/",
 		siteName: APP_NAME,
 		type: "website",
-		images: [
-			{
-				url: "/background.png",
-				alt: APP_NAME,
-			},
-		],
 	},
 	twitter: {
 		card: "summary_large_image",
 		title: APP_NAME,
 		description: APP_DESCRIPTION,
-		images: ["/background.png"],
 	},
 };
 
@@ -75,11 +74,11 @@ export default function RootLayout({
 	return (
 		<html lang="en" suppressHydrationWarning>
 			<body
-				className={`${geistSans.variable} ${geistMono.variable} data-scroll-behavior="smooth" antialiased`}
+				className={`${fontSans.variable} ${fontSerif.variable} ${fontMono.variable} data-scroll-behavior="smooth" antialiased`}
 			>
 				<Providers>
 					<div className="flex h-screen w-screen overflow-hidden">
-						{children} 
+						{children}
 					</div>
 				</Providers>
 			</body>

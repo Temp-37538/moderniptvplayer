@@ -16,8 +16,8 @@ import { cache } from "react";
 
 export const APP_NAME = "Modern IPTV Player";
 export const APP_DESCRIPTION =
-	"Import Xtream Codes, M3U, and Stalker playlists, then browse live TV, movies, and series from a single interface.";
-const APP_OG_IMAGE = "/background.png";
+	"Import Xtream Codes and M3U playlists, then browse live TV, movies, and series from a single interface.";
+const APP_OG_IMAGE = "/background.webp";
 
 type MetadataOptions = {
 	title: string;
@@ -94,7 +94,7 @@ export function getMetadataBase() {
 	return new URL(env.BETTER_AUTH_URL);
 }
 
-export function humanizeSegment(value: string) {
+function humanizeSegment(value: string) {
 	return value
 		.split(/[-_]/g)
 		.filter(Boolean)

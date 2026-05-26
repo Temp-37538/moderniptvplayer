@@ -57,39 +57,7 @@ export function ChannelCategorySearchSkeleton() {
 		</div>
 	);
 }
-
-export function ChannelListSkeleton({ count = 20 }: { count?: number }) {
-	return (
-		<div className="h-full flex flex-col gap-4">
-			<div className="flex items-center justify-between">
-				<div className="flex items-center gap-3">
-					<Skeleton className="size-10 rounded-xl" />
-					<div className="space-y-2">
-						<Skeleton className="h-6 w-24" />
-						<Skeleton className="h-4 w-16" />
-					</div>
-				</div>
-				<Skeleton className="h-8 w-full md:w-70 rounded-md" />
-			</div>
-			<div className="flex-1 overflow-y-auto no-scrollbar">
-				<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-					{Array.from({ length: count }).map((_, i) => (
-						<div
-							key={i}
-							className="flex items-center gap-4 rounded-xl border border-border/50 p-4"
-						>
-							<Skeleton className="size-12 rounded-lg shrink-0" />
-							<div className="space-y-2 flex-1">
-								<Skeleton className="h-4 w-3/4" />
-								<Skeleton className="h-3 w-1/4" />
-							</div>
-						</div>
-					))}
-				</div>
-			</div>
-		</div>
-	);
-}
+ 
 export function ChannelListSkeletonNoSearchBar({
 	count = 20,
 }: {

@@ -1,6 +1,7 @@
 import { createPageMetadata } from "@/app/metadata";
+import type { Metadata } from "next";
 
-export const metadata = createPageMetadata({
+export const metadata : Metadata = createPageMetadata({
 	title: "Dashboard",
 	description:
 		"Open your private dashboard to manage playlists and browse your library.",

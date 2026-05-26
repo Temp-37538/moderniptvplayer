@@ -9,13 +9,13 @@ type XtreamPlaylistCredentials = {
 	password: string;
 };
 
-export const getMovieCategoriesCacheTag = (playlistId: string) =>
+const getMovieCategoriesCacheTag = (playlistId: string) =>
 	`playlist-${playlistId}-movie-categories`;
 
-export const getSeriesCategoriesCacheTag = (playlistId: string) =>
+const getSeriesCategoriesCacheTag = (playlistId: string) =>
 	`playlist-${playlistId}-series-categories`;
 
-export const getChannelCategoriesCacheTag = (playlistId: string) =>
+const getChannelCategoriesCacheTag = (playlistId: string) =>
 	`playlist-${playlistId}-channel-categories`;
 
 export const getPlaylistCacheTags = (playlistId: string) =>

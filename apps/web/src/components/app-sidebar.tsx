@@ -30,7 +30,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 				<NavProjects projects={sidebarData.projects} />
 			</SidebarContent>
 			<SidebarFooter
-				className={`flex items-center gap-2 py-4 border-t-2 justify-center ${state === "collapsed" ? "transition-transform flex-col" : ""}`}
+				className={`flex items-center gap-2 py-4 border-t-2 justify-center ${state === "collapsed" ? "flex-col" : ""}`}
 			>
 				<SignedIn>
 					<Button className={"p-0"} variant="outline" size="sm">

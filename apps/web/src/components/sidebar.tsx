@@ -135,4 +135,3 @@ function SidebarContent({ children }: { children: React.ReactNode }) {
 }
 
 export default Sidebar;
-export { SidebarContent };

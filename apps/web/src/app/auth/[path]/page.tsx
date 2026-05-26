@@ -2,6 +2,8 @@ import { getAuthPageMetadata } from "@/app/metadata";
 import { AuthView } from "@daveyplate/better-auth-ui";
 import { authViewPaths } from "@daveyplate/better-auth-ui/server";
 import { Tv } from "lucide-react";
+import type { Metadata } from "next";
+import Image from "next/image";
 import { AuthActions } from "../../../components/auth-actions";
 import { HeroOverlayV2 } from "../../../components/hero-overlay";
 
@@ -13,7 +15,7 @@ export async function generateMetadata({
 	params,
 }: {
 	params: Promise<{ path: string }>;
-}) {
+}): Promise<Metadata> {
 	const { path } = await params;
 	return getAuthPageMetadata(path);
 }
@@ -40,6 +42,10 @@ export default async function AuthPage({
 				<div className="flex flex-1 items-center justify-center">
 					<div className="w-full max-w-xs">
 						<AuthView
+							classNames={{
+								form: { button: "cursor-pointer " },
+								footerLink: "cursor-pointer",
+							}}
 							className="bg-background/50"
 							redirectTo="/dashboard"
 							path={path}
@@ -50,10 +56,13 @@ export default async function AuthPage({
 			<div className="bg-muted w-full z-0 md:z-10 h-full absolute md:relative lg:block overflow-hidden">
 				<HeroOverlayV2 />
 				<div className="absolute inset-0 z-5 bg-linear-to-t from-black/60 via-transparent to-black/20 pointer-events-none" />
-				<img
-					src="/background.png"
+				<Image
 					alt="Background"
-					className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.6] grayscale"
+					src="/background.webp"
+					fill
+					sizes="(min-width: 768px) 50vw, 100vw"
+					className="object-cover dark:brightness-[0.6] grayscale"
+					priority
 				/>
 			</div>
 		</div>
