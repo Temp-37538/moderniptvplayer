@@ -46,7 +46,7 @@ export default async function AuthPage({
 								form: { button: "cursor-pointer " },
 								footerLink: "cursor-pointer",
 							}}
-							className="bg-background/50"
+							className="bg-background/90"
 							redirectTo="/dashboard"
 							path={path}
 						/>

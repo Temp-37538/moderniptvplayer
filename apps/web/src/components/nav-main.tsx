@@ -13,6 +13,7 @@ import {
 	SidebarMenuSub,
 	SidebarMenuSubButton,
 	SidebarMenuSubItem,
+	useSidebar,
 } from "@/components/ui/sidebar";
 import { usePlaylistIdFromPath } from "@/hooks/use-playlist-id";
 import { ChevronRightIcon } from "lucide-react";
@@ -34,6 +35,7 @@ export function NavMain({
 	}[];
 }) {
 	const { playlistId } = usePlaylistIdFromPath();
+	const { setOpenMobile, openMobile } = useSidebar();
 
 	function buildHref(url: string): Route {
 		if (!playlistId) return url as Route;
@@ -65,6 +67,9 @@ export function NavMain({
 								{item.items?.map((subItem) => (
 									<SidebarMenuSubItem key={subItem.title}>
 										<SidebarMenuSubButton
+											onClick={() => {
+												openMobile && setOpenMobile(false);
+											}}
 											render={<Link href={buildHref(subItem.url)} />}
 										>
 											<span>{subItem.title}</span>

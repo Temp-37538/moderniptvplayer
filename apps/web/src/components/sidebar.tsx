@@ -72,7 +72,7 @@ function SidebarContent({ children }: { children: React.ReactNode }) {
 										if (segment === "series") label = "Series";
 
 										const playlist = playlists?.find((p) => p.id === segment);
-										
+
 										if (playlist) {
 											label = playlist.playlistName;
 										} else if (index > 0) {
@@ -94,7 +94,7 @@ function SidebarContent({ children }: { children: React.ReactNode }) {
 														<BreadcrumbLink
 															render={<Link href={href as Route} />}
 														>
-															{label} 
+															{label}
 														</BreadcrumbLink>
 													) : (
 														<BreadcrumbPage>{label}</BreadcrumbPage>
@@ -116,11 +116,7 @@ function SidebarContent({ children }: { children: React.ReactNode }) {
 							</Link>
 						</Button>
 						<SignedIn>
-							<Button
-								onClick={handleLogout}
-								size={"sm"}
-								className=" w-fit  "
-							>
+							<Button onClick={handleLogout} size={"sm"} className=" w-fit  ">
 								Logout
 							</Button>
 						</SignedIn>

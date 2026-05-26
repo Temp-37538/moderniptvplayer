@@ -53,8 +53,8 @@ export default function HeroSection() {
 									className="mx-auto mt-8 max-w-2xl text-balance text-lg animate-hero-fade"
 									style={{ animationDelay: "0.5s" }}
 								>
-									Import playlists with Xtream Codes or M3U and enjoy
-									a clean interface for live TV, movies, and series.
+									Import playlists with Xtream Codes or M3U and enjoy a clean
+									interface for live TV, movies, and series.
 								</p>
 
 								<div className="mt-12 flex flex-col items-center justify-center gap-2 md:flex-row">
@@ -104,7 +104,8 @@ export default function HeroSection() {
 									className="aspect-15/8 relative rounded-2xl block dark:hidden"
 									src="/light_.webp"
 									alt="app screen"
-									loading="lazy"
+									loading="eager"
+									fetchPriority="high"
 									sizes="(max-width: 1258px) 100vw, 1258px"
 									width={1600}
 									height={800}

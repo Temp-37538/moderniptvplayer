@@ -42,7 +42,7 @@ import { NO_PLAYLIST_ID, type Playlist } from "./types";
 
 export function PlaylistSwitcher() {
 	const playlists = usePlaylists();
-	const { isMobile } = useSidebar();
+	const { isMobile, setOpenMobile, openMobile } = useSidebar();
 	const router = useRouter();
 	const pathname = usePathname();
 	const [isPending, startTransition] = useTransition();
@@ -189,7 +189,10 @@ export function PlaylistSwitcher() {
 								playlists.map((playlist, index) => (
 									<DropdownMenuItem
 										key={playlist.id}
-										onClick={() => setActivePlaylist(playlist)}
+										onClick={() => {
+											openMobile && setOpenMobile(false);
+											setActivePlaylist(playlist);
+										}}
 										className="gap-2 p-2 cursor-pointer"
 									>
 										<div className="flex size-6 items-center justify-center rounded-md border">
@@ -256,8 +259,11 @@ export function PlaylistSwitcher() {
 						</DropdownMenuGroup>
 						<DropdownMenuSeparator />
 						<DropdownMenuGroup>
-							<DropdownMenuItem className="cursor-pointer hover:bg-primary p-0" > 
+							<DropdownMenuItem className="cursor-pointer hover:bg-primary p-0">
 								<Link
+									onClick={() => {
+										openMobile && setOpenMobile(false);
+									}}
 									href="/dashboard/addplaylist"
 									className="bg-transparent flex gap-2 justify-content p-2 items-center font-medium w-full h-full"
 								>

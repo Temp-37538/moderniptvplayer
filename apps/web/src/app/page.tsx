@@ -1,6 +1,6 @@
 import { createPageMetadata } from "@/app/metadata";
 import HeroSection from "@/components/hero-section";
-// import { SmokeBackground } from "@/components/spooky-smoke-animation";
+import { SmokeBackground } from "@/components/spooky-smoke-animation";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = createPageMetadata({
@@ -13,18 +13,13 @@ export const metadata: Metadata = createPageMetadata({
 export default function Home() {
 	return (
 		<div className="flex h-full w-full flex-col gap-4 bg-background overflow-hidden">
-			{/* <div className="absolute block dark:hidden w-full h-full">
-				<SmokeBackground
-					smokeColor="#A624FF"
-					bgColor="#FBEAE6"
-				/>
+			<div className="absolute inset-0">
+				<SmokeBackground smokeColor="#A624FF" mode="light"  />
 			</div>
-			<div className="absolute hidden dark:block w-full h-full">
-				<SmokeBackground
-					smokeColor="#A624FF"
-					bgColor="#141414"
-				/>
-			</div> */}
+
+			<div className="absolute inset-0 hidden dark:block">
+				<SmokeBackground smokeColor="#A624FF" mode="dark"  />
+			</div>
 			<HeroSection />
 		</div>
 	);

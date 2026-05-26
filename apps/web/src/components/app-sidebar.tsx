@@ -18,7 +18,7 @@ import { ModeToggle } from "./mode-toggle";
 import { Button } from "./ui/button";
 
 export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
-	const { state } = useSidebar();
+	const { state, setOpenMobile, openMobile } = useSidebar();
 
 	return (
 		<Sidebar collapsible="icon" {...props}>
@@ -34,7 +34,13 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 			>
 				<SignedIn>
 					<Button className={"p-0"} variant="outline" size="sm">
-						<Link className="px-2.5 m-0" href="/dashboard/account/settings">
+						<Link
+							className="px-2.5 m-0"
+							onClick={() => {
+								openMobile && setOpenMobile(false);
+							}}
+							href="/dashboard/account/settings"
+						>
 							<Settings />
 						</Link>
 					</Button>

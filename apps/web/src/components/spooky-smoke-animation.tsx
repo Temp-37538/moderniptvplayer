@@ -1,5 +1,4 @@
 "use client";
-
 import type React from "react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
@@ -9,61 +8,49 @@ type Rgb = [number, number, number];
 type Mode = "light" | "dark";
 type ModeColor = string | { light: string; dark: string };
 
-type SafeCanvas = HTMLCanvasElement & {
-	__offscreenTransferred?: boolean;
-};
-
 type ProgramWithUniforms = WebGLProgram & {
-	resolution: WebGLUniformLocation | null;
-	time: WebGLUniformLocation | null;
-	u_color: WebGLUniformLocation | null;
-	u_bg: WebGLUniformLocation | null;
+  resolution: WebGLUniformLocation | null;
+  time:       WebGLUniformLocation | null;
+  u_color:    WebGLUniformLocation | null;
+  u_bg:       WebGLUniformLocation | null;
 };
 
-// ─── Persistance inter-navigation ─────────────────────────────────────────────
+// ─── Module-level state ───────────────────────────────────────────────────────
 //
-// Ces deux variables survivent aux unmounts/remounts React (portée module).
-// Elles permettent au reveal shader (min(time * .1, 1.)) de ne pas rejouer
-// quand l'utilisateur revient sur la landing page.
+// Survit aux unmounts/remounts React (portée module, pas de reset SPA).
 //
-// Fonctionnement :
-//   - _persistedMs  : temps GPU accumulé lors des sessions précédentes
-//   - _mountedAt    : performance.now() au montage courant
+// _hasInitialized : true après le premier montage réussi.
+//   → Au retour sur la landing page, shouldStart = true immédiatement
+//     (pas de re-délai lazy de 1200ms qui donne l'impression d'un écran vide).
 //
-// Au cleanup : _persistedMs += performance.now() - _mountedAt
-// Au rendu   : renderer.render(now + _persistedMs)
-//
-// => Après ~10s sur la page, reveal = 1 pour toujours. Au retour, la fumée
-//    est immédiatement pleinement visible, sans re-fade.
+// NOTE — _persistedMs intentionnellement absent :
+//   performance.now() / RAF DOMHighResTimeStamp est MONOTONE dans une SPA
+//   (pas de rechargement de page). Après 10s sur la landing, reveal = 1 pour
+//   toujours. Au retour à t=45s, time = 45.0 → reveal = 1 naturellement.
+//   Pas besoin d'accumuler quoi que ce soit.
 
-let _persistedMs = 0;
-let _mountedAt = 0;
+let _hasInitialized = false;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const hexToRgb = (hex: string): Rgb | null => {
-	const r = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-	return r
-		? [
-				parseInt(r[1], 16) / 255,
-				parseInt(r[2], 16) / 255,
-				parseInt(r[3], 16) / 255,
-			]
-		: null;
+  const r = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return r
+    ? [parseInt(r[1], 16) / 255, parseInt(r[2], 16) / 255, parseInt(r[3], 16) / 255]
+    : null;
 };
 
 const resolveModeColor = (color: ModeColor, mode: Mode): string =>
-	typeof color === "string" ? color : color[mode];
+  typeof color === "string" ? color : color[mode];
 
-// ─── GLSL — source unique partagée entre Worker et Fallback ───────────────────
+// ─── GLSL — source unique partagée Worker + Fallback ─────────────────────────
 
 const VERT = `#version 300 es
 precision highp float;
 in vec4 position;
 void main(){ gl_Position = position; }`;
 
-// Optimisation shader : 3 octaves fbm au lieu de 4 (−25% charge GPU,
-// imperceptible visuellement sur un effet de fumée).
+// 3 octaves fbm au lieu de 4 : −25% charge GPU, imperceptible visuellement.
 const FRAG = `#version 300 es
 precision mediump float;
 out vec4 O;
@@ -128,10 +115,10 @@ void main() {
 }`;
 
 // ─── Worker source ────────────────────────────────────────────────────────────
-// VERT et FRAG sont injectés via template literal à la compilation du module
-// (pas de duplication de code, pas de fichier worker séparé).
+// VERT et FRAG injectés via template literal — pas de duplication, pas de
+// fichier worker séparé.
 
-const WORKER_SOURCE = /* js */ `
+const WORKER_SOURCE = /* js */`
 "use strict";
 
 const VERT = \`${VERT}\`;
@@ -165,9 +152,8 @@ class Renderer {
     const { gl } = this;
     gl.shaderSource(shader, src);
     gl.compileShader(shader);
-    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS))
       console.error("Shader error:", gl.getShaderInfoLog(shader));
-    }
   }
 
   _setup() {
@@ -180,9 +166,8 @@ class Renderer {
     gl.attachShader(this.program, this.vs);
     gl.attachShader(this.program, this.fs);
     gl.linkProgram(this.program);
-    if (!gl.getProgramParameter(this.program, gl.LINK_STATUS)) {
+    if (!gl.getProgramParameter(this.program, gl.LINK_STATUS))
       console.error("Link error:", gl.getProgramInfoLog(this.program));
-    }
   }
 
   _init() {
@@ -222,53 +207,44 @@ class Renderer {
   }
 }
 
-let renderer   = null;
-let rafId      = null;
-let lastTime   = 0;
-let timeOffset = 0; // injecté depuis le composant via message "init"
+let renderer = null;
+let rafId    = null;
+let lastTime = 0;
 
-const FPS      = 30;
-const INTERVAL = 1000 / FPS;
+const INTERVAL = 1000 / 24;
 
 function loop(now) {
   rafId = requestAnimationFrame(loop);
   const delta = now - lastTime;
   if (delta < INTERVAL) return;
   lastTime = now - (delta % INTERVAL);
-  renderer?.render(now + timeOffset);
+  renderer?.render(now);
 }
 
 self.onmessage = ({ data }) => {
   switch (data.type) {
     case "init":
-      renderer   = new Renderer(data.canvas);
-      timeOffset = data.timeOffset ?? 0;
+      renderer = new Renderer(data.canvas);
       renderer.updateScale(data.width, data.height);
       if (data.color) renderer.updateColor(data.color);
       if (data.bg)    renderer.updateBg(data.bg);
       rafId = requestAnimationFrame(loop);
       break;
-
     case "resize":
       renderer?.updateScale(data.width, data.height);
       break;
-
     case "color":
       renderer?.updateColor(data.color);
       break;
-
     case "bg":
       renderer?.updateBg(data.bg);
       break;
-
     case "pause":
       if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null; }
       break;
-
     case "resume":
       if (rafId === null) { rafId = requestAnimationFrame(loop); }
       break;
-
     case "destroy":
       if (rafId !== null) cancelAnimationFrame(rafId);
       renderer?.destroy();
@@ -278,444 +254,362 @@ self.onmessage = ({ data }) => {
 };
 `;
 
-// ─── FallbackRenderer ─────────────────────────────────────────────────────────
-// Chemin principal thread (navigateurs sans OffscreenCanvas).
-// Partage les mêmes VERT/FRAG que le worker.
+// ─── FallbackRenderer (main thread) ──────────────────────────────────────────
 
 class FallbackRenderer {
-	private readonly vertices = [-1, 1, -1, -1, 1, 1, 1, -1];
-	private gl: WebGL2RenderingContext;
-	private canvas: HTMLCanvasElement;
-	private program: ProgramWithUniforms | null = null;
-	private vs: WebGLShader | null = null;
-	private fs: WebGLShader | null = null;
-	private buffer: WebGLBuffer | null = null;
-	private color: Rgb = [0.5, 0.5, 0.5];
-	private bg: Rgb = [0.08, 0.08, 0.08];
+  private readonly vertices = [-1, 1, -1, -1, 1, 1, 1, -1];
+  private gl!: WebGL2RenderingContext;
+  private canvas: HTMLCanvasElement;
+  private program: ProgramWithUniforms | null = null;
+  private vs: WebGLShader | null = null;
+  private fs: WebGLShader | null = null;
+  private buffer: WebGLBuffer | null = null;
+  private color: Rgb = [0.5, 0.5, 0.5];
+  private bg: Rgb    = [0.08, 0.08, 0.08];
 
-	constructor(canvas: HTMLCanvasElement) {
-		this.canvas = canvas;
-		const gl = canvas.getContext("webgl2");
-		if (!gl) throw new Error("WebGL2 not supported");
-		this.gl = gl;
-		this.setup();
-		this.init();
-	}
+  constructor(canvas: HTMLCanvasElement) {
+    this.canvas = canvas;
+    const gl = canvas.getContext("webgl2");
+    if (!gl) throw new Error("WebGL2 not supported");
+    this.gl = gl;
+    this.setup();
+    this.init();
+  }
 
-	updateColor(color: Rgb) {
-		this.color = color;
-	}
+  updateColor(color: Rgb) { this.color = color; }
 
-	updateBg(bg: Rgb) {
-		this.bg = bg;
-		this.gl.clearColor(bg[0], bg[1], bg[2], 1);
-	}
+  updateBg(bg: Rgb) {
+    this.bg = bg;
+    this.gl.clearColor(bg[0], bg[1], bg[2], 1);
+  }
 
-	updateScale() {
-		const dpr = Math.min(Math.max(1, window.devicePixelRatio), 1.5);
-		this.canvas.width = window.innerWidth * dpr;
-		this.canvas.height = window.innerHeight * dpr;
-		this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
-	}
+  updateScale() {
+    const dpr          = Math.min(Math.max(1, window.devicePixelRatio), 1.5);
+    this.canvas.width  = window.innerWidth  * dpr;
+    this.canvas.height = window.innerHeight * dpr;
+    this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
+  }
 
-	private compile(shader: WebGLShader, source: string) {
-		const { gl } = this;
-		gl.shaderSource(shader, source);
-		gl.compileShader(shader);
-		if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-			console.error(gl.getShaderInfoLog(shader));
-		}
-	}
+  private compile(shader: WebGLShader, source: string) {
+    const { gl } = this;
+    gl.shaderSource(shader, source);
+    gl.compileShader(shader);
+    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS))
+      console.error(gl.getShaderInfoLog(shader));
+  }
 
-	private setup() {
-		const { gl } = this;
-		this.vs = gl.createShader(gl.VERTEX_SHADER);
-		this.fs = gl.createShader(gl.FRAGMENT_SHADER);
-		this.program = gl.createProgram() as ProgramWithUniforms;
-		if (!this.vs || !this.fs || !this.program) return;
-		this.compile(this.vs, VERT);
-		this.compile(this.fs, FRAG);
-		gl.attachShader(this.program, this.vs);
-		gl.attachShader(this.program, this.fs);
-		gl.linkProgram(this.program);
-		if (!gl.getProgramParameter(this.program, gl.LINK_STATUS)) {
-			console.error(gl.getProgramInfoLog(this.program));
-		}
-	}
+  private setup() {
+    const { gl } = this;
+    this.vs      = gl.createShader(gl.VERTEX_SHADER);
+    this.fs      = gl.createShader(gl.FRAGMENT_SHADER);
+    this.program = gl.createProgram() as ProgramWithUniforms;
+    if (!this.vs || !this.fs || !this.program) return;
+    this.compile(this.vs, VERT);
+    this.compile(this.fs, FRAG);
+    gl.attachShader(this.program, this.vs);
+    gl.attachShader(this.program, this.fs);
+    gl.linkProgram(this.program);
+    if (!gl.getProgramParameter(this.program, gl.LINK_STATUS))
+      console.error(gl.getProgramInfoLog(this.program));
+  }
 
-	private init() {
-		const { gl, program } = this;
-		if (!program) return;
-		this.buffer = gl.createBuffer();
-		gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
-		gl.bufferData(
-			gl.ARRAY_BUFFER,
-			new Float32Array(this.vertices),
-			gl.STATIC_DRAW,
-		);
-		const pos = gl.getAttribLocation(program, "position");
-		gl.enableVertexAttribArray(pos);
-		gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
-		Object.assign(program, {
-			resolution: gl.getUniformLocation(program, "resolution"),
-			time: gl.getUniformLocation(program, "time"),
-			u_color: gl.getUniformLocation(program, "u_color"),
-			u_bg: gl.getUniformLocation(program, "u_bg"),
-		});
-	}
+  private init() {
+    const { gl, program } = this;
+    if (!program) return;
+    this.buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.vertices), gl.STATIC_DRAW);
+    const pos = gl.getAttribLocation(program, "position");
+    gl.enableVertexAttribArray(pos);
+    gl.vertexAttribPointer(pos, 2, gl.FLOAT, false, 0, 0);
+    Object.assign(program, {
+      resolution: gl.getUniformLocation(program, "resolution"),
+      time:       gl.getUniformLocation(program, "time"),
+      u_color:    gl.getUniformLocation(program, "u_color"),
+      u_bg:       gl.getUniformLocation(program, "u_bg"),
+    });
+  }
 
-	render(now = 0) {
-		const { gl, program, buffer, canvas } = this;
-		if (!program || !gl.isProgram(program)) return;
-		gl.clearColor(this.bg[0], this.bg[1], this.bg[2], 1);
-		gl.clear(gl.COLOR_BUFFER_BIT);
-		gl.useProgram(program);
-		gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-		gl.uniform2f(program.resolution, canvas.width, canvas.height);
-		gl.uniform1f(program.time, now * 1e-3);
-		gl.uniform3fv(program.u_color, this.color);
-		gl.uniform3fv(program.u_bg, this.bg);
-		gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-	}
+  render(now = 0) {
+    const { gl, program, buffer, canvas } = this;
+    if (!program || !gl.isProgram(program)) return;
+    gl.clearColor(this.bg[0], this.bg[1], this.bg[2], 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.useProgram(program);
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    gl.uniform2f(program.resolution, canvas.width, canvas.height);
+    gl.uniform1f(program.time,       now * 1e-3);
+    gl.uniform3fv(program.u_color,   this.color);
+    gl.uniform3fv(program.u_bg,      this.bg);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  }
 
-	destroy() {
-		const { gl, program, vs, fs, buffer } = this;
-		if (vs && program) {
-			gl.detachShader(program, vs);
-			gl.deleteShader(vs);
-		}
-		if (fs && program) {
-			gl.detachShader(program, fs);
-			gl.deleteShader(fs);
-		}
-		if (program) gl.deleteProgram(program);
-		if (buffer) gl.deleteBuffer(buffer);
-	}
+  destroy() {
+    const { gl, program, vs, fs, buffer } = this;
+    if (vs && program)  { gl.detachShader(program, vs); gl.deleteShader(vs); }
+    if (fs && program)  { gl.detachShader(program, fs); gl.deleteShader(fs); }
+    if (program) gl.deleteProgram(program);
+    if (buffer)  gl.deleteBuffer(buffer);
+  }
 }
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface SmokeBackgroundProps {
-	smokeColor?: string;
-	bgColor?: ModeColor;
-	mode?: Mode;
-	lazy?: boolean;
-	lazyDelay?: number;
-	className?: string;
-	style?: React.CSSProperties;
+  smokeColor?: string;
+  bgColor?:    ModeColor;
+  mode?:       Mode;
+  lazy?:       boolean;
+  lazyDelay?:  number;
+  className?:  string;
+  style?:      React.CSSProperties;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export const SmokeBackground: React.FC<SmokeBackgroundProps> = ({
-	smokeColor = "#808080",
-	bgColor = { light: "#FBEAE6", dark: "#141414" },
-	mode = "dark",
-	lazy = true,
-	lazyDelay = 1200,
-	className,
-	style,
+  smokeColor = "#808080",
+  bgColor    = { light: "#FBEAE6", dark: "#141414" },
+  mode       = "dark",
+  lazy       = true,
+  lazyDelay  = 1200,
+  className,
+  style,
 }) => {
-	const canvasRef = useRef<HTMLCanvasElement>(null);
-	const workerRef = useRef<Worker | null>(null);
-	const fallbackRef = useRef<FallbackRenderer | null>(null);
-	const rendererModeRef = useRef<"worker" | "fallback" | null>(null);
-	const objectUrlRef = useRef<string | null>(null);
-	const [isMounted, setIsMounted] = useState(false);
-	const [canvasEpoch, setCanvasEpoch] = useState(0);
+  // Container div — le canvas est créé programmatiquement dans useLayoutEffect.
+  //
+  // POURQUOI : si on utilise <canvas ref={...}>, React peut réutiliser le même
+  // élément DOM entre les runs de useLayoutEffect (React Strict Mode, HMR).
+  // transferControlToOffscreen() ne peut être appelé qu'UNE FOIS par canvas.
+  // Créer le canvas nous-mêmes garantit un élément FRAIS à chaque run.
+  const containerRef    = useRef<HTMLDivElement>(null);
+  const workerRef       = useRef<Worker | null>(null);
+  const fallbackRef     = useRef<FallbackRenderer | null>(null);
+  const rendererModeRef = useRef<"worker" | "fallback" | null>(null);
+  const objectUrlRef    = useRef<string | null>(null);
 
-	// Refs pour la valeur initiale des couleurs — évite d'avoir smokeColor /
-	// resolvedBgColor dans les deps du useLayoutEffect principal tout en gardant
-	// les valeurs fraîches au moment du montage (et sans warning exhaustive-deps).
-	const initColorRef = useRef(smokeColor);
-	const initBgRef = useRef<string>("");
+  // Refs pour les valeurs initiales des couleurs.
+  // Évite d'avoir smokeColor/resolvedBgColor dans les deps du useLayoutEffect
+  // principal sans créer de stale closure.
+  const initColorRef = useRef(smokeColor);
+  const initBgRef    = useRef("");
+  initColorRef.current = smokeColor;
 
-	const [shouldStart, setShouldStart] = useState(!lazy);
+  // _hasInitialized : déjà chargé une fois → pas de re-délai lazy au retour.
+  const [shouldStart, setShouldStart] = useState(!lazy || _hasInitialized);
 
-	const resolvedBgColor = useMemo(
-		() => resolveModeColor(bgColor, mode),
-		[bgColor, mode],
-	);
+  const resolvedBgColor = useMemo(
+    () => resolveModeColor(bgColor, mode),
+    [bgColor, mode],
+  );
 
-	// Maintenir les refs à jour à chaque render (avant les effets)
-	initColorRef.current = smokeColor;
-	initBgRef.current = resolvedBgColor;
+  initBgRef.current = resolvedBgColor;
 
-	useEffect(() => {
-		setIsMounted(true);
-	}, []);
+  // ── Lazy start ──────────────────────────────────────────────────────────────
 
-	useEffect(() => {
-		if (!isMounted) return;
+  useEffect(() => {
+    // Déjà initialisé lors d'une session précédente → démarrage immédiat.
+    if (!lazy || _hasInitialized) { setShouldStart(true); return; }
 
-		const handlePageShow = (event: PageTransitionEvent) => {
-			if (!event.persisted) return;
-			setCanvasEpoch((epoch) => epoch + 1);
-		};
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    let idleId: number | null = null;
+    const start = () => setShouldStart(true);
 
-		window.addEventListener("pageshow", handlePageShow);
+    if ("requestIdleCallback" in window) {
+      idleId = window.requestIdleCallback(start, { timeout: lazyDelay });
+    } else {
+      timeoutId = setTimeout(start, lazyDelay);
+    }
 
-		return () => {
-			window.removeEventListener("pageshow", handlePageShow);
-		};
-	}, [isMounted]);
+    return () => {
+      if (idleId !== null && "cancelIdleCallback" in window)
+        window.cancelIdleCallback(idleId);
+      if (timeoutId !== null) clearTimeout(timeoutId);
+    };
+  }, [lazy, lazyDelay]);
 
-	// ── Lazy start ──────────────────────────────────────────────────────────────
+  // ── Renderer principal ───────────────────────────────────────────────────────
 
-	useEffect(() => {
-		if (!lazy) {
-			setShouldStart(true);
-			return;
-		}
+  useLayoutEffect(() => {
+    if (!shouldStart) return;
 
-		let timeoutId: ReturnType<typeof setTimeout> | null = null;
-		let idleId: number | null = null;
+    const container = containerRef.current;
+    if (!container) return;
 
-		const start = () => setShouldStart(true);
+    // Canvas créé programmatiquement → toujours frais, jamais réutilisé.
+    // Aucun flag __offscreenTransferred sur l'élément DOM = aucun risque de
+    // blocage en Strict Mode ou après navigation SPA.
+    const canvas = document.createElement("canvas");
+    canvas.style.cssText = "display:block;width:100%;height:100%";
+    container.appendChild(canvas);
 
-		if ("requestIdleCallback" in window) {
-			idleId = window.requestIdleCallback(start, { timeout: lazyDelay });
-		} else {
-			timeoutId = setTimeout(start, lazyDelay);
-		}
+    _hasInitialized = true;
 
-		return () => {
-			if (idleId !== null && "cancelIdleCallback" in window)
-				window.cancelIdleCallback(idleId);
-			if (timeoutId !== null) clearTimeout(timeoutId);
-		};
-	}, [lazy, lazyDelay]);
+    const color  = hexToRgb(initColorRef.current) ?? ([0.5,  0.5,  0.5 ] as Rgb);
+    const bg     = hexToRgb(initBgRef.current)    ?? ([0.08, 0.08, 0.08] as Rgb);
+    const dpr    = Math.min(Math.max(1, window.devicePixelRatio), 1.5);
+    const width  = window.innerWidth  * dpr;
+    const height = window.innerHeight * dpr;
 
-	// ── Renderer principal ───────────────────────────────────────────────────────
-	//
-	// Deps intentionnellement limitées à [shouldStart, canvasEpoch] :
-	//   - smokeColor et resolvedBgColor sont gérés par leurs propres useEffect
-	//     via postMessage/updateColor — pas besoin de recréer le worker.
-	//   - Les valeurs initiales sont lues via initColorRef/initBgRef.
+    const supportsOffscreen =
+      typeof OffscreenCanvas !== "undefined" &&
+      typeof canvas.transferControlToOffscreen === "function";
 
-	useLayoutEffect(() => {
-		if (!isMounted || !shouldStart) return;
-		void canvasEpoch;
+    // ── Mode Worker (OffscreenCanvas) ─────────────────────────────────────────
 
-		const canvas = canvasRef.current as SafeCanvas | null;
-		if (!canvas) return;
+    if (supportsOffscreen) {
+      rendererModeRef.current = "worker";
 
-		_mountedAt = performance.now();
+      const blob   = new Blob([WORKER_SOURCE], { type: "application/javascript" });
+      const url    = URL.createObjectURL(blob);
+      objectUrlRef.current = url;
 
-		const color = hexToRgb(initColorRef.current) ?? ([0.5, 0.5, 0.5] as Rgb);
-		const bg = hexToRgb(initBgRef.current) ?? ([0.08, 0.08, 0.08] as Rgb);
-		const dpr = Math.min(Math.max(1, window.devicePixelRatio), 1.5);
-		const width = window.innerWidth * dpr;
-		const height = window.innerHeight * dpr;
+      const worker = new Worker(url);
+      workerRef.current = worker;
 
-		const supportsOffscreen =
-			typeof OffscreenCanvas !== "undefined" &&
-			typeof canvas.transferControlToOffscreen === "function";
+      const offscreen = canvas.transferControlToOffscreen();
+      worker.postMessage({ type: "init", canvas: offscreen, width, height, color, bg }, [offscreen]);
 
-		// ── Mode Worker (OffscreenCanvas) ─────────────────────────────────────────
+      // Pause quand le canvas sort du viewport (scroll ou navigation SPA
+      // avec router cache qui garde le composant monté mais caché).
+      const io = new IntersectionObserver(
+        ([e]) => worker.postMessage({ type: e.isIntersecting ? "resume" : "pause" }),
+        { threshold: 0 },
+      );
+      io.observe(canvas);
 
-		if (supportsOffscreen) {
-			// Guard contre le double-appel React Strict Mode / HMR sur la même instance
-			if (canvas.__offscreenTransferred) return;
-			canvas.__offscreenTransferred = true;
-			rendererModeRef.current = "worker";
+      // Pause quand l'onglet est masqué.
+      const onVisibility = () =>
+        worker.postMessage({ type: document.hidden ? "pause" : "resume" });
+      document.addEventListener("visibilitychange", onVisibility);
 
-			const blob = new Blob([WORKER_SOURCE], {
-				type: "application/javascript",
-			});
-			const url = URL.createObjectURL(blob);
-			objectUrlRef.current = url;
+      // pageshow : couvre le retour depuis le bfcache navigateur.
+      const onPageShow = (e: PageTransitionEvent) => {
+        if (e.persisted) worker.postMessage({ type: "resume" });
+      };
+      window.addEventListener("pageshow", onPageShow);
 
-			const worker = new Worker(url);
-			workerRef.current = worker;
+      // Resize debounce 100ms.
+      let resizeTimer: ReturnType<typeof setTimeout>;
+      const onResize = () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+          const d = Math.min(Math.max(1, window.devicePixelRatio), 1.5);
+          worker.postMessage({ type: "resize", width: window.innerWidth * d, height: window.innerHeight * d });
+        }, 100);
+      };
+      window.addEventListener("resize", onResize);
 
-			const offscreen = canvas.transferControlToOffscreen();
-			worker.postMessage(
-				{
-					type: "init",
-					canvas: offscreen,
-					width,
-					height,
-					color,
-					bg,
-					timeOffset: _persistedMs, // ← reprend le temps où on s'est arrêté
-				},
-				[offscreen],
-			);
+      return () => {
+        clearTimeout(resizeTimer);
+        try { worker.postMessage({ type: "destroy" }); } catch { /* worker peut déjà être mort */ }
+        worker.terminate();
+        io.disconnect();
+        window.removeEventListener("resize", onResize);
+        window.removeEventListener("pageshow", onPageShow);
+        document.removeEventListener("visibilitychange", onVisibility);
+        if (objectUrlRef.current) { URL.revokeObjectURL(objectUrlRef.current); objectUrlRef.current = null; }
+        canvas.remove();
+        workerRef.current       = null;
+        rendererModeRef.current = null;
+      };
+    }
 
-			// Pause quand le canvas sort du viewport
-			const intersectionObserver = new IntersectionObserver(
-				([entry]) =>
-					worker.postMessage({
-						type: entry.isIntersecting ? "resume" : "pause",
-					}),
-				{ threshold: 0 },
-			);
-			intersectionObserver.observe(canvas);
+    // ── Mode Fallback (main thread) ───────────────────────────────────────────
 
-			// Pause quand l'onglet est masqué
-			const handleVisibility = () =>
-				worker.postMessage({ type: document.hidden ? "pause" : "resume" });
-			document.addEventListener("visibilitychange", handleVisibility);
+    rendererModeRef.current = "fallback";
 
-			// Resize avec debounce 100ms pour ne pas flooder le worker
-			let resizeTimer: ReturnType<typeof setTimeout>;
-			const handleResize = () => {
-				clearTimeout(resizeTimer);
-				resizeTimer = setTimeout(() => {
-					const d = Math.min(Math.max(1, window.devicePixelRatio), 1.5);
-					worker.postMessage({
-						type: "resize",
-						width: window.innerWidth * d,
-						height: window.innerHeight * d,
-					});
-				}, 100);
-			};
-			window.addEventListener("resize", handleResize);
+    const renderer = new FallbackRenderer(canvas);
+    fallbackRef.current = renderer;
+    renderer.updateColor(color);
+    renderer.updateBg(bg);
+    renderer.updateScale();
 
-			return () => {
-				// Accumuler le temps avant destruction pour la prochaine session
-				_persistedMs += performance.now() - _mountedAt;
+    let rafId: number | null = null;
+    let lastTime = 0;
+    const INTERVAL = 1000 / 24;
 
-				clearTimeout(resizeTimer);
-				try {
-					worker.postMessage({ type: "destroy" });
-				} catch {
-					/* worker peut déjà être mort */
-				}
-				worker.terminate();
-				intersectionObserver.disconnect();
-				window.removeEventListener("resize", handleResize);
-				document.removeEventListener("visibilitychange", handleVisibility);
+    const loop = (now: number) => {
+      rafId = requestAnimationFrame(loop);
+      const delta = now - lastTime;
+      if (delta < INTERVAL) return;
+      lastTime = now - (delta % INTERVAL);
+      renderer.render(now);
+    };
 
-				if (objectUrlRef.current) {
-					URL.revokeObjectURL(objectUrlRef.current);
-					objectUrlRef.current = null;
-				}
+    rafId = requestAnimationFrame(loop);
 
-				workerRef.current = null;
-				rendererModeRef.current = null;
-			};
-		}
+    const pause = () => { if (rafId !== null) { cancelAnimationFrame(rafId); rafId = null; } };
+    const resume = () => { if (rafId === null) { rafId = requestAnimationFrame(loop); } };
 
-		// ── Mode Fallback (main thread) ───────────────────────────────────────────
+    const io = new IntersectionObserver(
+      ([e]) => (e.isIntersecting ? resume() : pause()),
+      { threshold: 0 },
+    );
+    io.observe(canvas);
 
-		rendererModeRef.current = "fallback";
+    const onVisibility = () => (document.hidden ? pause() : resume());
+    document.addEventListener("visibilitychange", onVisibility);
 
-		const renderer = new FallbackRenderer(canvas);
-		fallbackRef.current = renderer;
-		renderer.updateColor(color);
-		renderer.updateBg(bg);
-		renderer.updateScale();
+    const onPageShow = (e: PageTransitionEvent) => { if (e.persisted) resume(); };
+    window.addEventListener("pageshow", onPageShow);
 
-		let rafId: number | null = null;
-		let lastTime = 0;
-		const interval = 1000 / 30;
+    let resizeTimer: ReturnType<typeof setTimeout>;
+    const onResize = () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => renderer.updateScale(), 100);
+    };
+    window.addEventListener("resize", onResize);
 
-		const loop = (now: number) => {
-			rafId = requestAnimationFrame(loop);
-			const delta = now - lastTime;
-			if (delta < interval) return;
-			lastTime = now - (delta % interval);
-			renderer.render(now + _persistedMs); // ← temps continu inter-navigation
-		};
+    return () => {
+      clearTimeout(resizeTimer);
+      pause();
+      renderer.destroy();
+      io.disconnect();
+      window.removeEventListener("resize", onResize);
+      window.removeEventListener("pageshow", onPageShow);
+      document.removeEventListener("visibilitychange", onVisibility);
+      canvas.remove();
+      fallbackRef.current     = null;
+      rendererModeRef.current = null;
+    };
+  }, [shouldStart]); // eslint-disable-line react-hooks/exhaustive-deps
+  // ^ Intentionnel : smokeColor et resolvedBgColor sont gérés par leurs propres
+  //   effets ci-dessous via postMessage. Les mettre ici détruirait le worker à
+  //   chaque changement de couleur.
 
-		rafId = requestAnimationFrame(loop);
+  // ── Mise à jour dynamique couleur fumée ───────────────────────────────────
 
-		// Pause quand le canvas sort du viewport
-		const intersectionObserver = new IntersectionObserver(
-			([entry]) => {
-				if (!entry.isIntersecting && rafId !== null) {
-					cancelAnimationFrame(rafId);
-					rafId = null;
-				}
-				if (entry.isIntersecting && rafId === null) {
-					rafId = requestAnimationFrame(loop);
-				}
-			},
-			{ threshold: 0 },
-		);
-		intersectionObserver.observe(canvas);
+  useEffect(() => {
+    if (!shouldStart) return;
+    const color = hexToRgb(smokeColor);
+    if (!color) return;
+    if (rendererModeRef.current === "worker") { workerRef.current?.postMessage({ type: "color", color }); return; }
+    fallbackRef.current?.updateColor(color);
+  }, [shouldStart, smokeColor]);
 
-		// Pause quand l'onglet est masqué
-		const handleVisibility = () => {
-			if (document.hidden) {
-				if (rafId !== null) {
-					cancelAnimationFrame(rafId);
-					rafId = null;
-				}
-			} else {
-				if (rafId === null) {
-					rafId = requestAnimationFrame(loop);
-				}
-			}
-		};
-		document.addEventListener("visibilitychange", handleVisibility);
+  // ── Mise à jour dynamique couleur fond ────────────────────────────────────
 
-		// Resize avec debounce 100ms
-		let resizeTimer: ReturnType<typeof setTimeout>;
-		const handleResize = () => {
-			clearTimeout(resizeTimer);
-			resizeTimer = setTimeout(() => renderer.updateScale(), 100);
-		};
-		window.addEventListener("resize", handleResize);
+  useEffect(() => {
+    if (!shouldStart) return;
+    const bg = hexToRgb(resolvedBgColor);
+    if (!bg) return;
+    if (rendererModeRef.current === "worker") { workerRef.current?.postMessage({ type: "bg", bg }); return; }
+    fallbackRef.current?.updateBg(bg);
+  }, [shouldStart, resolvedBgColor]);
 
-		return () => {
-			_persistedMs += performance.now() - _mountedAt;
-
-			clearTimeout(resizeTimer);
-			if (rafId !== null) cancelAnimationFrame(rafId);
-			renderer.destroy();
-			intersectionObserver.disconnect();
-			window.removeEventListener("resize", handleResize);
-			document.removeEventListener("visibilitychange", handleVisibility);
-
-			fallbackRef.current = null;
-			rendererModeRef.current = null;
-		};
-	}, [isMounted, shouldStart, canvasEpoch]); // eslint-disable-line react-hooks/exhaustive-deps
-	// ^ Intentionnel : smokeColor et resolvedBgColor sont gérés par leurs propres
-	//   effets ci-dessous. Les ajouter ici détruirait le worker à chaque changement
-	//   de couleur, ce qui annulerait le bénéfice des mises à jour dynamiques.
-
-	// ── Mise à jour dynamique — couleur fumée ──────────────────────────────────
-
-	useEffect(() => {
-		if (!shouldStart) return;
-		const color = hexToRgb(smokeColor);
-		if (!color) return;
-		if (rendererModeRef.current === "worker") {
-			workerRef.current?.postMessage({ type: "color", color });
-			return;
-		}
-		fallbackRef.current?.updateColor(color);
-	}, [shouldStart, smokeColor]);
-
-	// ── Mise à jour dynamique — couleur fond ───────────────────────────────────
-
-	useEffect(() => {
-		if (!shouldStart) return;
-		const bg = hexToRgb(resolvedBgColor);
-		if (!bg) return;
-		if (rendererModeRef.current === "worker") {
-			workerRef.current?.postMessage({ type: "bg", bg });
-			return;
-		}
-		fallbackRef.current?.updateBg(bg);
-	}, [shouldStart, resolvedBgColor]);
-
-	return isMounted ? (
-		<canvas
-			key={canvasEpoch}
-			ref={canvasRef}
-			className={className}
-			style={{
-				display: "block",
-				width: "100%",
-				height: "100%",
-				backgroundColor: resolvedBgColor,
-				...style,
-			}}
-		/>
-	) : null;
+  return (
+    <div
+      ref={containerRef}
+      className={className}
+      style={{
+        display:         "block",
+        width:           "100%",
+        height:          "100%",
+        overflow:        "hidden",
+        backgroundColor: resolvedBgColor,
+        ...style,
+      }}
+    />
+  );
 };
