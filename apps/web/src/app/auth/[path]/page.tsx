@@ -62,7 +62,8 @@ export default async function AuthPage({
 					fill
 					sizes="(min-width: 768px) 50vw, 100vw"
 					className="object-cover dark:brightness-[0.6] grayscale"
-					priority
+					loading="eager"
+					fetchPriority="high"
 				/>
 			</div>
 		</div>
