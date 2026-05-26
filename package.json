@@ -22,7 +22,8 @@
 	},
 	"dependencies": {
 		"@moderniptvplayer/env": "workspace:*",
-		"typescript": "catalog:"
+		"typescript": "catalog:",
+		"zod": "catalog:"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "2.3.15",

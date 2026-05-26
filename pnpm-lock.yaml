@@ -6,9 +6,21 @@ settings:
 
 catalogs:
   default:
+    '@prisma/client':
+      specifier: ^7.2.0
+      version: 7.3.0
+    better-auth:
+      specifier: 1.4.18
+      version: 1.4.18
+    dotenv:
+      specifier: ^17.2.2
+      version: 17.2.2
     typescript:
       specifier: ^5.9.3
       version: 5.9.3
+    zod:
+      specifier: ^4.3.6
+      version: 4.3.6
 
 importers:
 
@@ -20,6 +32,9 @@ importers:
       typescript:
         specifier: 'catalog:'
         version: 5.9.3
+      zod:
+        specifier: 'catalog:'
+        version: 4.3.6
     devDependencies:
       '@biomejs/biome':
         specifier: 2.3.15
@@ -141,10 +156,10 @@ importers:
         version: link:../env
       better-auth:
         specifier: 'catalog:'
-        version: 1.4.18(@prisma/client@7.3.0(prisma@7.3.0(@types/react@19.2.13)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3))(typescript@5.9.3))(mysql2@3.15.3)(next@16.2.6(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(prisma@7.3.0(@types/react@19.2.13)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
+        version: 1.4.18(@prisma/client@7.3.0(prisma@7.3.0(@types/react@19.2.13)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3))(typescript@5.9.3))(mysql2@3.15.3)(next@16.2.6(@babel/core@7.29.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(prisma@7.3.0(@types/react@19.2.13)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
       dotenv:
         specifier: 'catalog:'
-        version: 17.2.4
+        version: 17.2.2
       zod:
         specifier: 'catalog:'
         version: 4.3.6
@@ -174,7 +189,7 @@ importers:
         version: 7.3.0(prisma@7.3.0(@types/react@19.2.13)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3))(typescript@5.9.3)
       dotenv:
         specifier: 'catalog:'
-        version: 17.2.4
+        version: 17.2.2
       ws:
         specifier: ^8.18.3
         version: 8.19.0
@@ -205,7 +220,7 @@ importers:
         version: 0.13.10(typescript@5.9.3)(valibot@1.2.0(typescript@5.9.3))(zod@4.3.6)
       dotenv:
         specifier: 'catalog:'
-        version: 17.2.4
+        version: 17.2.2
       zod:
         specifier: 'catalog:'
         version: 4.3.6
@@ -2321,10 +2336,6 @@ packages:
 
   dotenv@17.2.2:
     resolution: {integrity: sha512-Sf2LSQP+bOlhKWWyhFsn0UsfdK/kCWRv1iuA2gXAwt3dyNabr6QSj00I2V10pidqz69soatm9ZwZvpQMTIOd5Q==}
-    engines: {node: '>=12'}
-
-  dotenv@17.2.4:
-    resolution: {integrity: sha512-mudtfb4zRB4bVvdj0xRo+e6duH1csJRM8IukBqfTRvHotn9+LBXB8ynAidP9zHqoRC/fsllXgk4kCKlR21fIhw==}
     engines: {node: '>=12'}
 
   dunder-proto@1.0.1:
@@ -5596,28 +5607,6 @@ snapshots:
       react: 19.2.6
       react-dom: 19.2.6(react@19.2.6)
 
-  better-auth@1.4.18(@prisma/client@7.3.0(prisma@7.3.0(@types/react@19.2.13)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3))(typescript@5.9.3))(mysql2@3.15.3)(next@16.2.6(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(prisma@7.3.0(@types/react@19.2.13)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3))(react-dom@19.2.6(react@19.2.6))(react@19.2.6):
-    dependencies:
-      '@better-auth/core': 1.4.18(@better-auth/utils@0.3.0)(@better-fetch/fetch@1.1.21)(better-call@1.1.8(zod@4.3.6))(jose@6.1.3)(kysely@0.28.11)(nanostores@1.1.0)
-      '@better-auth/telemetry': 1.4.18(@better-auth/core@1.4.18(@better-auth/utils@0.3.0)(@better-fetch/fetch@1.1.21)(better-call@1.1.8(zod@4.3.6))(jose@6.1.3)(kysely@0.28.11)(nanostores@1.1.0))
-      '@better-auth/utils': 0.3.0
-      '@better-fetch/fetch': 1.1.21
-      '@noble/ciphers': 2.1.1
-      '@noble/hashes': 2.0.1
-      better-call: 1.1.8(zod@4.3.6)
-      defu: 6.1.4
-      jose: 6.1.3
-      kysely: 0.28.11
-      nanostores: 1.1.0
-      zod: 4.3.6
-    optionalDependencies:
-      '@prisma/client': 7.3.0(prisma@7.3.0(@types/react@19.2.13)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3))(typescript@5.9.3)
-      mysql2: 3.15.3
-      next: 16.2.6(@babel/core@7.29.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
-      prisma: 7.3.0(@types/react@19.2.13)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)
-      react: 19.2.6
-      react-dom: 19.2.6(react@19.2.6)
-
   better-call@1.1.8(zod@4.3.6):
     dependencies:
       '@better-auth/utils': 0.3.0
@@ -5869,8 +5858,6 @@ snapshots:
   dotenv@16.6.1: {}
 
   dotenv@17.2.2: {}
-
-  dotenv@17.2.4: {}
 
   dunder-proto@1.0.1:
     dependencies:
