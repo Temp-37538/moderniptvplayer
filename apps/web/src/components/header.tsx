@@ -2,15 +2,14 @@
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Menu, TvMinimal, X } from "lucide-react";
-import type { Route } from "next";
 import Link from "next/link";
 import React from "react";
 import { ModeToggle } from "./mode-toggle";
 
-const menuItems: Array<{ name: string; href: Route; id: number }> = [
-	{ name: "Add Playlist", href: "/auth/sign-in", id: 1 },
-	{ name: "Xtream Codes", href: "/auth/sign-in", id: 2 },
-	{ name: "M3U URL", href: "/auth/sign-in", id: 3 },
+const menuItems: Array<{ name: string; id: number }> = [
+	{ name: "Add Playlist", id: 1 },
+	{ name: "Xtream Codes", id: 2 },
+	{ name: "M3U URL", id: 3 },
 ];
 
 export const HeroHeader = () => {
@@ -63,7 +62,7 @@ export const HeroHeader = () => {
 								{menuItems.map((item) => (
 									<li key={item.id}>
 										<Link
-											href={item.href}
+											href={"/auth/sign-in"}
 											className="text-foreground/70 hover:text-accent-foreground dark:text-muted-foreground dark:hover:text-foreground block duration-150"
 										>
 											<span>{item.name}</span>
@@ -79,7 +78,7 @@ export const HeroHeader = () => {
 									{menuItems.map((item) => (
 										<li key={item.id}>
 											<Link
-												href={item.href}
+												href={"/auth/sign-in"}
 												className="text-foreground/70 hover:text-accent-foreground dark:text-muted-foreground dark:hover:text-foreground block duration-150"
 											>
 												<span>{item.name}</span>
@@ -93,7 +92,10 @@ export const HeroHeader = () => {
 								<Button
 									variant="outline"
 									size="sm"
-									className={cn("hover:bg-primary/10", isScrolled && "lg:hidden")}
+									className={cn(
+										"hover:bg-primary/10",
+										isScrolled && "lg:hidden",
+									)}
 									render={<Link href="/auth/sign-in" />}
 									nativeButton={false}
 								>

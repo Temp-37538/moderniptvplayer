@@ -45,7 +45,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
 							basePath: "/dashboard/account",
 						}}
 						nameRequired={false}
-						redirectTo="/dashboard/auth/sign-in"
+						redirectTo="/auth/sign-in"
 						changeEmail={false}
 						signUp={{ fields: [] }}
 						Link={AuthLink}
