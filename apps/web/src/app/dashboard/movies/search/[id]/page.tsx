@@ -1,11 +1,12 @@
 import { createPageMetadata, getPlaylistMetadataContext } from "@/app/metadata";
 import { SearchMovieCategorySearch } from "@/components/series-category-search";
 import type { IdPageProps as PageProps } from "@/components/types";
+import type { Metadata } from "next";
 import { getCachedMovieCategories } from "@/server/cached-content";
 import { getPlaylistById } from "@/server/xtream";
 import { notFound } from "next/navigation";
 
-export async function generateMetadata({ params }: PageProps) {
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
 	const { id } = await params;
 	const playlist = await getPlaylistMetadataContext(id);
 
@@ -26,7 +27,11 @@ export async function generateMetadata({ params }: PageProps) {
 	});
 }
 
-export default async function MovieSearchCategoriesPage({ params }: PageProps) {
+export default function MovieSearchCategoriesPage({ params }: PageProps) {
+	return <MovieSearchCategoriesContent params={params} />;
+}
+
+async function MovieSearchCategoriesContent({ params }: PageProps) {
 	const { id } = await params;
 	const playlist = await getPlaylistById(id);
 

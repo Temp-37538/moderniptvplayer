@@ -1,6 +1,7 @@
 import { createPageMetadata } from "@/app/metadata";
+import type { Metadata } from "next";
 
-export const metadata = createPageMetadata({
+export const metadata: Metadata = createPageMetadata({
 	title: "Add M3U Playlist",
 	description: "Import an IPTV playlist from an M3U URL.",
 	path: "/dashboard/addplaylist/m3u",

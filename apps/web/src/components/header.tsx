@@ -6,10 +6,10 @@ import Link from "next/link";
 import React from "react";
 import { ModeToggle } from "./mode-toggle";
 
-const menuItems: Array<{ name: string; id: number }> = [
-	{ name: "Add Playlist", id: 1 },
-	{ name: "Xtream Codes", id: 2 },
-	{ name: "M3U URL", id: 3 },
+const menuItems: Array<{ name: string; id: number; href: string }> = [
+	{ name: "Add Playlist", id: 1, href: "/dashboard/addplaylist" },
+	{ name: "Xtream Codes", id: 2, href: "/dashboard/addplaylist/xtream" },
+	{ name: "M3U URL", id: 3, href: "/dashboard/addplaylist/m3u" },
 ];
 
 export const HeroHeader = () => {
@@ -62,7 +62,7 @@ export const HeroHeader = () => {
 								{menuItems.map((item) => (
 									<li key={item.id}>
 										<Link
-											href={"/auth/sign-in"}
+											href={item.href as never}
 											className="text-foreground/70 hover:text-accent-foreground dark:text-muted-foreground dark:hover:text-foreground block duration-150"
 										>
 											<span>{item.name}</span>
@@ -78,7 +78,7 @@ export const HeroHeader = () => {
 									{menuItems.map((item) => (
 										<li key={item.id}>
 											<Link
-												href={"/auth/sign-in"}
+												href={item.href as never}
 												className="text-foreground/70 hover:text-accent-foreground dark:text-muted-foreground dark:hover:text-foreground block duration-150"
 											>
 												<span>{item.name}</span>

@@ -16,7 +16,6 @@
     "@moderniptvplayer/db": "workspace:*",
     "@moderniptvplayer/env": "workspace:*",
     "better-auth": "catalog:",
-    "dotenv": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {

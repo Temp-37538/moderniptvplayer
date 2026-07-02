@@ -1,12 +1,24 @@
 import { lookup } from "node:dns/promises";
 import { BlockList, isIP } from "node:net";
-import { auth } from "@moderniptvplayer/auth";
+import { getAuthenticatedUserId } from "@/server/auth-utils";
 import { type NextRequest, NextResponse } from "next/server";
 
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 const REQUEST_TIMEOUT_MS = 8_000;
 const MAX_REDIRECTS = 3;
 const CACHE_CONTROL = "public, max-age=86400, stale-while-revalidate=86400";
+
+function makeError(status: number, message: string) {
+	return NextResponse.json({ error: message }, { status });
+}
+
+function logProxyRefusal(reason: string, details: Record<string, unknown>) {
+	console.warn("[image-proxy] denied", { reason, ...details });
+}
+
+function logProxyFailure(reason: string, details: Record<string, unknown>) {
+	console.warn("[image-proxy] upstream-failure", { reason, ...details });
+}
 
 const blockedHosts = new Set([
 	"localhost",
@@ -54,20 +66,7 @@ function isBlockedIp(address: string) {
 	if (!type) {
 		return false;
 	}
-
 	return blockedIpRanges.check(address, type === 4 ? "ipv4" : "ipv6");
-}
-
-function makeError(status: number, message: string) {
-	return NextResponse.json({ error: message }, { status });
-}
-
-function logProxyRefusal(reason: string, details: Record<string, unknown>) {
-	console.warn("[image-proxy] denied", { reason, ...details });
-}
-
-function logProxyFailure(reason: string, details: Record<string, unknown>) {
-	console.warn("[image-proxy] upstream-failure", { reason, ...details });
 }
 
 async function validatePublicHost(targetUrl: URL) {
@@ -126,16 +125,13 @@ async function readBodyWithLimit(
 		if (done) {
 			break;
 		}
-
 		if (!value) {
 			continue;
 		}
-
 		totalBytes += value.byteLength;
 		if (totalBytes > maxBytes) {
 			return null;
 		}
-
 		chunks.push(value);
 	}
 
@@ -145,7 +141,6 @@ async function readBodyWithLimit(
 		combined.set(chunk, offset);
 		offset += chunk.byteLength;
 	}
-
 	return combined;
 }
 
@@ -173,9 +168,7 @@ async function fetchWithValidatedRedirects(
 			method: "GET",
 			redirect: "manual",
 			signal,
-			headers: {
-				Accept: "image/*",
-			},
+			headers: { Accept: "image/*" },
 			cache: "no-store",
 		});
 
@@ -231,11 +224,9 @@ async function fetchWithValidatedRedirects(
 }
 
 export async function GET(request: NextRequest) {
-	const session = await auth.api.getSession({
-		headers: request.headers,
-	});
+	const userId = await getAuthenticatedUserId();
 
-	if (!session?.user.id) {
+	if (!userId) {
 		logProxyRefusal("unauthenticated", {});
 		return makeError(401, "Authentication required.");
 	}
@@ -330,6 +321,7 @@ export async function GET(request: NextRequest) {
 		const responseHeaders = new Headers();
 		responseHeaders.set("Content-Type", contentType);
 		responseHeaders.set("Cache-Control", CACHE_CONTROL);
+		responseHeaders.set("X-Content-Type-Options", "nosniff");
 		const etag = upstreamResponse.headers.get("etag");
 		const lastModified = upstreamResponse.headers.get("last-modified");
 		if (etag) {
@@ -339,16 +331,12 @@ export async function GET(request: NextRequest) {
 			responseHeaders.set("Last-Modified", lastModified);
 		}
 
-		return new NextResponse(body, {
-			status: 200,
-			headers: responseHeaders,
-		});
+		return new NextResponse(body, { status: 200, headers: responseHeaders });
 	} catch (error) {
 		if (error instanceof Error && error.name === "AbortError") {
 			logProxyFailure("timeout", { host: targetUrl.hostname });
 			return makeError(504, "Image source timed out.");
 		}
-
 		logProxyFailure("request-failed", { host: targetUrl.hostname });
 		return makeError(502, "Unable to fetch image.");
 	} finally {

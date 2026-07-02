@@ -62,9 +62,9 @@ export const sidebarData = {
 			icon: <TvIcon />,
 			isActive: true,
 			items: [
-				{ title: "Channels categories", url: "/dashboard/channels" },
+				{ title: "Browse TV channels", url: "/dashboard/channels" },
 				{
-					title: "Search through categories",
+					title: "Search TV channels by category",
 					url: "/dashboard/channels/search",
 				},
 			],
@@ -74,8 +74,8 @@ export const sidebarData = {
 			url: "#",
 			icon: <FilmIcon />,
 			items: [
-				{ title: "Movies categories", url: "/dashboard/movies" },
-				{ title: "Search through categories", url: "/dashboard/movies/search" },
+				{ title: "Browse movie categories", url: "/dashboard/movies" },
+				{ title: "Search movies by category", url: "/dashboard/movies/search" },
 			],
 		},
 		{
@@ -83,8 +83,8 @@ export const sidebarData = {
 			url: "#",
 			icon: <ClapperboardIcon />,
 			items: [
-				{ title: "Series categories", url: "/dashboard/series" },
-				{ title: "Search through categories", url: "/dashboard/series/search" },
+				{ title: "Browse series categories", url: "/dashboard/series" },
+				{ title: "Search series by category", url: "/dashboard/series/search" },
 			],
 		},
 	] as NavItem[],

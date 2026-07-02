@@ -25,7 +25,7 @@ export default function Home() {
 			</div>
 			<Suspense fallback={null}>
 				<HomeGate />
-			</Suspense>
+			</Suspense> 
 		</div>
 	);
 }

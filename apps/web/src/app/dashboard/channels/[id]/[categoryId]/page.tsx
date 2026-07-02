@@ -1,9 +1,10 @@
 import { createPageMetadata, getCategoryMetadataContext } from "@/app/metadata";
 import type { IdCategoryPageProps as PageProps } from "@/components/types";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getPlaylistById, createXtreamClient } from "@/server/xtream";
-import type { StandardXtreamChannel } from "@iptv/xtream-api/standardized";
+import { getPlaylistById } from "@/server/xtream";
+import { getCachedChannels } from "@/server/cached-content";
 
 import { Radio } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
@@ -12,7 +13,10 @@ import { toSafeImageSrc } from "@/lib/image-url";
 
 const ITEMS_PER_PAGE = 20;
 
-export async function generateMetadata({ params, searchParams }: PageProps) {
+export async function generateMetadata({
+	params,
+	searchParams,
+}: PageProps): Promise<Metadata> {
 	const { id, categoryId } = await params;
 	const { page: pageParam } = await searchParams;
 	const currentPage = Number(pageParam) || 1;
@@ -33,7 +37,14 @@ export async function generateMetadata({ params, searchParams }: PageProps) {
 	});
 }
 
-export default async function ChannelsByCategoryPage({
+export default function ChannelsByCategoryPage({
+	params,
+	searchParams,
+}: PageProps) {
+	return <ChannelsByCategoryContent params={params} searchParams={searchParams} />;
+}
+
+async function ChannelsByCategoryContent({
 	params,
 	searchParams,
 }: PageProps) {
@@ -47,13 +58,13 @@ export default async function ChannelsByCategoryPage({
 		notFound();
 	}
 
-	const xtream = createXtreamClient(playlist);
-
-	const channels = (await xtream.getChannels({
+	const channels = await getCachedChannels(
+		id,
+		playlist,
 		categoryId,
-		page: currentPage,
-		limit: ITEMS_PER_PAGE,
-	})) as StandardXtreamChannel[];
+		currentPage,
+		ITEMS_PER_PAGE,
+	);
 
 	const hasNextPage = channels.length === ITEMS_PER_PAGE;
 	const hasPreviousPage = currentPage > 1;

@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -7,7 +8,6 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
 import {
 	SidebarMenu,
 	SidebarMenuButton,
@@ -15,28 +15,28 @@ import {
 	useSidebar,
 } from "@/components/ui/sidebar";
 import {
-	ChevronsUpDownIcon,
-	ListVideoIcon,
-	PlusIcon,
-	Trash2Icon,
-} from "lucide-react";
-import { RefreshCwIcon } from "lucide-react";
-import type { Route } from "next";
-import Link from "next/link";
-import { useRouter, usePathname } from "next/navigation";
-import { useCallback, useEffect, useTransition } from "react";
-import { toast } from "sonner";
+	NON_PLAYLIST_ROUTES,
+	PLAYLIST_SECTIONS,
+	SEARCH_SUB_ROUTES,
+	usePlaylistIdFromPath,
+} from "@/hooks/use-playlist-id";
 import {
 	deletePlaylistAction,
 	preparePlaylistSwitchAction,
 	refreshPlaylistCacheAction,
 } from "@/server/forms";
 import {
-	usePlaylistIdFromPath,
-	NON_PLAYLIST_ROUTES,
-	PLAYLIST_SECTIONS,
-	SEARCH_SUB_ROUTES,
-} from "@/hooks/use-playlist-id";
+	ChevronsUpDownIcon,
+	ListVideoIcon,
+	PlusIcon,
+	RefreshCwIcon,
+	Trash2Icon,
+} from "lucide-react";
+import type { Route } from "next";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { useCallback, useEffect, useTransition } from "react";
+import { toast } from "sonner";
 import { usePlaylists } from "./playlist-context";
 import { NO_PLAYLIST_ID, type Playlist } from "./types";
 
@@ -186,7 +186,7 @@ export function PlaylistSwitcher() {
 									</div>
 								</DropdownMenuItem>
 							) : (
-								playlists.map((playlist, index) => (
+								playlists.map((playlist) => (
 									<DropdownMenuItem
 										key={playlist.id}
 										onClick={() => {
@@ -195,9 +195,6 @@ export function PlaylistSwitcher() {
 										}}
 										className="gap-2 p-2 cursor-pointer"
 									>
-										<div className="flex size-6 items-center justify-center rounded-md border">
-											<ListVideoIcon className="size-4" />
-										</div>
 										<div className="flex-1 min-w-0">
 											<div className="truncate font-medium">
 												{playlist.playlistName}
@@ -206,14 +203,10 @@ export function PlaylistSwitcher() {
 												{playlist.username} · {playlist.serverUrl}
 											</div>
 										</div>
-										<span className="ml-auto text-xs text-muted-foreground">
-											{index + 1}
-										</span>
 										<Button
-											variant="ghost"
 											size="sm"
 											disabled={isPending}
-											className="ml-2 text-green-500  z-10000 hover:text-green-600"
+											className="ml-2 "
 											onClick={(e) => {
 												e.stopPropagation();
 												startTransition(async () => {
@@ -232,10 +225,9 @@ export function PlaylistSwitcher() {
 											<RefreshCwIcon className="size-4" />
 										</Button>
 										<Button
-											variant="ghost"
 											size="sm"
 											disabled={isPending}
-											className="ml-2 text-red-500 z-10000  hover:text-red-600"
+											className="ml-2"
 											onClick={(e) => {
 												e.stopPropagation();
 												startTransition(async () => {

@@ -1,12 +1,13 @@
 import { createPageMetadata, getPlaylistMetadataContext } from "@/app/metadata";
 import type { PlaylistIdPageProps as PageProps } from "@/components/types";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getPlaylistById } from "@/server/xtream";
 import { getFavoriteItems } from "@/server/user-items";
 import { SavedItemsList } from "@/components/saved-items-list";
 import { Heart } from "lucide-react";
 
-export async function generateMetadata({ params }: PageProps) {
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
 	const { playlistId } = await params;
 	const playlist = await getPlaylistMetadataContext(playlistId);
 
@@ -20,7 +21,11 @@ export async function generateMetadata({ params }: PageProps) {
 	});
 }
 
-export default async function FavoritesPage({ params }: PageProps) {
+export default function FavoritesPage({ params }: PageProps) {
+	return <FavoritesContent params={params} />;
+}
+
+async function FavoritesContent({ params }: PageProps) {
 	const { playlistId } = await params;
 
 	const playlist = await getPlaylistById(playlistId);

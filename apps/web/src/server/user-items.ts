@@ -1,11 +1,11 @@
-"use server";  
+"use server";
 import prisma from "@moderniptvplayer/db";
 import type { ItemType, UserItemStatus } from "@/components/types";
-import { getAuthenticatedUserId } from "./auth-utils";
+import { requireAuthenticatedUserId } from "./auth-utils";
 import { revalidatePath } from "next/cache";
 
 async function verifyPlaylistOwnership(playlistId: string) {
-	const userId = await getAuthenticatedUserId();
+	const userId = await requireAuthenticatedUserId();
 
 	const playlist = await prisma.playlist.findFirst({
 		where: {
@@ -55,7 +55,10 @@ export async function getItemStatus(
 	};
 }
 
-export async function toggleWatchLater(
+type ToggleableModel = "watchLater" | "favorite";
+
+async function toggleItem(
+	model: ToggleableModel,
 	playlistId: string,
 	itemId: string,
 	itemType: ItemType,
@@ -64,36 +67,58 @@ export async function toggleWatchLater(
 ): Promise<boolean> {
 	const playlist = await verifyPlaylistOwnership(playlistId);
 
-	const existing = await prisma.watchLater.findUnique({
-		where: {
-			playlistId_itemId_itemType: {
-				playlistId,
-				itemId,
-				itemType,
-			},
-		},
-	});
+	const where = {
+		playlistId_itemId_itemType: { playlistId, itemId, itemType },
+	} as const;
+
+	const data = {
+		itemId,
+		itemType,
+		itemName,
+		itemUrl,
+		playlistId,
+		userId: playlist.userId,
+	};
+
+	const existing =
+		model === "watchLater"
+			? await prisma.watchLater.findUnique({ where })
+			: await prisma.favorite.findUnique({ where });
 
 	if (existing) {
-		await prisma.watchLater.delete({
-			where: { id: existing.id },
-		});
+		if (model === "watchLater") {
+			await prisma.watchLater.delete({ where: { id: existing.id } });
+		} else {
+			await prisma.favorite.delete({ where: { id: existing.id } });
+		}
 		revalidatePath("/dashboard", "layout");
 		return false;
 	}
 
-	await prisma.watchLater.create({
-		data: {
-			itemId,
-			itemType,
-			itemName,
-			itemUrl,
-			playlistId,
-			userId: playlist.userId,
-		},
-	});
+	if (model === "watchLater") {
+		await prisma.watchLater.create({ data });
+	} else {
+		await prisma.favorite.create({ data });
+	}
 	revalidatePath("/dashboard", "layout");
 	return true;
+}
+
+export async function toggleWatchLater(
+	playlistId: string,
+	itemId: string,
+	itemType: ItemType,
+	itemName: string,
+	itemUrl: string,
+): Promise<boolean> {
+	return toggleItem(
+		"watchLater",
+		playlistId,
+		itemId,
+		itemType,
+		itemName,
+		itemUrl,
+	);
 }
 
 export async function toggleFavorite(
@@ -103,38 +128,14 @@ export async function toggleFavorite(
 	itemName: string,
 	itemUrl: string,
 ): Promise<boolean> {
-	const playlist = await verifyPlaylistOwnership(playlistId);
-
-	const existing = await prisma.favorite.findUnique({
-		where: {
-			playlistId_itemId_itemType: {
-				playlistId,
-				itemId,
-				itemType,
-			},
-		},
-	});
-
-	if (existing) {
-		await prisma.favorite.delete({
-			where: { id: existing.id },
-		});
-		revalidatePath("/dashboard", "layout");
-		return false;
-	}
-
-	await prisma.favorite.create({
-		data: {
-			itemId,
-			itemType,
-			itemName,
-			itemUrl,
-			playlistId,
-			userId: playlist.userId,
-		},
-	});
-	revalidatePath("/dashboard", "layout");
-	return true;
+	return toggleItem(
+		"favorite",
+		playlistId,
+		itemId,
+		itemType,
+		itemName,
+		itemUrl,
+	);
 }
 
 export async function getWatchLaterItems(playlistId: string) {

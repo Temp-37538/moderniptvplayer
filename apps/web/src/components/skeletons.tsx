@@ -1,5 +1,9 @@
 /** biome-ignore-all lint/suspicious/noArrayIndexKey: Skeletons are static so index can be used as key */
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Shield, User2 } from "lucide-react";
 
 export function MediaGridSkeletonNoSearchBar({
 	count = 12,
@@ -57,7 +61,7 @@ export function ChannelCategorySearchSkeleton() {
 		</div>
 	);
 }
- 
+
 export function ChannelListSkeletonNoSearchBar({
 	count = 20,
 }: {
@@ -298,6 +302,270 @@ export function SavedItemsListSkeleton({ count = 5 }: { count?: number }) {
 						<Skeleton className="size-8 rounded-md shrink-0" />
 					</div>
 				))}
+			</div>
+		</div>
+	);
+}
+
+export function SettingsSkeleton() {
+	return (
+		<div className="w-full max-w-3xl mx-auto p-4 md:p-6">
+			<Tabs value="account" className="w-full gap-4 md:gap-6">
+				<div>
+					<TabsList aria-label="Settings">
+						<TabsTrigger value="account" className="gap-1">
+							<User2 className="text-muted-foreground" />
+							Account
+						</TabsTrigger>
+						<TabsTrigger value="security" className="gap-1">
+							<Shield className="text-muted-foreground" />
+							Security
+						</TabsTrigger>
+					</TabsList>
+				</div>
+				<div className="flex-1 flex flex-col gap-6">
+					<div>
+						<h2 className="text-sm font-semibold mb-3">User profile</h2>
+						<Card>
+							<CardContent className="flex flex-col gap-6">
+								<div className="flex flex-col gap-3">
+									<span className="text-sm font-medium text-muted-foreground">
+										Avatar
+									</span>
+									<div className="flex items-center gap-4">
+										<Skeleton className="size-12 rounded-full" />
+										<Skeleton className="h-8 w-28" />
+									</div>
+								</div>
+								<div className="flex flex-col gap-3">
+									<span className="text-sm font-medium text-muted-foreground">
+										Name
+									</span>
+									<Skeleton className="h-9 w-full" />
+								</div>
+							</CardContent>
+							<CardFooter>
+								<Skeleton className="h-8 w-28" />
+							</CardFooter>
+						</Card>
+					</div>
+					<div>
+						<h2 className="text-sm font-semibold mb-3">Change email</h2>
+						<Card>
+							<CardContent className="flex flex-col gap-6">
+								<div className="flex flex-col gap-3">
+									<span className="text-sm font-medium text-muted-foreground">
+										Email
+									</span>
+									<Skeleton className="h-9 w-full" />
+								</div>
+							</CardContent>
+							<CardFooter>
+								<Skeleton className="h-8 w-28" />
+							</CardFooter>
+						</Card>
+					</div>
+				</div>
+			</Tabs>
+		</div>
+	);
+}
+
+export function SecuritySettingsSkeleton() {
+	return (
+		<div className="w-full max-w-3xl mx-auto p-4 md:p-6">
+			<Tabs value="security" className="w-full gap-4 md:gap-6">
+				<div>
+					<TabsList aria-label="Settings">
+						<TabsTrigger value="account" className="gap-1">
+							<User2 className="text-muted-foreground" />
+							Account
+						</TabsTrigger>
+						<TabsTrigger value="security" className="gap-1">
+							<Shield className="text-muted-foreground" />
+							Security
+						</TabsTrigger>
+					</TabsList>
+				</div>
+				<div className="flex-1 flex flex-col gap-6">
+					<div>
+						<h2 className="text-sm font-semibold mb-3">Change password</h2>
+						<Card>
+							<CardContent className="flex flex-col gap-6">
+								<div className="flex flex-col gap-3">
+									<span className="text-sm font-medium text-muted-foreground">
+										Current password
+									</span>
+									<Skeleton className="h-9 w-full" />
+								</div>
+								<div className="flex flex-col gap-3">
+									<span className="text-sm font-medium text-muted-foreground">
+										New password
+									</span>
+									<Skeleton className="h-9 w-full" />
+								</div>
+								<div className="flex flex-col gap-3">
+									<span className="text-sm font-medium text-muted-foreground">
+										Confirm password
+									</span>
+									<Skeleton className="h-9 w-full" />
+								</div>
+							</CardContent>
+							<CardFooter>
+								<Skeleton className="h-8 w-28" />
+							</CardFooter>
+						</Card>
+					</div>
+
+					<div>
+						<h2 className="text-sm font-semibold mb-3">Linked accounts</h2>
+						<Card className="p-0">
+							<CardContent className="p-0">
+								<div className="flex items-center justify-between gap-3 px-6 py-6">
+									<div className="flex items-center gap-3">
+										<Skeleton className="size-10 rounded-md shrink-0 bg-muted" />
+										<div className="flex flex-col gap-1">
+											<Skeleton className="h-4 w-20" />
+											<Skeleton className="h-3 w-32" />
+										</div>
+									</div>
+									<Skeleton className="h-8 w-16 rounded-md shrink-0" />
+								</div>
+								<Separator />
+								<div className="flex items-center justify-between gap-3 px-6 py-6">
+									<div className="flex items-center gap-3">
+										<Skeleton className="size-10 rounded-md shrink-0 bg-muted" />
+										<div className="flex flex-col gap-1">
+											<Skeleton className="h-4 w-20" />
+											<Skeleton className="h-3 w-32" />
+										</div>
+									</div>
+									<Skeleton className="h-8 w-16 rounded-md shrink-0" />
+								</div>
+							</CardContent>
+						</Card>
+					</div>
+
+					<div>
+						<h2 className="text-sm font-semibold mb-3">Active sessions</h2>
+						<Card className="p-0">
+							<CardContent className="p-0">
+								<div className="flex items-center justify-between gap-3 px-6 py-6">
+									<div className="flex items-center gap-3">
+										<Skeleton className="size-10 rounded-md shrink-0 bg-muted" />
+										<div className="flex flex-col gap-1">
+											<Skeleton className="h-4 w-32" />
+											<Skeleton className="h-3 w-20" />
+										</div>
+									</div>
+									<Skeleton className="h-8 w-24 rounded-md shrink-0" />
+								</div>
+							</CardContent>
+						</Card>
+					</div>
+				</div>
+			</Tabs>
+		</div>
+	);
+}
+
+export function PlaylistHomeSkeleton() {
+	return (
+		<div className="space-y-6">
+			<div className="space-y-2">
+				<Skeleton className="h-8 w-48" />
+				<Skeleton className="h-4 w-64" />
+			</div>
+			<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+				{Array.from({ length: 3 }).map((_, i) => (
+					<div
+						key={i}
+						className="flex flex-col gap-3 rounded-xl border border-border/50 bg-card p-5"
+					>
+						<Skeleton className="size-10 rounded-lg" />
+						<Skeleton className="h-5 w-24" />
+						<Skeleton className="h-4 w-full" />
+					</div>
+				))}
+			</div>
+		</div>
+	);
+}
+ 
+
+interface AuthSuspenseProps {
+	path: string;
+}
+
+export function AuthSuspense({ path }: AuthSuspenseProps) {
+	let titleWidth = "w-20";
+	let descWidth = "w-64";
+	let fields: string[] = ["email", "password"];
+	let footerWidth = "w-48";
+
+	if (path === "sign-up") {
+		titleWidth = "w-32";
+		descWidth = "w-60";
+		fields = ["name", "email", "password"];
+		footerWidth = "w-52";
+	} else if (path === "forgot-password") {
+		titleWidth = "w-28";
+		descWidth = "w-56";
+		fields = ["email"];
+		footerWidth = "w-28";
+	} else if (path === "reset-password") {
+		titleWidth = "w-28";
+		descWidth = "w-44";
+		fields = ["password", "confirm-password"];
+		footerWidth = "w-28";
+	} else if (path === "verify-email") {
+		titleWidth = "w-24";
+		descWidth = "w-48";
+		fields = [];
+		footerWidth = "w-28";
+	}
+
+	return (
+		<div
+			data-slot="card"
+			className="text-card-foreground flex flex-col gap-6 rounded-xl border py-6 shadow-sm w-full max-w-sm bg-background/90"
+		>
+			<div
+				data-slot="card-header"
+				className="@container/card-header grid auto-rows-min grid-rows-[auto_auto] items-start gap-1.5 px-6 has-data-[slot=card-action]:grid-cols-[1fr_auto] [.border-b]:pb-6"
+			>
+				<Skeleton className={`h-6 md:h-7 ${titleWidth} rounded-md`} />
+				<Skeleton className={`h-3.5 md:h-4 ${descWidth} rounded-md`} />
+			</div>
+
+			<div data-slot="card-content" className="px-6 grid gap-6">
+				<div className="grid gap-4">
+					<div className="grid w-full gap-6">
+						{fields.length > 0 && (
+							<div className="grid gap-4">
+								{fields.map((field) => (
+									<div key={field} data-slot="form-item" className="grid gap-2">
+										<Skeleton className="h-3.5 w-16 rounded-md" />
+										<div className="relative">
+											<Skeleton className="h-9 w-full rounded-md border border-input/50 bg-muted/20" />
+										</div>
+									</div>
+								))}
+							</div>
+						)}
+
+						<div className="h-9 w-full rounded-md bg-primary/20 border border-primary/10 flex items-center justify-center animate-pulse">
+							<div className="h-4 w-12 rounded bg-primary/40" />
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<div
+				data-slot="card-footer"
+				className="flex items-center px-6 [.border-t]:pt-6 justify-center gap-1.5 text-muted-foreground text-sm"
+			>
+				<Skeleton className={`h-4 ${footerWidth} rounded-md`} />
 			</div>
 		</div>
 	);

@@ -26,7 +26,15 @@ export async function generateMetadata({
 		});
 	}
 
-export default async function PlaylistHomePage({
+export default function PlaylistHomePage({
+	params,
+}: {
+	params: Promise<{ playlistId: string }>;
+}) {
+	return <PlaylistHomeContent params={params} />;
+}
+
+async function PlaylistHomeContent({
 	params,
 }: {
 	params: Promise<{ playlistId: string }>;

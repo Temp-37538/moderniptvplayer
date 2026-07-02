@@ -46,15 +46,17 @@ function CategorySearchBase({
 		`${hrefPrefix}/${id}/${categoryId}` as Route;
 
 	return (
-		<div className="h-full flex flex-col gap-4 no-scrollbar">
-			<div className="flex items-center justify-between">
-				<div className="flex items-center gap-3">
-					<div className="flex items-center justify-center size-10 rounded-xl bg-primary/10 text-primary">
-						<Icon className="size-5" />
+		<div className="h-full flex flex-col gap-3 md:gap-4 no-scrollbar">
+			<div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+				<div className="flex items-center gap-2.5 md:gap-3 min-w-0">
+					<div className="flex items-center justify-center size-8 md:size-10 rounded-xl bg-primary/10 text-primary shrink-0">
+						<Icon className="size-4 md:size-5" />
 					</div>
-					<div>
-						<h1 className="text-2xl font-bold tracking-tight">{title}</h1>
-						<p className="text-sm text-muted-foreground">
+					<div className="min-w-0">
+						<h1 className="text-lg md:text-2xl font-bold tracking-tight truncate">
+							{title}
+						</h1>
+						<p className="text-xs md:text-sm text-muted-foreground truncate">
 							{playlistName} · {filteredCategories.length} categories
 						</p>
 					</div>
@@ -88,12 +90,12 @@ function CategorySearchBase({
 						<Link
 							key={category.id}
 							href={buildCategoryHref(category.id)}
-							className="group relative flex flex-col items-center gap-3 rounded-xl border border-border/50 bg-card p-5 transition-all duration-200 hover:border-primary/30 hover:bg-accent/50 hover:shadow-lg hover:shadow-primary/5 hover:translate-y-1"
+							className="group relative flex flex-col items-center gap-2 md:gap-3 rounded-xl border border-border/50 bg-card p-3 md:p-5 transition-all duration-200 hover:border-primary/30 hover:bg-accent/50 hover:shadow-lg hover:shadow-primary/5 hover:translate-y-1"
 						>
-							<div className="flex items-center justify-center size-10 rounded-lg bg-muted/50 text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-colors duration-200">
-								<FolderOpen className="size-5" />
+							<div className="flex items-center justify-center size-8 md:size-10 rounded-lg bg-muted/50 text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-colors duration-200">
+								<FolderOpen className="size-4 md:size-5" />
 							</div>
-							<span className="text-sm font-medium text-center leading-tight line-clamp-2">
+							<span className="text-xs md:text-sm font-medium text-center leading-tight line-clamp-2">
 								{category.name}
 							</span>
 						</Link>
@@ -103,8 +105,8 @@ function CategorySearchBase({
 			{filteredCategories.length === 0 && (
 				<div className="flex flex-col items-center h-full justify-center py-20 text-muted-foreground">
 					<FolderOpen className="size-12 mb-4 opacity-30" />
-					<p className="text-lg font-medium">{emptyTitle}</p>
-					<p className="text-sm">{emptyDescription}</p>
+					<p className="text-base md:text-lg font-medium">{emptyTitle}</p>
+					<p className="text-xs md:text-sm">{emptyDescription}</p>
 				</div>
 			)}
 		</div>
@@ -116,7 +118,7 @@ export function SeriesCategorySearch(props: CategorySearchProps) {
 		<CategorySearchBase
 			{...props}
 			title="Series"
-			placeholder="Search a serie"
+			placeholder="Search a category"
 			emptyTitle="No categories found"
 			emptyDescription="This playlist has no series categories."
 			hrefPrefix="/dashboard/series"
@@ -130,7 +132,7 @@ export function MovieCategorySearch(props: CategorySearchProps) {
 		<CategorySearchBase
 			{...props}
 			title="Movies"
-			placeholder="Search a movie"
+			placeholder="Search a category"
 			emptyTitle="No categories found"
 			emptyDescription="This playlist has no movie categories."
 			hrefPrefix="/dashboard/movies"
@@ -144,7 +146,7 @@ export function TvCategorySearch(props: CategorySearchProps) {
 		<CategorySearchBase
 			{...props}
 			title="Channels"
-			placeholder="Search a channel"
+			placeholder="Search a category"
 			emptyTitle="No categories found"
 			emptyDescription="This playlist has no channel categories."
 			hrefPrefix="/dashboard/channels"
@@ -157,7 +159,7 @@ export function SearchSeriesCategorySearch(props: CategorySearchProps) {
 	return (
 		<CategorySearchBase
 			{...props}
-			title="Search Series Through Categories"
+			title="Search series by category"
 			placeholder="Search a category"
 			emptyTitle="No categories found"
 			emptyDescription="This playlist has no series categories."
@@ -171,7 +173,7 @@ export function SearchMovieCategorySearch(props: CategorySearchProps) {
 	return (
 		<CategorySearchBase
 			{...props}
-			title="Search Movies Through Categories"
+			title="Search movies by category"
 			placeholder="Search a category"
 			emptyTitle="No categories found"
 			emptyDescription="This playlist has no movie categories."
@@ -185,7 +187,7 @@ export function SearchTvCategorySearch(props: CategorySearchProps) {
 	return (
 		<CategorySearchBase
 			{...props}
-			title="Search Channels Through Categories"
+			title="Search channels by category"
 			placeholder="Search a category"
 			emptyTitle="No categories found"
 			emptyDescription="This playlist has no channel categories."

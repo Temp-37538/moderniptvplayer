@@ -1,7 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-@import "shadcn/tailwind.css";
-@import "@daveyplate/better-auth-ui/css";
+@import "shadcn/tailwind.css"; 
 
 html[data-scroll-behavior="smooth"] {
   scroll-behavior: smooth;

@@ -10,15 +10,12 @@ import {
 	SidebarRail,
 	useSidebar,
 } from "@/components/ui/sidebar";
-import { SignedIn } from "@daveyplate/better-auth-ui";
-import { Settings } from "lucide-react";
-import Link from "next/link";
 import type * as React from "react";
+import { UserButton } from "./auth/user/user-button";
 import { ModeToggle } from "./mode-toggle";
-import { Button } from "./ui/button";
 
 export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
-	const { state, setOpenMobile, openMobile } = useSidebar();
+	const { state,  } = useSidebar(); 
 
 	return (
 		<Sidebar collapsible="icon" {...props}>
@@ -32,19 +29,7 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 			<SidebarFooter
 				className={`flex items-center gap-2 py-4 border-t-2 justify-center ${state === "collapsed" ? "flex-col" : ""}`}
 			>
-				<SignedIn>
-					<Button className={"p-0"} variant="outline" size="sm">
-						<Link
-							className="px-2.5 m-0"
-							onClick={() => {
-								openMobile && setOpenMobile(false);
-							}}
-							href="/dashboard/account/settings"
-						>
-							<Settings />
-						</Link>
-					</Button>
-				</SignedIn>
+				<UserButton size="icon" />
 				<ModeToggle />
 			</SidebarFooter>
 			<SidebarRail />

@@ -1,16 +1,8 @@
 import { searchInCategory } from "@/server/category-search";
+import { searchQuerySchema } from "@/server/search-params-schema";
 import { createXtreamClient, getPlaylistById } from "@/server/xtream";
 import type { StandardXtreamShow } from "@iptv/xtream-api/standardized";
 import { type NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
-
-const searchQuerySchema = z.object({
-	playlistId: z.string().trim().min(1),
-	categoryId: z.string().trim().min(1),
-	q: z.string().trim().min(2),
-	limit: z.coerce.number().int().min(1).max(20).default(20),
-	maxPages: z.coerce.number().int().min(1).max(40).default(20),
-});
 
 export async function GET(request: NextRequest) {
 	const parsed = searchQuerySchema.safeParse(

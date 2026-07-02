@@ -9,7 +9,7 @@ const PLAYLIST_SECTIONS = [
 	"watchlater",
 	"favorites",
 ] as const;
-const NON_PLAYLIST_ROUTES = ["addplaylist", "account"] as const;
+const NON_PLAYLIST_ROUTES = ["addplaylist", "account", "settings"] as const;
 const SEARCH_SUB_ROUTES = ["search"] as const;
 
 type ParsedPlaylistPath = {

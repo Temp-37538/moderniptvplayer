@@ -4,8 +4,11 @@ import { getCachedChannelCategories } from "@/server/cached-content";
 import { getPlaylistById } from "@/server/xtream";
 import { notFound } from "next/navigation";
 import { TvCategorySearch } from "@/components/series-category-search";
+import type { Metadata } from "next";
 
-export async function generateMetadata({ params }: PageProps) {
+export async function generateMetadata({
+	params,
+}: PageProps): Promise<Metadata> {
 	const { id } = await params;
 	const playlist = await getPlaylistMetadataContext(id);
 
@@ -26,7 +29,11 @@ export async function generateMetadata({ params }: PageProps) {
 	});
 }
 
-export default async function ChannelCategoriesPage({ params }: PageProps) {
+export default function ChannelCategoriesPage({ params }: PageProps) {
+	return <ChannelCategoriesContent params={params} />;
+}
+
+async function ChannelCategoriesContent({ params }: PageProps) {
 	const { id } = await params;
 
 	const playlist = await getPlaylistById(id);

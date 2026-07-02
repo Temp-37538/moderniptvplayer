@@ -1,6 +1,7 @@
 "use server";
 import type { FormState, xtreamFormData } from "@/components/types";
 import { updateTag } from "next/cache";
+import { cookies } from "next/headers";
 import { z } from "zod";
 import { getPlaylistCacheTags } from "./cached-content";
 import {
@@ -144,6 +145,8 @@ export async function preparePlaylistSwitchAction(
 	previousPlaylistId: string | null | undefined,
 	nextPlaylistId: string | null | undefined,
 ) {
+	const cookieStore = await cookies();
+
 	const playlistIds = [previousPlaylistId, nextPlaylistId].filter(
 		(playlistId, index, ids): playlistId is string =>
 			Boolean(playlistId) && ids.indexOf(playlistId) === index,
@@ -152,5 +155,14 @@ export async function preparePlaylistSwitchAction(
 	for (const playlistId of playlistIds) {
 		await assertPlaylistAccess(playlistId);
 		expirePlaylistCacheTags(playlistId);
+	}
+
+	if (nextPlaylistId) {
+		cookieStore.set("active_playlist_id", nextPlaylistId, {
+			path: "/",
+			maxAge: 60 * 60 * 24 * 30,
+		});
+	} else {
+		cookieStore.delete("active_playlist_id");
 	}
 }

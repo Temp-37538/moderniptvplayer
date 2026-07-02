@@ -1,18 +1,18 @@
 import "server-only";
 import {
-	createXtreamClient,
-	getPlaylistById,
-	getShowSafe,
-} from "@/server/xtream";
+	getCachedChannel,
+	getCachedChannelCategories,
+	getCachedMovie,
+	getCachedMovieCategories,
+	getCachedSeriesCategories,
+	getCachedShow,
+} from "@/server/cached-content";
 import { env } from "@moderniptvplayer/env/server";
-import type {
-	StandardXtreamCategory,
-	StandardXtreamChannel,
-	StandardXtreamMovie,
-	StandardXtreamShow,
-} from "@iptv/xtream-api/standardized";
+import type { StandardXtreamCategory } from "@iptv/xtream-api/standardized";
 import type { Metadata } from "next";
 import { cache } from "react";
+import { requireAuthenticatedUserId } from "@/server/auth-utils";
+import { getCachedPlaylistByUserAndId } from "@/server/xtream";
 
 export const APP_NAME = "Modern IPTV Player";
 export const APP_DESCRIPTION =
@@ -137,28 +137,26 @@ export function getAccountPageMetadata(path: string): Metadata {
 }
 
 export const getPlaylistMetadataContext = cache(async (playlistId: string) => {
-	const playlist = await getPlaylistById(playlistId);
-
-	if (!playlist) {
-		return null;
-	}
-
-	return playlist;
+	const userId = await requireAuthenticatedUserId();
+	return getCachedPlaylistByUserAndId(userId, playlistId);
 });
 
-async function getSectionCategories(
+async function getSectionCategoriesCached(
 	section: ContentSection,
-	playlist: { serverUrl: string; username: string; password: string },
-) {
-	const xtream = createXtreamClient(playlist);
-
+	playlistId: string,
+	playlist: {
+		serverUrl: string;
+		username: string;
+		password: string;
+	},
+): Promise<StandardXtreamCategory[]> {
 	switch (section) {
 		case "channels":
-			return (await xtream.getChannelCategories()) as StandardXtreamCategory[];
+			return getCachedChannelCategories(playlistId, playlist);
 		case "movies":
-			return (await xtream.getMovieCategories()) as StandardXtreamCategory[];
+			return getCachedMovieCategories(playlistId, playlist);
 		case "series":
-			return (await xtream.getShowCategories()) as StandardXtreamCategory[];
+			return getCachedSeriesCategories(playlistId, playlist);
 	}
 }
 
@@ -171,7 +169,11 @@ export const getCategoryMetadataContext = cache(
 		}
 
 		try {
-			const categories = await getSectionCategories(section, playlist);
+			const categories = await getSectionCategoriesCached(
+				section,
+				playlistId,
+				playlist,
+			);
 			const category = categories.find((entry) => entry.id === categoryId);
 
 			return {
@@ -196,11 +198,12 @@ export const getChannelMetadataContext = cache(
 		}
 
 		try {
-			const xtream = createXtreamClient(playlist);
-			const channels = (await xtream.getChannels({
+			const channel = await getCachedChannel(
+				playlistId,
+				playlist,
 				categoryId,
-			})) as StandardXtreamChannel[];
-			const channel = channels.find((entry) => entry.id === channelId) ?? null;
+				channelId,
+			);
 
 			return {
 				playlist,
@@ -224,8 +227,7 @@ export const getMovieMetadataContext = cache(
 		}
 
 		try {
-			const xtream = createXtreamClient(playlist);
-			const movie = (await xtream.getMovie({ movieId })) as StandardXtreamMovie;
+			const movie = await getCachedMovie(playlistId, playlist, movieId);
 
 			return {
 				playlist,
@@ -249,7 +251,7 @@ export const getShowMetadataContext = cache(
 		}
 
 		try {
-			const show = (await getShowSafe(playlist, showId)) as StandardXtreamShow;
+			const show = await getCachedShow(playlistId, playlist, showId);
 
 			return {
 				playlist,
