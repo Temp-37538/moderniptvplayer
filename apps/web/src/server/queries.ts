@@ -1,9 +1,9 @@
 import "server-only";
-import prisma from "../../../../packages/db/src/index";
+import prisma from "@moderniptvplayer/db";
 import Cryptr from "cryptr";
 import { env } from "@moderniptvplayer/env/server";
 import { revalidatePath } from "next/cache";
-import { getAuthenticatedUserId } from "./auth-utils";
+import { requireAuthenticatedUserId } from "./auth-utils";
 
 const cryptr = new Cryptr(env.SECRET_KEY);
 
@@ -21,7 +21,7 @@ export async function doesPlaylistExist(
 	serverUrl: string,
 	password: string,
 ) {
-	const userId = await getAuthenticatedUserId();
+	const userId = await requireAuthenticatedUserId();
 	const normalizedUrl = normalizeUrl(serverUrl);
 
 	const playlist = await prisma.playlist.findUnique({
@@ -39,6 +39,8 @@ export async function doesPlaylistExist(
 		return false;
 	} else if (password === cryptr.decrypt(playlist.password)) {
 		return true;
+	} else {
+		return false;
 	}
 }
 
@@ -47,7 +49,7 @@ export async function isPlaylistValid(
 	serverUrl: string,
 	password: string,
 ): Promise<PlaylistValidationResult> {
-	await getAuthenticatedUserId();
+	await requireAuthenticatedUserId();
 
 	const url = new URL(
 		"/player_api.php",
@@ -82,7 +84,7 @@ export async function addPlaylist(
 	playlistName: string,
 	password: string,
 ) {
-	const userId = await getAuthenticatedUserId();
+	const userId = await requireAuthenticatedUserId();
 
 	try {
 		const normalizedUrl = normalizeUrl(serverUrl);
@@ -100,12 +102,12 @@ export async function addPlaylist(
 		return playlist;
 	} catch (error) {
 		console.error("Error fetching playlists:", error);
-		throw new Error("Failed to fetch playlists");
+		throw new Error("Failed to add playlists");
 	}
 }
 
 export async function deletePlaylist(playlistId: string) {
-	const userId = await getAuthenticatedUserId();
+	const userId = await requireAuthenticatedUserId();
 
 	try {
 		await prisma.playlist.delete({
@@ -122,7 +124,7 @@ export async function deletePlaylist(playlistId: string) {
 }
 
 export async function fetchPlaylists() {
-	const userId = await getAuthenticatedUserId();
+	const userId = await requireAuthenticatedUserId();
 
 	try {
 		const playlists = await prisma.playlist.findMany({

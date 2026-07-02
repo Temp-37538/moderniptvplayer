@@ -1,15 +1,14 @@
 import { getAuthPageMetadata } from "@/app/metadata";
-import { AuthView } from "@daveyplate/better-auth-ui";
-import { authViewPaths } from "@daveyplate/better-auth-ui/server";
+import { Auth } from "@/components/auth/auth";
+import { viewPaths } from "@better-auth-ui/core";
 import { Tv } from "lucide-react";
 import type { Metadata } from "next";
 import Image from "next/image";
+import { notFound } from "next/navigation";
+import { Suspense } from "react";
 import { AuthActions } from "../../../components/auth-actions";
+import { AuthSuspense } from "../../../components/skeletons";
 import { HeroOverlayV2 } from "../../../components/hero-overlay";
-
-export function generateStaticParams() {
-	return Object.values(authViewPaths).map((path) => ({ path }));
-}
 
 export async function generateMetadata({
 	params,
@@ -26,7 +25,10 @@ export default async function AuthPage({
 	params: Promise<{ path: string }>;
 }) {
 	const { path } = await params;
-
+	
+	if (!Object.values(viewPaths.auth).includes(path)) {
+		notFound();
+	}
 	return (
 		<div className="flex w-full justify-center items-center relative">
 			<AuthActions />
@@ -41,15 +43,9 @@ export default async function AuthPage({
 				</div>
 				<div className="flex flex-1 items-center justify-center">
 					<div className="w-full max-w-xs">
-						<AuthView
-							classNames={{
-								form: { button: "cursor-pointer " },
-								footerLink: "cursor-pointer",
-							}}
-							className="bg-background/90"
-							redirectTo="/dashboard"
-							path={path}
-						/>
+						<Suspense fallback={<AuthSuspense path={path} />}>
+							<AuthCard path={path} />
+						</Suspense>
 					</div>
 				</div>
 			</div>
@@ -67,5 +63,11 @@ export default async function AuthPage({
 				/>
 			</div>
 		</div>
+	);
+}
+
+async function AuthCard({ path }: { path: string }) {
+	return (
+		<Auth socialPosition={undefined} className="bg-background/90" path={path} />
 	);
 }

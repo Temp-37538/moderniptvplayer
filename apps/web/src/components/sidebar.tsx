@@ -1,12 +1,13 @@
 "use client";
 import { authClient } from "@/lib/auth-client";
-import { SignedIn } from "@daveyplate/better-auth-ui";
 import { House } from "lucide-react";
+import type { Route } from "next";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import React from "react";
 import { AppSidebar } from "./app-sidebar";
 import { PlaylistProvider, usePlaylists } from "./playlist-context";
+import type { Playlist } from "./types";
 import {
 	Breadcrumb,
 	BreadcrumbItem,
@@ -18,8 +19,6 @@ import {
 import { Button } from "./ui/button";
 import { Separator } from "./ui/separator";
 import { SidebarInset, SidebarTrigger } from "./ui/sidebar";
-import type { Playlist } from "./types";
-import type { Route } from "next";
 
 function Sidebar({
 	children,
@@ -39,6 +38,7 @@ function SidebarContent({ children }: { children: React.ReactNode }) {
 	const playlists = usePlaylists();
 	const pathname = usePathname();
 	const router = useRouter();
+	const { data: session } = authClient.useSession();
 
 	const handleLogout = async () => {
 		await authClient.signOut();
@@ -110,16 +110,25 @@ function SidebarContent({ children }: { children: React.ReactNode }) {
 						</Breadcrumb>
 					</div>
 					<div className="flex items-center gap-2">
-						<Button className={"p-0"} variant="outline" size="sm">
+						<Button
+							className={
+								"p-0 hover:bg-primary/50 bg-primary text-primary-foreground"
+							}
+							size="sm"
+						>
 							<Link className="py-4 px-4 m-0" href={"/dashboard" as Route}>
 								<House />
 							</Link>
 						</Button>
-						<SignedIn>
-							<Button onClick={handleLogout} size={"sm"} className=" w-fit  ">
-								Logout
+						{session && (
+							<Button
+								onClick={handleLogout}
+								size={"sm"}
+								className="hover:bg-sidebar-accent/50 bg-accent text-accent-foreground w-fit  "
+							>
+								Logout 
 							</Button>
-						</SignedIn>
+						)}
 					</div>
 				</header>
 				<div className="flex flex-1 flex-col gap-4 p-4 overflow-hidden">

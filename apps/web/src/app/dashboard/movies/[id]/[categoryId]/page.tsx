@@ -1,9 +1,10 @@
 import { createPageMetadata, getCategoryMetadataContext } from "@/app/metadata";
 import type { IdCategoryPageProps as PageProps } from "@/components/types";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getPlaylistById, createXtreamClient } from "@/server/xtream";
-import type { StandardXtreamMovieListing } from "@iptv/xtream-api/standardized";
+import { getPlaylistById } from "@/server/xtream";
+import { getCachedMovies } from "@/server/cached-content";
 
 import { Film, Star } from "lucide-react";
 import { EmptyState } from "@/components/empty-state";
@@ -12,7 +13,7 @@ import { toSafeImageSrc } from "@/lib/image-url";
 
 const ITEMS_PER_PAGE = 20;
 
-export async function generateMetadata({ params, searchParams }: PageProps) {
+export async function generateMetadata({ params, searchParams }: PageProps): Promise<Metadata> {
 	const { id, categoryId } = await params;
 	const { page: pageParam } = await searchParams;
 	const currentPage = Number(pageParam) || 1;
@@ -33,7 +34,14 @@ export async function generateMetadata({ params, searchParams }: PageProps) {
 	});
 }
 
-export default async function MoviesByCategoryPage({
+export default function MoviesByCategoryPage({
+	params,
+	searchParams,
+}: PageProps) {
+	return <MoviesByCategoryContent params={params} searchParams={searchParams} />;
+}
+
+async function MoviesByCategoryContent({
 	params,
 	searchParams,
 }: PageProps) {
@@ -47,13 +55,13 @@ export default async function MoviesByCategoryPage({
 		notFound();
 	}
 
-	const xtream = createXtreamClient(playlist);
-
-	const movies = (await xtream.getMovies({
+	const movies = await getCachedMovies(
+		id,
+		playlist,
 		categoryId,
-		page: currentPage,
-		limit: ITEMS_PER_PAGE,
-	})) as StandardXtreamMovieListing[];
+		currentPage,
+		ITEMS_PER_PAGE,
+	);
 
 	const hasNextPage = movies.length === ITEMS_PER_PAGE;
 	const hasPreviousPage = currentPage > 1;

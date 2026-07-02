@@ -15,7 +15,7 @@ export default function HeroSection() {
 							<div className="text-center sm:mx-auto lg:mr-auto lg:mt-0">
 								<div className="animate-hero-fade">
 									<Link
-										href="/auth/sign-in"
+										href="/dashboard/addplaylist"
 										className="hover:bg-primary/10 hover:border-primary dark:hover:bg-primary/10 dark:hover:border-primary/20 bg-background dark:bg-muted group mx-auto flex w-fit items-center gap-4 rounded-full border border-primary dark:border-border p-1 pl-4 shadow-md transition-colors duration-300"
 									>
 										<span className="text-primary dark:text-foreground group-hover:text-primary-foreground dark:group-hover:text-foreground text-sm transition-colors">
@@ -65,7 +65,7 @@ export default function HeroSection() {
 										<Button
 											size="lg"
 											className="rounded-xl px-5 text-base"
-											render={<Link href="/auth/sign-in" />}
+											render={<Link href="/dashboard/movies" />}
 											nativeButton={false}
 										>
 											<span className="text-nowrap">Watch a movie !</span>
@@ -76,7 +76,7 @@ export default function HeroSection() {
 										variant="secondary"
 										className=" rounded-xl px-5 animate-hero-fade"
 										style={{ animationDelay: "0.8s" }}
-										render={<Link href="/auth/sign-in" />}
+										render={<Link href="/dashboard/channels" />}
 										nativeButton={false}
 									>
 										<span className="text-nowrap">Browse Channels</span>

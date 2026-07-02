@@ -1,23 +1,32 @@
 import { createPageMetadata, getMovieMetadataContext } from "@/app/metadata";
 import type { MovieDetailPageProps as PageProps } from "@/components/types";
+import type { Metadata } from "next";
 import {
 	Tooltip,
 	TooltipContent,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { notFound } from "next/navigation";
-import { getPlaylistById, createXtreamClient } from "@/server/xtream";
+import { createXtreamClient, getPlaylistById } from "@/server/xtream";
 import { CopyStreamButton } from "@/components/copy-stream-button";
 import { ItemActionButtons } from "@/components/item-action-buttons";
 import { getItemStatus } from "@/server/user-items";
-import type { StandardXtreamMovie } from "@iptv/xtream-api/standardized";
+import { getCachedMovie } from "@/server/cached-content";
 import { Star, Clock, Calendar, Globe, ExternalLink, Film } from "lucide-react";
 import { toSafeImageSrc } from "@/lib/image-url";
 
-const MOVIE_FETCH_MAX_ATTEMPTS = 3;
-const RETRY_DELAY_MS = 150;
+function safeHref(url: string): string | undefined {
+	try {
+		const parsed = new URL(url);
+		return parsed.protocol === "http:" || parsed.protocol === "https:"
+			? url
+			: undefined;
+	} catch {
+		return undefined;
+	}
+}
 
-export async function generateMetadata({ params }: PageProps) {
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
 	const { id, categoryId, movieId } = await params;
 	const context = await getMovieMetadataContext(id, movieId);
 	const movieTitle = context?.movie?.name ?? "Movie Details";
@@ -36,55 +45,11 @@ export async function generateMetadata({ params }: PageProps) {
 	});
 }
 
-async function wait(ms: number) {
-	return new Promise((resolve) => setTimeout(resolve, ms));
+export default function MovieDetailPage({ params }: PageProps) {
+	return <MovieDetailContent params={params} />;
 }
 
-async function getMovieWithRetry({
-	xtream,
-	movieId,
-	playlistId,
-}: {
-	xtream: ReturnType<typeof createXtreamClient>;
-	movieId: string;
-	playlistId: string;
-}) {
-	let lastError: unknown;
-
-	for (let attempt = 1; attempt <= MOVIE_FETCH_MAX_ATTEMPTS; attempt += 1) {
-		try {
-			return (await xtream.getMovie({ movieId })) as StandardXtreamMovie;
-		} catch (error) {
-			lastError = error;
-			const reason = error instanceof Error ? error.message : "Unknown error";
-			const isMovieNotFound =
-				error instanceof Error && error.message === "Movie Not Found";
-
-			console.warn("[movie-detail] getMovie failed", {
-				playlistId,
-				movieId,
-				attempt,
-				maxAttempts: MOVIE_FETCH_MAX_ATTEMPTS,
-				reason,
-			});
-
-			if (isMovieNotFound && attempt === MOVIE_FETCH_MAX_ATTEMPTS) {
-				return null;
-			}
-
-			if (attempt < MOVIE_FETCH_MAX_ATTEMPTS) {
-				await wait(RETRY_DELAY_MS);
-				continue;
-			}
-
-			throw error;
-		}
-	}
-
-	throw lastError;
-}
-
-export default async function MovieDetailPage({ params }: PageProps) {
+async function MovieDetailContent({ params }: PageProps) {
 	const { id, categoryId, movieId } = await params;
 
 	const playlist = await getPlaylistById(id);
@@ -93,17 +58,13 @@ export default async function MovieDetailPage({ params }: PageProps) {
 		notFound();
 	}
 
-	const xtream = createXtreamClient(playlist);
-
-	const movie = await getMovieWithRetry({
-		xtream,
-		movieId,
-		playlistId: id,
-	});
+	const movie = await getCachedMovie(id, playlist, movieId);
 
 	if (!movie) {
 		notFound();
 	}
+
+	const xtream = createXtreamClient(playlist);
 
 	const streamUrl = xtream.generateStreamUrl({
 		type: "movie",
@@ -234,23 +195,25 @@ export default async function MovieDetailPage({ params }: PageProps) {
 							{streamUrl && (
 								<div className="flex flex-wrap gap-3 pt-2">
 									<CopyStreamButton url={movie.url ? movie.url : streamUrl} />
-									<Tooltip>
-										<TooltipTrigger
-											render={
-												<a
-													href={movie.url}
-													target="_blank"
-													rel="noopener noreferrer"
-													className="inline-flex cursor-pointer items-center justify-center size-8 rounded-[min(var(--radius-md),10px)] hover:bg-muted transition-colors"
-												>
-													<ExternalLink className="size-4" />
-												</a>
-											}
-										/>
-										<TooltipContent>
-											<p>{"Read the content in another player"}</p>
-										</TooltipContent>
-									</Tooltip>
+									{safeHref(movie.url ? movie.url : "") && (
+										<Tooltip>
+											<TooltipTrigger
+												render={
+													<a
+														href={safeHref(movie.url ? movie.url : "")}
+														target="_blank"
+														rel="noopener noreferrer"
+														className="inline-flex cursor-pointer items-center justify-center size-8 rounded-[min(var(--radius-md),10px)] hover:bg-muted transition-colors"
+													>
+														<ExternalLink className="size-4" />
+													</a>
+												}
+											/>
+											<TooltipContent>
+												<p>{"Read the content in another player"}</p>
+											</TooltipContent>
+										</Tooltip>
+									)}
 									<ItemActionButtons
 										playlistId={id}
 										itemId={movieId}

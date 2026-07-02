@@ -1,5 +1,6 @@
 import { createPageMetadata, getChannelMetadataContext } from "@/app/metadata";
 import type { ChannelDetailPageProps as PageProps } from "@/components/types";
+import type { Metadata } from "next";
 import { CopyStreamButton } from "@/components/copy-stream-button";
 import { ItemActionButtons } from "@/components/item-action-buttons";
 import {
@@ -9,12 +10,12 @@ import {
 } from "@/components/ui/tooltip";
 import { getItemStatus } from "@/server/user-items";
 import { createXtreamClient, getPlaylistById } from "@/server/xtream";
-import type { StandardXtreamChannel } from "@iptv/xtream-api/standardized";
+import { getCachedChannel } from "@/server/cached-content";
 import { ExternalLink, Hash, Radio, Satellite } from "lucide-react";
-import { notFound } from "next/navigation"; 
+import { notFound } from "next/navigation";
 import { toSafeImageSrc } from "@/lib/image-url";
 
-export async function generateMetadata({ params }: PageProps) {
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
 	const { id, categoryId, channelId } = await params;
 	const context = await getChannelMetadataContext(id, categoryId, channelId);
 	const channelName = context?.channel?.name ?? "Channel Details";
@@ -29,7 +30,11 @@ export async function generateMetadata({ params }: PageProps) {
 	});
 }
 
-export default async function ChannelDetailPage({ params }: PageProps) {
+export default function ChannelDetailPage({ params }: PageProps) {
+	return <ChannelDetailContent params={params} />;
+}
+
+async function ChannelDetailContent({ params }: PageProps) {
 	const { id, categoryId, channelId } = await params;
 
 	const playlist = await getPlaylistById(id);
@@ -38,17 +43,13 @@ export default async function ChannelDetailPage({ params }: PageProps) {
 		notFound();
 	}
 
-	const xtream = createXtreamClient(playlist);
-
-	const allChannels = (await xtream.getChannels({
-		categoryId,
-	})) as StandardXtreamChannel[];
-
-	const channel = allChannels.find((ch) => ch.id === channelId);
+	const channel = await getCachedChannel(id, playlist, categoryId, channelId);
 
 	if (!channel) {
 		notFound();
 	}
+
+	const xtream = createXtreamClient(playlist);
 
 	const streamUrl = xtream.generateStreamUrl({
 		type: "channel",

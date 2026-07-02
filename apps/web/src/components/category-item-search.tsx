@@ -1,13 +1,14 @@
 "use client";
 
 import { EmptyState } from "@/components/empty-state";
-import { toSafeImageSrc } from "@/lib/image-url";
 import { Input } from "@/components/ui/input";
+import { toSafeImageSrc } from "@/lib/image-url";
 import { Film, Loader2, Radio, SearchIcon, Tv } from "lucide-react";
+import type { Route } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import type { ComponentType, ReactNode } from "react";
-import { useEffect, useMemo, useState } from "react";
-import type { Route } from "next";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 const SEARCH_DEBOUNCE_MS = 300;
 const MIN_QUERY_LENGTH = 2;
@@ -55,10 +56,13 @@ function ImageWithFallback({
 	fallback,
 }: ImageWithFallbackProps) {
 	const [failed, setFailed] = useState(false);
+	const previousSrcRef = useRef(src);
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: <!-- We only want to reset on src change -->
 	useEffect(() => {
-		setFailed(false);
+		if (previousSrcRef.current !== src) {
+			previousSrcRef.current = src;
+			setFailed(false);
+		}
 	}, [src]);
 
 	if (!src || failed) {
@@ -66,10 +70,12 @@ function ImageWithFallback({
 	}
 
 	return (
-		<img
+		<Image
 			src={src}
 			alt={alt}
 			className={className}
+			width={128}
+			height={128}
 			onError={() => setFailed(true)}
 		/>
 	);
@@ -84,17 +90,17 @@ const SECTION_CONFIG: Record<
 	}
 > = {
 	channels: {
-		title: "Search Channels",
+		title: "Search channels",
 		placeholder: "Search channels in this category",
 		Icon: Radio,
 	},
 	movies: {
-		title: "Search Movies",
+		title: "Search movies",
 		placeholder: "Search movies in this category",
 		Icon: Film,
 	},
 	series: {
-		title: "Search Series",
+		title: "Search series",
 		placeholder: "Search series in this category",
 		Icon: Tv,
 	},

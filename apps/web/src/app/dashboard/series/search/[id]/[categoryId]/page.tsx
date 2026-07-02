@@ -1,5 +1,6 @@
 import { createPageMetadata, getCategoryMetadataContext } from "@/app/metadata";
 import { CategoryItemSearch } from "@/components/category-item-search";
+import type { Metadata } from "next";
 import { getPlaylistById } from "@/server/xtream";
 import { notFound } from "next/navigation";
 
@@ -7,7 +8,7 @@ type PageProps = {
 	params: Promise<{ id: string; categoryId: string }>;
 };
 
-export async function generateMetadata({ params }: PageProps) {
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
 	const { id, categoryId } = await params;
 	const context = await getCategoryMetadataContext("series", id, categoryId);
 	const categoryTitle = context?.categoryName ?? "Series Search";
@@ -22,7 +23,11 @@ export async function generateMetadata({ params }: PageProps) {
 	});
 }
 
-export default async function SeriesCategorySearchPage({ params }: PageProps) {
+export default function SeriesCategorySearchPage({ params }: PageProps) {
+	return <SeriesCategorySearchContent params={params} />;
+}
+
+async function SeriesCategorySearchContent({ params }: PageProps) {
 	const { id, categoryId } = await params;
 	const playlist = await getPlaylistById(id);
 

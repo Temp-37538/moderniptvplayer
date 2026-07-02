@@ -1,11 +1,12 @@
 import { createPageMetadata, getPlaylistMetadataContext } from "@/app/metadata";
 import { SearchTvCategorySearch } from "@/components/series-category-search";
 import type { IdPageProps as PageProps } from "@/components/types";
+import type { Metadata } from "next";
 import { getCachedChannelCategories } from "@/server/cached-content";
 import { getPlaylistById } from "@/server/xtream";
 import { notFound } from "next/navigation";
 
-export async function generateMetadata({ params }: PageProps) {
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
 	const { id } = await params;
 	const playlist = await getPlaylistMetadataContext(id);
 
@@ -26,7 +27,13 @@ export async function generateMetadata({ params }: PageProps) {
 	});
 }
 
-export default async function ChannelSearchCategoriesPage({
+export default function ChannelSearchCategoriesPage({
+	params,
+}: PageProps) {
+	return <ChannelSearchCategoriesContent params={params} />;
+}
+
+async function ChannelSearchCategoriesContent({
 	params,
 }: PageProps) {
 	const { id } = await params;

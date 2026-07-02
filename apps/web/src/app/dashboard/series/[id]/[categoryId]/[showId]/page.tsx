@@ -1,6 +1,7 @@
 import { createPageMetadata, getShowMetadataContext } from "@/app/metadata";
 import { CopyStreamButton } from "@/components/copy-stream-button";
 import { ItemActionButtons } from "@/components/item-action-buttons";
+import type { Metadata } from "next";
 import type { PageProps } from "@/components/types";
 import {
 	Tooltip,
@@ -8,13 +9,24 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { getItemStatus } from "@/server/user-items";
-import { getPlaylistById, getShowSafe } from "@/server/xtream";
-import type { StandardXtreamShow } from "@iptv/xtream-api/standardized";
+import { getPlaylistById } from "@/server/xtream";
+import { getCachedShow } from "@/server/cached-content";
 import { Calendar, Clock, ExternalLink, Film, Star, Tv } from "lucide-react";
-import { notFound } from "next/navigation"; 
+import { notFound } from "next/navigation";
 import { toSafeImageSrc } from "@/lib/image-url";
 
-export async function generateMetadata({ params }: PageProps) {
+function safeHref(url: string): string | undefined {
+	try {
+		const parsed = new URL(url);
+		return parsed.protocol === "http:" || parsed.protocol === "https:"
+			? url
+			: undefined;
+	} catch {
+		return undefined;
+	}
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
 	const { id, categoryId, showId } = await params;
 	const context = await getShowMetadataContext(id, showId);
 	const showTitle = context?.show?.name ?? "Series Details";
@@ -33,7 +45,11 @@ export async function generateMetadata({ params }: PageProps) {
 	});
 }
 
-export default async function ShowDetailPage({ params }: PageProps) {
+export default function ShowDetailPage({ params }: PageProps) {
+	return <ShowDetailContent params={params} />;
+}
+
+async function ShowDetailContent({ params }: PageProps) {
 	const { id, categoryId, showId } = await params;
 
 	if (!id || !showId) {
@@ -46,14 +62,7 @@ export default async function ShowDetailPage({ params }: PageProps) {
 		notFound();
 	}
 
-	let show: StandardXtreamShow | null = null;
-
-	try {
-		show = (await getShowSafe(playlist, showId)) as StandardXtreamShow;
-	} catch (error) {
-		console.error("Error fetching show details:", error);
-		show = null;
-	}
+	const show = await getCachedShow(id, playlist, showId);
 
 	if (!show) {
 		notFound();
@@ -234,25 +243,27 @@ export default async function ShowDetailPage({ params }: PageProps) {
 											{episode.url && (
 												<div className="flex items-center gap-2 shrink-0">
 													<CopyStreamButton url={episode.url} />
-													<Tooltip>
-														<TooltipTrigger
-															render={
-																<a
-																	target="_blank"
-																	aria-label="Watch episode in external window"
-																	rel="noopener noreferrer"
-																	href={episode.url}
-																	type="button"
-																	className="inline-flex cursor-pointer items-center justify-center size-8 rounded-[min(var(--radius-md),10px)] hover:bg-muted transition-colors"
-																>
-																	<ExternalLink className="size-4" />
-																</a>
-															}
-														/>
-														<TooltipContent>
-															Watch in external window
-														</TooltipContent>
-													</Tooltip>
+													{safeHref(episode.url) && (
+														<Tooltip>
+															<TooltipTrigger
+																render={
+																	<a
+																		target="_blank"
+																		aria-label="Watch episode in external window"
+																		rel="noopener noreferrer"
+																		href={safeHref(episode.url)}
+																		type="button"
+																		className="inline-flex cursor-pointer items-center justify-center size-8 rounded-[min(var(--radius-md),10px)] hover:bg-muted transition-colors"
+																	>
+																		<ExternalLink className="size-4" />
+																	</a>
+																}
+															/>
+															<TooltipContent>
+																Watch in external window
+															</TooltipContent>
+														</Tooltip>
+													)}
 												</div>
 											)}
 										</div>

@@ -2,8 +2,6 @@
 import type React from "react";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
 type Rgb = [number, number, number];
 type Mode = "light" | "dark";
 type ModeColor = string | { light: string; dark: string };
@@ -15,23 +13,7 @@ type ProgramWithUniforms = WebGLProgram & {
   u_bg:       WebGLUniformLocation | null;
 };
 
-// ─── Module-level state ───────────────────────────────────────────────────────
-//
-// Survit aux unmounts/remounts React (portée module, pas de reset SPA).
-//
-// _hasInitialized : true après le premier montage réussi.
-//   → Au retour sur la landing page, shouldStart = true immédiatement
-//     (pas de re-délai lazy de 1200ms qui donne l'impression d'un écran vide).
-//
-// NOTE — _persistedMs intentionnellement absent :
-//   performance.now() / RAF DOMHighResTimeStamp est MONOTONE dans une SPA
-//   (pas de rechargement de page). Après 10s sur la landing, reveal = 1 pour
-//   toujours. Au retour à t=45s, time = 45.0 → reveal = 1 naturellement.
-//   Pas besoin d'accumuler quoi que ce soit.
-
 let _hasInitialized = false;
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const hexToRgb = (hex: string): Rgb | null => {
   const r = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -43,14 +25,11 @@ const hexToRgb = (hex: string): Rgb | null => {
 const resolveModeColor = (color: ModeColor, mode: Mode): string =>
   typeof color === "string" ? color : color[mode];
 
-// ─── GLSL — source unique partagée Worker + Fallback ─────────────────────────
-
 const VERT = `#version 300 es
 precision highp float;
 in vec4 position;
 void main(){ gl_Position = position; }`;
 
-// 3 octaves fbm au lieu de 4 : −25% charge GPU, imperceptible visuellement.
 const FRAG = `#version 300 es
 precision mediump float;
 out vec4 O;
@@ -113,10 +92,6 @@ void main() {
 
   O = vec4(col, 1.);
 }`;
-
-// ─── Worker source ────────────────────────────────────────────────────────────
-// VERT et FRAG injectés via template literal — pas de duplication, pas de
-// fichier worker séparé.
 
 const WORKER_SOURCE = /* js */`
 "use strict";
@@ -254,8 +229,6 @@ self.onmessage = ({ data }) => {
 };
 `;
 
-// ─── FallbackRenderer (main thread) ──────────────────────────────────────────
-
 class FallbackRenderer {
   private readonly vertices = [-1, 1, -1, -1, 1, 1, 1, -1];
   private gl!: WebGL2RenderingContext;
@@ -353,8 +326,6 @@ class FallbackRenderer {
   }
 }
 
-// ─── Props ────────────────────────────────────────────────────────────────────
-
 interface SmokeBackgroundProps {
   smokeColor?: string;
   bgColor?:    ModeColor;
@@ -365,8 +336,6 @@ interface SmokeBackgroundProps {
   style?:      React.CSSProperties;
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
-
 export const SmokeBackground: React.FC<SmokeBackgroundProps> = ({
   smokeColor = "#808080",
   bgColor    = { light: "#FBEAE6", dark: "#141414" },
@@ -376,26 +345,16 @@ export const SmokeBackground: React.FC<SmokeBackgroundProps> = ({
   className,
   style,
 }) => {
-  // Container div — le canvas est créé programmatiquement dans useLayoutEffect.
-  //
-  // POURQUOI : si on utilise <canvas ref={...}>, React peut réutiliser le même
-  // élément DOM entre les runs de useLayoutEffect (React Strict Mode, HMR).
-  // transferControlToOffscreen() ne peut être appelé qu'UNE FOIS par canvas.
-  // Créer le canvas nous-mêmes garantit un élément FRAIS à chaque run.
   const containerRef    = useRef<HTMLDivElement>(null);
   const workerRef       = useRef<Worker | null>(null);
   const fallbackRef     = useRef<FallbackRenderer | null>(null);
   const rendererModeRef = useRef<"worker" | "fallback" | null>(null);
   const objectUrlRef    = useRef<string | null>(null);
 
-  // Refs pour les valeurs initiales des couleurs.
-  // Évite d'avoir smokeColor/resolvedBgColor dans les deps du useLayoutEffect
-  // principal sans créer de stale closure.
   const initColorRef = useRef(smokeColor);
   const initBgRef    = useRef("");
   initColorRef.current = smokeColor;
 
-  // _hasInitialized : déjà chargé une fois → pas de re-délai lazy au retour.
   const [shouldStart, setShouldStart] = useState(!lazy || _hasInitialized);
 
   const resolvedBgColor = useMemo(
@@ -405,10 +364,7 @@ export const SmokeBackground: React.FC<SmokeBackgroundProps> = ({
 
   initBgRef.current = resolvedBgColor;
 
-  // ── Lazy start ──────────────────────────────────────────────────────────────
-
   useEffect(() => {
-    // Déjà initialisé lors d'une session précédente → démarrage immédiat.
     if (!lazy || _hasInitialized) { setShouldStart(true); return; }
 
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
@@ -428,17 +384,12 @@ export const SmokeBackground: React.FC<SmokeBackgroundProps> = ({
     };
   }, [lazy, lazyDelay]);
 
-  // ── Renderer principal ───────────────────────────────────────────────────────
-
   useLayoutEffect(() => {
     if (!shouldStart) return;
 
     const container = containerRef.current;
     if (!container) return;
 
-    // Canvas créé programmatiquement → toujours frais, jamais réutilisé.
-    // Aucun flag __offscreenTransferred sur l'élément DOM = aucun risque de
-    // blocage en Strict Mode ou après navigation SPA.
     const canvas = document.createElement("canvas");
     canvas.style.cssText = "display:block;width:100%;height:100%";
     container.appendChild(canvas);
@@ -455,8 +406,6 @@ export const SmokeBackground: React.FC<SmokeBackgroundProps> = ({
       typeof OffscreenCanvas !== "undefined" &&
       typeof canvas.transferControlToOffscreen === "function";
 
-    // ── Mode Worker (OffscreenCanvas) ─────────────────────────────────────────
-
     if (supportsOffscreen) {
       rendererModeRef.current = "worker";
 
@@ -470,26 +419,21 @@ export const SmokeBackground: React.FC<SmokeBackgroundProps> = ({
       const offscreen = canvas.transferControlToOffscreen();
       worker.postMessage({ type: "init", canvas: offscreen, width, height, color, bg }, [offscreen]);
 
-      // Pause quand le canvas sort du viewport (scroll ou navigation SPA
-      // avec router cache qui garde le composant monté mais caché).
       const io = new IntersectionObserver(
         ([e]) => worker.postMessage({ type: e.isIntersecting ? "resume" : "pause" }),
         { threshold: 0 },
       );
       io.observe(canvas);
 
-      // Pause quand l'onglet est masqué.
       const onVisibility = () =>
         worker.postMessage({ type: document.hidden ? "pause" : "resume" });
       document.addEventListener("visibilitychange", onVisibility);
 
-      // pageshow : couvre le retour depuis le bfcache navigateur.
       const onPageShow = (e: PageTransitionEvent) => {
         if (e.persisted) worker.postMessage({ type: "resume" });
       };
       window.addEventListener("pageshow", onPageShow);
 
-      // Resize debounce 100ms.
       let resizeTimer: ReturnType<typeof setTimeout>;
       const onResize = () => {
         clearTimeout(resizeTimer);
@@ -514,8 +458,6 @@ export const SmokeBackground: React.FC<SmokeBackgroundProps> = ({
         rendererModeRef.current = null;
       };
     }
-
-    // ── Mode Fallback (main thread) ───────────────────────────────────────────
 
     rendererModeRef.current = "fallback";
 
@@ -573,12 +515,7 @@ export const SmokeBackground: React.FC<SmokeBackgroundProps> = ({
       fallbackRef.current     = null;
       rendererModeRef.current = null;
     };
-  }, [shouldStart]); // eslint-disable-line react-hooks/exhaustive-deps
-  // ^ Intentionnel : smokeColor et resolvedBgColor sont gérés par leurs propres
-  //   effets ci-dessous via postMessage. Les mettre ici détruirait le worker à
-  //   chaque changement de couleur.
-
-  // ── Mise à jour dynamique couleur fumée ───────────────────────────────────
+  }, [shouldStart]);
 
   useEffect(() => {
     if (!shouldStart) return;
@@ -587,8 +524,6 @@ export const SmokeBackground: React.FC<SmokeBackgroundProps> = ({
     if (rendererModeRef.current === "worker") { workerRef.current?.postMessage({ type: "color", color }); return; }
     fallbackRef.current?.updateColor(color);
   }, [shouldStart, smokeColor]);
-
-  // ── Mise à jour dynamique couleur fond ────────────────────────────────────
 
   useEffect(() => {
     if (!shouldStart) return;

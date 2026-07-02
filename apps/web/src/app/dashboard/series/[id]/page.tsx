@@ -1,11 +1,12 @@
 import { createPageMetadata, getPlaylistMetadataContext } from "@/app/metadata";
 import type { IdPageProps as PageProps } from "@/components/types";
+import type { Metadata } from "next";
 import { getCachedSeriesCategories } from "@/server/cached-content";
 import { getPlaylistById } from "@/server/xtream";
 import { notFound } from "next/navigation";
 import { SeriesCategorySearch } from "@/components/series-category-search";
 
-export async function generateMetadata({ params }: PageProps) {
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
 	const { id } = await params;
 	const playlist = await getPlaylistMetadataContext(id);
 
@@ -26,7 +27,11 @@ export async function generateMetadata({ params }: PageProps) {
 	});
 }
 
-export default async function SeriesCategoriesPage({ params }: PageProps) {
+export default function SeriesCategoriesPage({ params }: PageProps) {
+	return <SeriesCategoriesContent params={params} />;
+}
+
+async function SeriesCategoriesContent({ params }: PageProps) {
 	const { id } = await params;
 
 	const playlist = await getPlaylistById(id);

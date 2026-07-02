@@ -64,12 +64,24 @@ function CardContent({ className, ...props }: React.ComponentProps<"div">) {
 			{...props}
 		/>
 	);
-} 
+} function CardFooter({ className, ...props }: React.ComponentProps<"div">) {
+		return (
+			<div
+				data-slot="card-footer"
+				className={cn(
+					"rounded-b-xl px-6 group-data-[size=sm]/card:px-4 [.border-t]:pt-6 group-data-[size=sm]/card:[.border-t]:pt-4 flex items-center",
+					className,
+				)}
+				{...props}
+			/>
+		);
+	}
 
 export {
 	Card,
-	CardHeader, 
+	CardHeader,
 	CardTitle,
 	CardDescription,
 	CardContent,
+	CardFooter,
 };
