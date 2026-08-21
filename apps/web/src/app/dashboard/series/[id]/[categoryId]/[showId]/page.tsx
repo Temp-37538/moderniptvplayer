@@ -12,6 +12,7 @@ import { getItemStatus } from "@/server/user-items";
 import { getPlaylistById } from "@/server/xtream";
 import { getCachedShow } from "@/server/cached-content";
 import { Calendar, Clock, ExternalLink, Film, Star, Tv } from "lucide-react";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { toSafeImageSrc } from "@/lib/image-url";
 
@@ -69,29 +70,21 @@ async function ShowDetailContent({ params }: PageProps) {
 	}
 
 	const itemStatus = await getItemStatus(id, showId, "series");
-	const safePosterSrc = toSafeImageSrc(show.poster);
-	const safeCoverSrc = toSafeImageSrc(show.cover) ?? safePosterSrc;
+	const safePosterSrc = toSafeImageSrc(show.poster); 
 
 	return (
-		<div className="min-h-full no-scrollbar overflow-y-scroll">
-			<div className="relative">
-				{safeCoverSrc && (
-					<div className="absolute inset-0 h-100 overflow-hidden">
-						<img
-							src={safeCoverSrc}
-							alt=""
-							className="size-full object-cover blur-2xl scale-110 opacity-20"
-						/>
-						<div className="absolute inset-0 bg-linear-to-b from-background/60 via-background/80 to-background" />
-					</div>
-				)}
+		<div className="min-h-full overflow-y-scroll scrollbar-thin scrollbar-thumb-rounded-lg scrollbar-thumb-border/50 scrollbar-track-border/20">
+			<div className="relative mb-4 md:mb-0">
 				<div className="relative">
 					<div className="flex flex-col md:flex-row gap-8">
 						{safePosterSrc && (
 							<div className="shrink-0">
-								<img
+								<Image
 									src={safePosterSrc}
 									alt={show.name}
+									width={224}
+									height={336}
+									unoptimized
 									className="w-48 md:w-56 rounded-xl shadow-2xl shadow-black/30 border border-border/30"
 								/>
 							</div>

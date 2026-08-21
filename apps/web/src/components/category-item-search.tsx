@@ -76,6 +76,7 @@ function ImageWithFallback({
 			className={className}
 			width={128}
 			height={128}
+			unoptimized
 			onError={() => setFailed(true)}
 		/>
 	);

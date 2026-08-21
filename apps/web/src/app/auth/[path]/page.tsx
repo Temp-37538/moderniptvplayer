@@ -68,6 +68,6 @@ export default async function AuthPage({
 
 async function AuthCard({ path }: { path: string }) {
 	return (
-		<Auth socialPosition={undefined} className="bg-background/90" path={path} />
+		<Auth socialPosition={undefined} className="bg-background/60 backdrop-blur-xl" path={path} />
 	);
 }

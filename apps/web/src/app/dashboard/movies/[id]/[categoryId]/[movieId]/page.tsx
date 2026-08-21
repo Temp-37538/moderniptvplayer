@@ -1,19 +1,20 @@
 import { createPageMetadata, getMovieMetadataContext } from "@/app/metadata";
+import { CopyStreamButton } from "@/components/copy-stream-button";
+import { ItemActionButtons } from "@/components/item-action-buttons";
 import type { MovieDetailPageProps as PageProps } from "@/components/types";
-import type { Metadata } from "next";
 import {
 	Tooltip,
 	TooltipContent,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { notFound } from "next/navigation";
-import { createXtreamClient, getPlaylistById } from "@/server/xtream";
-import { CopyStreamButton } from "@/components/copy-stream-button";
-import { ItemActionButtons } from "@/components/item-action-buttons";
-import { getItemStatus } from "@/server/user-items";
-import { getCachedMovie } from "@/server/cached-content";
-import { Star, Clock, Calendar, Globe, ExternalLink, Film } from "lucide-react";
 import { toSafeImageSrc } from "@/lib/image-url";
+import { getCachedMovie } from "@/server/cached-content";
+import { getItemStatus } from "@/server/user-items";
+import { createXtreamClient, getPlaylistById } from "@/server/xtream";
+import { Calendar, Clock, ExternalLink, Film, Globe, Star } from "lucide-react";
+import type { Metadata } from "next";
+import Image from "next/image";
+import { notFound } from "next/navigation";
 
 function safeHref(url: string): string | undefined {
 	try {
@@ -73,28 +74,20 @@ async function MovieDetailContent({ params }: PageProps) {
 	});
 
 	const itemStatus = await getItemStatus(id, movieId, "movie");
-	const safePosterSrc = toSafeImageSrc(movie.poster);
-	const safeCoverSrc = toSafeImageSrc(movie.cover) ?? safePosterSrc;
+	const safePosterSrc = toSafeImageSrc(movie.poster); 
 	return (
-		<div className="min-h-full overflow-y-scroll no-scrollbar">
+		<div className="min-h-full overflow-y-scroll scrollbar-none">
 			<div className="relative mb-4 md:mb-0">
-				{safeCoverSrc && (
-					<div className="absolute inset-0 h-full overflow-hidden">
-						<img
-							src={safeCoverSrc}
-							alt=""
-							className="size-full object-cover blur-2xl scale-110 opacity-20"
-						/>
-						<div className="absolute inset-0 bg-linear-to-b from-background/60 via-background/80 to-background" />
-					</div>
-				)}
 				<div className="relative ">
-					<div className="flex  flex-col md:flex-row gap-8">
+					<div className="flex flex-col md:flex-row gap-8">
 						{safePosterSrc && (
 							<div className="shrink-0">
-								<img
+								<Image
 									src={safePosterSrc}
 									alt={movie.name}
+									width={224}
+									height={336}
+									unoptimized
 									className="w-48 md:w-56 rounded-xl shadow-2xl shadow-black/30 border border-border/30"
 								/>
 							</div>

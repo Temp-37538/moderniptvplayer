@@ -12,6 +12,7 @@ import { getItemStatus } from "@/server/user-items";
 import { createXtreamClient, getPlaylistById } from "@/server/xtream";
 import { getCachedChannel } from "@/server/cached-content";
 import { ExternalLink, Hash, Radio, Satellite } from "lucide-react";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { toSafeImageSrc } from "@/lib/image-url";
 
@@ -67,17 +68,20 @@ async function ChannelDetailContent({ params }: PageProps) {
 		<div className="max-w-2xl">
 			<div className="rounded-xl border border-border/50 bg-card overflow-hidden">
 				<div className="flex items-center gap-6 p-6 bg-muted/20">
-					<div className="flex items-center justify-center size-24 rounded-xl bg-muted overflow-hidden shrink-0 border border-border/30">
-						{safeLogoSrc ? (
-							<img
-								src={safeLogoSrc}
-								alt={channel.name}
-								className="size-full object-contain p-2"
-							/>
-						) : (
-							<Radio className="size-10 text-muted-foreground/30" />
-						)}
-					</div>
+						<div className="flex items-center justify-center size-24 rounded-xl bg-muted overflow-hidden shrink-0 border border-border/30">
+							{safeLogoSrc ? (
+								<Image
+									src={safeLogoSrc}
+									alt={channel.name}
+									width={96}
+									height={96}
+									unoptimized
+									className="size-full object-contain p-2"
+								/>
+							) : (
+								<Radio className="size-10 text-muted-foreground/30" />
+							)}
+						</div>
 					<div className="space-y-2">
 						<h1 className="text-2xl font-bold tracking-tight">
 							{channel.name}
