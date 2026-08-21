@@ -1,8 +1,8 @@
 import { createPageMetadata } from "@/app/metadata";
 import HeroSection from "@/components/hero-section";
-import { SmokeBackground } from "@/components/spooky-smoke-animation";
 import { auth } from "@moderniptvplayer/auth";
 import type { Metadata } from "next";
+import { getImageProps } from "next/image";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
@@ -15,17 +15,39 @@ export const metadata: Metadata = createPageMetadata({
 });
 
 export default function Home() {
+	const common = { alt: "", sizes: "100vw", quality: 75 };
+	const {
+		props: { srcSet: desktopSrcSet },
+	} = getImageProps({
+		...common,
+		width: 2752,
+		height: 1536,
+		src: "/desktop-landing-page.webp",
+	});
+	const {
+		props: { srcSet: mobileSrcSet, ...rest },
+	} = getImageProps({
+		...common,
+		width: 864,
+		height: 1536,
+		src: "/mobile-landing-page.webp",
+	});
+
 	return (
-		<div className="flex h-full w-full flex-col gap-4 overflow-hidden bg-background">
-			<div className="absolute inset-0">
-				<SmokeBackground smokeColor="#A624FF" mode="light" />
-			</div>
-			<div className="absolute inset-0 hidden dark:block">
-				<SmokeBackground smokeColor="#A624FF" mode="dark" />
-			</div>
+		<div className="relative flex min-h-svh w-full flex-col gap-4 overflow-hidden bg-background">
+			<picture className="absolute inset-0">
+				<source media="(max-width: 767px)" srcSet={mobileSrcSet} />
+				<source media="(min-width: 768px)" srcSet={desktopSrcSet} />
+				<img
+					{...rest}
+					className="absolute inset-0 size-full object-cover object-top"
+					fetchPriority="high"
+					alt=""
+				/>
+			</picture>
 			<Suspense fallback={null}>
 				<HomeGate />
-			</Suspense> 
+			</Suspense>
 		</div>
 	);
 }
@@ -37,6 +59,6 @@ async function HomeGate() {
 	if (session?.user.id) {
 		redirect("/dashboard");
 	} else {
-		return <HeroSection />;
+		return <HeroSection />; 
 	}
 }

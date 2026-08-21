@@ -20,7 +20,7 @@ export const metadata: Metadata = createPageMetadata({
 
 function Page() {
 	return (
-		<div className="flex flex-col items-center justify-start md:justify-center py-4 no-scrollbar overflow-y-scroll min-h-[80vh] px-4">
+		<div className="flex flex-col items-center justify-start md:justify-center py-4 no-scrollbar min-h-[80vh] px-4">
 			<h1 className="text-4xl font-bold tracking-tight text-center mb-2">
 				Add a playlist
 			</h1>

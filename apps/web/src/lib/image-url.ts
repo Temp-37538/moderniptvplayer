@@ -16,29 +16,19 @@ export function toSafeImageSrc(raw: string | undefined): string | undefined {
 		return undefined;
 	}
 
-	if (trimmed.startsWith("//")) {
-		const protocolRelative = parseUrl(`https:${trimmed}`);
-		if (!protocolRelative) {
-			console.log("toSafeImageSrc: protocol-relative URL invalid:", trimmed);
-			return undefined;
-		}
-		return protocolRelative.toString();
-	}
-	if (trimmed.startsWith("/")) {
-		return trimmed;
+	const candidate = trimmed.startsWith("//") ? `https:${trimmed}` : trimmed;
+
+	if (candidate.startsWith("/")) {
+		return candidate;
 	}
 
-	const parsed = parseUrl(trimmed);
+	const parsed = parseUrl(candidate);
 	if (!parsed) {
 		console.log("toSafeImageSrc: parseUrl failed for:", trimmed);
 		return undefined;
 	}
 
-	if (parsed.protocol === "https:") {
-		return parsed.toString();
-	}
-
-	if (parsed.protocol === "http:") {
+	if (parsed.protocol === "http:" || parsed.protocol === "https:") {
 		return `${IMAGE_PROXY_PATH}${encodeURIComponent(parsed.toString())}`;
 	}
 

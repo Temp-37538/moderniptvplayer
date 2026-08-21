@@ -32,9 +32,10 @@
     "source.fixAll.biome": "always",
     "source.removeUnused.ts": "always",
     "source.addMissingImports.ts": "always",
-    "source.organizeImports.biome": "always", 
+    "source.organizeImports.biome": "always",
     "source.sortImports": "always",
     "source.removeUnusedImports": "always"
   },
+  "tailwindCSS.experimental.configFile": "apps/web/src/index.css",
   "js/ts.tsdk.path": "node_modules/typescript/lib"
 }

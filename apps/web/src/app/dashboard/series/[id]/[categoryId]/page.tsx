@@ -6,6 +6,7 @@ import { notFound } from "next/navigation";
 import { getPlaylistById } from "@/server/xtream";
 import { getCachedShows } from "@/server/cached-content";
 import { Tv, Star } from "lucide-react";
+import Image from "next/image";
 import { EmptyState } from "@/components/empty-state";
 import { PaginationNav } from "@/components/pagination-nav";
 import { toSafeImageSrc } from "@/lib/image-url";
@@ -66,7 +67,7 @@ async function SeriesByCategoryContent({
 	const hasPreviousPage = currentPage > 1;
 
 	return (
-		<div className="h-full overflow-y-auto  ">
+		<div className="h-full overflow-y-auto  scrollbar-thin scrollbar-thumb-rounded-lg scrollbar-thumb-border/50 scrollbar-track-border/20">
 			<div className="flex items-center justify-between mb-6">
 				<div className="flex items-center gap-3">
 					<div className="flex items-center justify-center size-10 rounded-xl bg-primary/10 text-primary">
@@ -90,10 +91,13 @@ async function SeriesByCategoryContent({
 							>
 								<div className="relative aspect-2/3 overflow-hidden rounded-xl bg-muted border border-border/30">
 									{safePosterSrc ? (
-										<img
+										<Image
 											src={safePosterSrc}
 											alt={show.name}
-											className="size-full object-cover transition-transform duration-300 group-hover:scale-105"
+											fill
+											sizes="(min-width: 1280px) 16vw, (min-width: 1024px) 19vw, (min-width: 768px) 24vw, (min-width: 640px) 32vw, 48vw"
+											unoptimized
+											className="object-cover transition-transform duration-300 group-hover:scale-105"
 										/>
 									) : (
 										<div className="flex items-center justify-center size-full text-muted-foreground">

@@ -133,7 +133,7 @@ export function CategoryGridSkeleton({ count = 35 }: { count?: number }) {
 
 export function MediaDetailSkeleton() {
 	return (
-		<div className="min-h-full overflow-y-scroll no-scrollbar">
+		<div className="min-h-full overflow-y-scroll scrollbar-none">
 			<div className="relative">
 				<div className="relative">
 					<div className="flex flex-col md:flex-row gap-8">
@@ -208,7 +208,7 @@ export function ChannelDetailSkeleton() {
 
 export function ShowDetailSkeleton() {
 	return (
-		<div className="min-h-full overflow-y-scroll">
+		<div className="min-h-full overflow-y-scroll scrollbar-none">
 			<div className="relative">
 				<div className="relative">
 					<div className="flex flex-col md:flex-row gap-8 mb-8">
