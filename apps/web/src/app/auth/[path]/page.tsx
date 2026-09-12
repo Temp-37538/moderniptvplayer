@@ -10,6 +10,10 @@ import { AuthActions } from "../../../components/auth-actions";
 import { AuthSuspense } from "../../../components/skeletons";
 import { HeroOverlayV2 } from "../../../components/hero-overlay";
 
+// TODO: Cache Components adoption. Refactor this route so this opt-out can be removed.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
+
 export async function generateMetadata({
 	params,
 }: {

@@ -36,6 +36,11 @@ export function RemoveItemButton({
 				render={
 					<button
 						type="button"
+						aria-label={
+							variant === "watchlater"
+								? "Remove from Watch Later"
+								: "Remove from Favorites"
+						}
 						disabled={isPending}
 						className="inline-flex cursor-pointer items-center justify-center size-8 rounded-[min(var(--radius-md),10px)] hover:bg-muted transition-colors disabled:opacity-50 shrink-0"
 						onClick={handleRemove}

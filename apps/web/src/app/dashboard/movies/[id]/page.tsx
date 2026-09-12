@@ -6,6 +6,10 @@ import { getPlaylistById } from "@/server/xtream";
 import { notFound } from "next/navigation";
 import { MovieCategorySearch } from "@/components/series-category-search";
 
+// TODO: Cache Components adoption. Refactor this route so this opt-out can be removed.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
 	const { id } = await params;
 	const playlist = await getPlaylistMetadataContext(id);

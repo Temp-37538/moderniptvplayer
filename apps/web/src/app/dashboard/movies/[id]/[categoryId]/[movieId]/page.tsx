@@ -16,6 +16,10 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 
+// TODO: Cache Components adoption. Refactor this route so this opt-out can be removed.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
+
 function safeHref(url: string): string | undefined {
 	try {
 		const parsed = new URL(url);
@@ -196,6 +200,7 @@ async function MovieDetailContent({ params }: PageProps) {
 														href={safeHref(movie.url ? movie.url : "")}
 														target="_blank"
 														rel="noopener noreferrer"
+														aria-label="Read the content in another player"
 														className="inline-flex cursor-pointer items-center justify-center size-8 rounded-[min(var(--radius-md),10px)] hover:bg-muted transition-colors"
 													>
 														<ExternalLink className="size-4" />

@@ -48,6 +48,7 @@ export function CopyStreamButton({ url }: CopyStreamButtonProps) {
 				render={
 					<button
 						type="button"
+						aria-label={copied ? "Copied" : "Copy link to read in another player"}
 						className="inline-flex cursor-pointer items-center justify-center size-8 rounded-[min(var(--radius-md),10px)] hover:bg-muted transition-colors"
 						onClick={() => {
 							handleCopy();

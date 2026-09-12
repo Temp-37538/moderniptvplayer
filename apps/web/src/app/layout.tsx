@@ -4,6 +4,10 @@ import type { Metadata } from "next";
 import { Inter, Instrument_Serif, Fira_Code } from "next/font/google";
 import "../index.css";
 
+// TODO: Cache Components adoption. Refactor this route so this opt-out can be removed.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
+
 const fontSans = Inter({
 	subsets: ["latin"],
 	variable: "--font-sans",
