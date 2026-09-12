@@ -16,6 +16,10 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { toSafeImageSrc } from "@/lib/image-url";
 
+// TODO: Cache Components adoption. Refactor this route so this opt-out can be removed.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
+
 function safeHref(url: string): string | undefined {
 	try {
 		const parsed = new URL(url);

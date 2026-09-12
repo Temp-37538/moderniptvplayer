@@ -7,6 +7,10 @@ import { getWatchLaterItems } from "@/server/user-items";
 import { SavedItemsList } from "@/components/saved-items-list";
 import { Clock } from "lucide-react";
 
+// TODO: Cache Components adoption. Refactor this route so this opt-out can be removed.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
 	const { playlistId } = await params;
 	const playlist = await getPlaylistMetadataContext(playlistId);

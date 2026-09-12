@@ -16,6 +16,10 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { toSafeImageSrc } from "@/lib/image-url";
 
+// TODO: Cache Components adoption. Refactor this route so this opt-out can be removed.
+// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
+export const instant = false;
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
 	const { id, categoryId, channelId } = await params;
 	const context = await getChannelMetadataContext(id, categoryId, channelId);
@@ -111,6 +115,7 @@ async function ChannelDetailContent({ params }: PageProps) {
 									href={streamUrl}
 									target="_blank"
 									rel="noopener noreferrer"
+									aria-label="Read the content in another player"
 									className="inline-flex cursor-pointer items-center justify-center size-8 rounded-[min(var(--radius-md),10px)] hover:bg-muted transition-colors"
 								>
 									<ExternalLink className="size-4" />

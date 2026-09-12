@@ -46,6 +46,7 @@ export function ItemActionButtons({
 					render={
 						<button
 							type="button"
+							aria-label={optimisticWL ? "Remove from Watch Later" : "Add to Watch Later"}
 							disabled={isPendingWL}
 							className="inline-flex cursor-pointer items-center justify-center size-8 rounded-[min(var(--radius-md),10px)] hover:bg-muted transition-colors disabled:opacity-50"
 							onClick={handleToggleWatchLater}
@@ -70,6 +71,7 @@ export function ItemActionButtons({
 					render={
 						<button
 							type="button"
+							aria-label={optimisticFav ? "Remove from Favorites" : "Add to Favorites"}
 							disabled={isPendingFav}
 							className="inline-flex cursor-pointer items-center justify-center size-8 rounded-[min(var(--radius-md),10px)] hover:bg-muted transition-colors disabled:opacity-50"
 							onClick={handleToggleFavorite}
