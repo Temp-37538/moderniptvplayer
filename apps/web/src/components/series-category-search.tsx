@@ -84,7 +84,7 @@ function CategorySearchBase({
 					}}
 				/>
 			</div>
-			<div className="flex-1 overflow-y-auto no-scrollbar">
+			<div className="flex-1 overflow-y-auto">
 				<div className="grid grid-cols-2 sm:grid-cols-3   lg:grid-cols-4 xl:grid-cols-5 gap-3">
 					{filteredCategories.map((category) => (
 						<Link

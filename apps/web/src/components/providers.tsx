@@ -68,7 +68,13 @@ function AuthProviderWithRedirect({
 	);
 }
 
-export default function Providers({ children }: { children: React.ReactNode }) {
+export default function Providers({
+	children,
+	defaultSidebarOpen,
+}: {
+	children: React.ReactNode;
+	defaultSidebarOpen?: boolean;
+}) {
 	const router = useRouter();
 	const queryClient = getQueryClient();
 
@@ -78,7 +84,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
 			defaultTheme="dark"
 			disableTransitionOnChange
 		>
-			<SidebarProvider>
+			<SidebarProvider defaultOpen={defaultSidebarOpen}>
 				<TooltipProvider>
 					<QueryClientProvider client={queryClient}>
 						<Suspense fallback={null}>

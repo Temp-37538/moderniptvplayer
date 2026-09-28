@@ -79,7 +79,7 @@ function SidebarProvider({
 			}
 
 			try {
-				window.localStorage.setItem(SIDEBAR_COOKIE_NAME, String(openState));
+				document.cookie = `${SIDEBAR_COOKIE_NAME}=${String(openState)}; path=/; max-age=${60 * 60 * 24 * 7}; samesite=lax`;
 			} catch {}
 		},
 		[setOpenProp, open],
@@ -225,7 +225,7 @@ function Sidebar({
 					"fixed inset-y-0 z-10 hidden h-svh w-(--sidebar-width) transition-[left,right,width] duration-200 ease-linear data-[side=left]:left-0 data-[side=left]:group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)] data-[side=right]:right-0 data-[side=right]:group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)] md:flex",
 					variant === "floating" || variant === "inset"
 						? "p-2 group-data-[collapsible=icon]:w-[calc(var(--sidebar-width-icon)+(--spacing(4))+2px)]"
-						: "group-data-[collapsible=icon]:w-(--sidebar-width-icon) group-data-[side=left]:border-r group-data-[side=right]:border-l",
+						: "group-data-[collapsible=icon]:w-(--sidebar-width-icon)",
 					className,
 				)}
 				{...props}
@@ -362,7 +362,7 @@ function SidebarContent({ className, ...props }: React.ComponentProps<"div">) {
 			data-slot="sidebar-content"
 			data-sidebar="content"
 			className={cn(
-				"no-scrollbar gap-2 flex min-h-0 flex-1 flex-col overflow-auto group-data-[collapsible=icon]:overflow-hidden",
+				"gap-2 flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden group-data-[collapsible=icon]:overflow-hidden",
 				className,
 			)}
 			{...props}
@@ -509,7 +509,7 @@ function SidebarMenuButton({
 			},
 			props,
 		),
-		render: !tooltip ? render : TooltipTrigger,
+		render: !tooltip ? render : <TooltipTrigger render={render} />,
 		state: {
 			slot: "sidebar-menu-button",
 			sidebar: "menu-button",

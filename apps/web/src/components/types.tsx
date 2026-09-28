@@ -14,8 +14,6 @@ export type CategorySearchProps = {
 	categories: StandardXtreamCategory[];
 };
 
-export const NO_PLAYLIST_ID = "NoPlaylisfreàçuhgpzfiru_thgrpituehgriptgrt";
-
 export interface Playlist {
 	id: string;
 	serverUrl: string;
@@ -42,19 +40,6 @@ export interface Project {
 }
 
 export const sidebarData = {
-	playlists: [
-		{
-			id: NO_PLAYLIST_ID,
-			serverUrl: "No Playlist",
-			username: "No Playlist",
-			playlistName: "No Playlist",
-			password: "No Playlist",
-			userId: "No Playlist",
-			createdAt: new Date("2026-02-16T03:38:09.187Z"),
-			updatedAt: new Date("2026-02-16T03:38:09.187Z"),
-		},
-	] as Playlist[],
-
 	navMain: [
 		{
 			title: "TV",

@@ -3,6 +3,7 @@ import type { FormState, xtreamFormData } from "@/components/types";
 import { updateTag } from "next/cache";
 import { cookies } from "next/headers";
 import { z } from "zod";
+import { ACTIVE_PLAYLIST_COOKIE } from "./active-playlist";
 import { getPlaylistCacheTags } from "./cached-content";
 import {
 	addPlaylist,
@@ -158,11 +159,11 @@ export async function preparePlaylistSwitchAction(
 	}
 
 	if (nextPlaylistId) {
-		cookieStore.set("active_playlist_id", nextPlaylistId, {
+		cookieStore.set(ACTIVE_PLAYLIST_COOKIE, nextPlaylistId, {
 			path: "/",
 			maxAge: 60 * 60 * 24 * 30,
 		});
 	} else {
-		cookieStore.delete("active_playlist_id");
+		cookieStore.delete(ACTIVE_PLAYLIST_COOKIE);
 	}
 }

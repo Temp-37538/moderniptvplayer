@@ -2,6 +2,7 @@ import Providers from "@/components/providers";
 import { APP_DESCRIPTION, APP_NAME, getMetadataBase } from "@/app/metadata";
 import type { Metadata } from "next";
 import { Inter, Instrument_Serif, Fira_Code } from "next/font/google";
+import { cookies } from "next/headers";
 import "../index.css";
 
 // TODO: Cache Components adoption. Refactor this route so this opt-out can be removed.
@@ -70,17 +71,20 @@ export const metadata: Metadata = {
 	},
 };
 
-export default function RootLayout({
+export default async function RootLayout({
 	children,
 }: Readonly<{
 	children: React.ReactNode;
 }>) {
+	const cookieStore = await cookies();
+	const defaultSidebarOpen = cookieStore.get("sidebar_state")?.value !== "false";
+
 	return (
 		<html lang="en" suppressHydrationWarning>
 			<body
 				className={`${fontSans.variable} ${fontSerif.variable} ${fontMono.variable} data-scroll-behavior="smooth" antialiased`}
 			>
-				<Providers>
+				<Providers defaultSidebarOpen={defaultSidebarOpen}>
 					<div className="flex h-screen w-screen overflow-hidden">
 						{children}
 					</div>

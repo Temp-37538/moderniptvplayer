@@ -49,7 +49,7 @@ export function ChannelCategorySearchSkeleton() {
 				<Skeleton className="h-4 w-48" />
 			</div>
 
-			<div className="flex-1  overflow-y-auto no-scrollbar pb-10">
+			<div className="flex-1 overflow-y-auto pb-10">
 				<div className="flex justify-center items-center gap-3">
 					<div className="flex flex-col  items-center justify-center py-20 animate-pulse">
 						<div className="mb-4 size-12 rounded-md bg-muted  " />
@@ -103,7 +103,7 @@ export function ChannelListSkeletonNoSearchBar({
 
 export function CategoryGridSkeleton({ count = 35 }: { count?: number }) {
 	return (
-		<div className="h-full flex flex-col gap-4 no-scrollbar">
+		<div className="h-full flex flex-col gap-4">
 			<div className="flex items-center justify-between">
 				<div className="flex items-center gap-3">
 					<Skeleton className="size-10 rounded-xl" />
@@ -114,7 +114,7 @@ export function CategoryGridSkeleton({ count = 35 }: { count?: number }) {
 				</div>
 				<Skeleton className="h-8 w-40 md:w-70 rounded-md" />
 			</div>
-			<div className="flex-1 overflow-y-auto no-scrollbar">
+			<div className="flex-1 overflow-y-auto">
 				<div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
 					{Array.from({ length: count }).map((_, i) => (
 						<div

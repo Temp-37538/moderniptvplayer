@@ -4,9 +4,7 @@ import {
 	SidebarContent,
 	SidebarFooter,
 	SidebarHeader,
-	SidebarRail,
 	SidebarInset,
-	SidebarTrigger,
 	SidebarGroup,
 	SidebarGroupLabel,
 	SidebarMenu,
@@ -15,27 +13,34 @@ import {
 	SidebarMenuSub,
 	SidebarMenuSubButton,
 	SidebarMenuSubItem,
+	useSidebar,
 } from "@/components/ui/sidebar";
-import { Separator } from "./ui/separator";
 import { Skeleton } from "./ui/skeleton";
 
 function SkeletonSidebar({ children }: { children: React.ReactNode }) {
+	const { state, isMobile } = useSidebar();
+	const collapsed = state === "collapsed" && !isMobile;
 	return (
 		<>
 			<Sidebar collapsible="icon">
-				<SidebarHeader>
-					<SidebarMenu>
-						<SidebarMenuItem>
-							<SidebarMenuButton size="lg" className="pointer-events-none">
-								<Skeleton className="size-8 rounded-lg shrink-0" />
-								<div className="grid flex-1 gap-1.5 text-left">
-									<Skeleton className="h-3.5 w-24 rounded" />
-									<Skeleton className="h-2.5 w-32 rounded" />
-								</div>
-								<Skeleton className="ml-auto size-4 rounded shrink-0" />
-							</SidebarMenuButton>
-						</SidebarMenuItem>
-					</SidebarMenu>
+				<SidebarHeader className="h-16 justify-center">
+					<div className="flex items-center justify-end gap-1">
+						<div className="min-w-0 flex-1">
+							<SidebarMenu>
+								<SidebarMenuItem>
+									<SidebarMenuButton size="lg" className="pointer-events-none">
+										<Skeleton className="size-8 rounded-lg shrink-0" />
+										<div className="grid flex-1 gap-1.5 text-left">
+											<Skeleton className="h-3.5 w-24 rounded" />
+											<Skeleton className="h-2.5 w-32 rounded" />
+										</div>
+										<Skeleton className="ml-auto size-4 rounded shrink-0" />
+									</SidebarMenuButton>
+								</SidebarMenuItem>
+							</SidebarMenu>
+						</div>
+						<Skeleton className="size-8 rounded-lg shrink-0" />
+					</div>
 				</SidebarHeader>
 				<SidebarContent>
 					<SidebarGroup>
@@ -72,20 +77,17 @@ function SkeletonSidebar({ children }: { children: React.ReactNode }) {
 							))}
 						</SidebarMenu>
 					</SidebarGroup>
-					<SidebarGroup className="group-data-[collapsible=icon]:hidden">
+					<SidebarGroup>
 						<SidebarGroupLabel>
 							<Skeleton className="h-3 w-14 rounded" />
 						</SidebarGroupLabel>
-						<SidebarMenu>
-							{Array.from({ length: 3 }).map((_, i) => (
-								// biome-ignore lint/suspicious/noArrayIndexKey: "Index is acceptable here since items are static placeholders"
-								<SidebarMenuItem key={i}>
+						<SidebarMenu> 
+								<SidebarMenuItem >
 									<SidebarMenuButton className="pointer-events-none">
 										<Skeleton className="size-4 rounded shrink-0" />
 										<Skeleton className="h-3.5 w-24 rounded" />
 									</SidebarMenuButton>
-								</SidebarMenuItem>
-							))}
+								</SidebarMenuItem> 
 							<SidebarMenuItem>
 								<SidebarMenuButton className="pointer-events-none">
 									<Skeleton className="size-4 rounded shrink-0" />
@@ -95,26 +97,27 @@ function SkeletonSidebar({ children }: { children: React.ReactNode }) {
 						</SidebarMenu>
 					</SidebarGroup>
 				</SidebarContent>
-				<SidebarFooter className="flex items-center gap-2 py-4 border-t-2 justify-center">
-					<Skeleton className="h-8 w-10 rounded-md" />
-					<Skeleton className="h-8 w-10 rounded-md" />
+				<SidebarFooter
+					className={`relative overflow-hidden border-t-2 ${collapsed ? "h-[104px]" : "h-16"}`}
+				>
+					<div
+						className={`absolute ${collapsed ? "left-[calc(50%-16px)] top-4" : "left-[calc(50%-36px)] top-4"}`}
+					>
+						<Skeleton className="size-8 rounded-full" />
+					</div>
+					<div
+						className={`absolute ${collapsed ? "left-[calc(50%-16px)] top-14" : "left-[calc(50%+4px)] top-4"}`}
+					>
+						<Skeleton className="size-8 rounded-full" />
+					</div>
 				</SidebarFooter>
-
-				<SidebarRail />
 			</Sidebar>
 			<SidebarInset>
 				<header className="flex h-16 z-10 shrink-0 justify-between items-center gap-2 border-b px-4">
 					<div className="flex items-center gap-2">
-						<SidebarTrigger className="-ml-1" />
-						<Separator
-							className="mr-2 data-[orientation=vertical]:h-4"
-							orientation="vertical"
-						/>
-						<div className="flex items-center gap-2">
-							<Skeleton className="hidden md:block h-4 w-32 rounded" />
-							<Skeleton className="hidden md:block h-4 w-4 rounded" />
-							<Skeleton className="h-4 w-24 rounded" />
-						</div>
+						<Skeleton className="hidden md:block h-4 w-32 rounded" />
+						<Skeleton className="hidden md:block h-4 w-4 rounded" />
+						<Skeleton className="h-4 w-24 rounded" />
 					</div>
 					<div className="flex items-center gap-2">
 						<Skeleton className="h-8 w-12 rounded-md" />

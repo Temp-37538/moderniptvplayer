@@ -1,14 +1,12 @@
 import { createPageMetadata } from "@/app/metadata";
-import { fetchPlaylists } from "@/server/queries";
+import { NoPlaylistNotice } from "@/components/no-playlist-notice";
+import { resolveActivePlaylistId } from "@/server/active-playlist";
 import type { Metadata } from "next";
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 // TODO: Cache Components adoption. Refactor this route so this opt-out can be removed.
 // See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
 export const instant = false;
-
-const ACTIVE_PLAYLIST_COOKIE = "active_playlist_id";
 
 export const metadata: Metadata = createPageMetadata({
 	title: "Search Channels",
@@ -19,18 +17,13 @@ export const metadata: Metadata = createPageMetadata({
 });
 
 async function Page() {
-	const playlists = await fetchPlaylists();
-	if (playlists.length === 0) {
-		return <div>No playlists available</div>;
+	const playlistId = await resolveActivePlaylistId();
+
+	if (!playlistId) {
+		return <NoPlaylistNotice />;
 	}
 
-	const cookieStore = await cookies();
-	const activePlaylistId = cookieStore.get(ACTIVE_PLAYLIST_COOKIE)?.value;
-	const selectedPlaylist =
-		playlists.find((playlist) => playlist.id === activePlaylistId) ??
-		playlists[0];
-
-	redirect(`/dashboard/channels/search/${selectedPlaylist.id}`);
+	redirect(`/dashboard/channels/search/${playlistId}`);
 }
 
 export default Page;

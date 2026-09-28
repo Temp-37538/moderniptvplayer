@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
 	cacheComponents: true,
 	typedRoutes: true,
 	reactCompiler: true,
+	agentRules: false,
 	images: {
 		localPatterns: [
 			{ pathname: "/api/image-proxy" },

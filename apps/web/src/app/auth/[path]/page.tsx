@@ -1,7 +1,6 @@
 import { getAuthPageMetadata } from "@/app/metadata";
 import { Auth } from "@/components/auth/auth";
 import { viewPaths } from "@better-auth-ui/core";
-import { Tv } from "lucide-react";
 import type { Metadata } from "next";
 import Image from "next/image";
 import { notFound } from "next/navigation";
@@ -34,19 +33,11 @@ export default async function AuthPage({
 		notFound();
 	}
 	return (
-		<div className="flex w-full justify-center items-center relative">
+		<div className="flex w-full h-full relative">
 			<AuthActions />
-			<div className="flex w-full z-10 flex-col gap-4 p-6 md:p-10">
-				<div className="flex w-full justify-center gap-2  ">
-					<a href="/" className="flex   items-center gap-2 font-medium">
-						<div className=" bg-primary text-primary-foreground flex size-6 items-center justify-center rounded-md">
-							<Tv className="size-4" />
-						</div>
-						Modern Player
-					</a>
-				</div>
+			<div className="flex w-full z-10 flex-col gap-4 p-6 pt-4 md:p-10 md:pt-4">
 				<div className="flex flex-1 items-center justify-center">
-					<div className="w-full max-w-xs">
+					<div className="w-full max-w-md">
 						<Suspense fallback={<AuthSuspense path={path} />}>
 							<AuthCard path={path} />
 						</Suspense>
@@ -72,6 +63,6 @@ export default async function AuthPage({
 
 async function AuthCard({ path }: { path: string }) {
 	return (
-		<Auth socialPosition={undefined} className="bg-background/60 backdrop-blur-xl" path={path} />
+		<Auth socialPosition={undefined} path={path} />
 	);
 }

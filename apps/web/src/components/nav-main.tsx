@@ -114,29 +114,31 @@ function NavMainItem({
 				<ChevronRightIcon className="ml-auto transition-transform duration-200 group-data-open/collapsible:rotate-90" />
 			</CollapsibleTrigger>
 			<CollapsibleContent>
-				<SidebarMenuSub>
-					{item.items?.map((subItem) => {
-						const subHref = buildHref(subItem.url);
-						const isSearch = subItem.url.includes("/search");
-						const isActive = isSearch
-							? pathname === subHref || pathname.startsWith(`${subHref}/`)
-							: (pathname === subHref || pathname.startsWith(`${subHref}/`)) && !pathname.includes("/search");
+				<div className="grid grid-rows-[1fr] opacity-100 transition-[grid-template-rows,opacity] duration-200 ease-linear group-data-[collapsible=icon]:grid-rows-[0fr] group-data-[collapsible=icon]:opacity-0">
+					<SidebarMenuSub className="flex min-h-0 overflow-hidden group-data-[collapsible=icon]:flex">
+						{item.items?.map((subItem) => {
+							const subHref = buildHref(subItem.url);
+							const isSearch = subItem.url.includes("/search");
+							const isActive = isSearch
+								? pathname === subHref || pathname.startsWith(`${subHref}/`)
+								: (pathname === subHref || pathname.startsWith(`${subHref}/`)) && !pathname.includes("/search");
 
-						return (
-							<SidebarMenuSubItem key={subItem.title}>
-								<SidebarMenuSubButton
-									onClick={() => {
-										openMobile && setOpenMobile(false);
-									}}
-									isActive={isActive}
-									render={<Link href={subHref} />}
-								>
-									<span>{subItem.title}</span>
-								</SidebarMenuSubButton>
-							</SidebarMenuSubItem>
-						);
-					})}
-				</SidebarMenuSub>
+							return (
+								<SidebarMenuSubItem key={subItem.title}>
+									<SidebarMenuSubButton
+										onClick={() => {
+											openMobile && setOpenMobile(false);
+										}}
+										isActive={isActive}
+										render={<Link href={subHref} />}
+									>
+										<span>{subItem.title}</span>
+									</SidebarMenuSubButton>
+								</SidebarMenuSubItem>
+							);
+						})}
+					</SidebarMenuSub>
+				</div>
 			</CollapsibleContent>
 		</Collapsible>
 	);

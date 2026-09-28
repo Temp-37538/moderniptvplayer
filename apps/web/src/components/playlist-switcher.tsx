@@ -14,12 +14,7 @@ import {
 	SidebarMenuItem,
 	useSidebar,
 } from "@/components/ui/sidebar";
-import {
-	NON_PLAYLIST_ROUTES,
-	PLAYLIST_SECTIONS,
-	SEARCH_SUB_ROUTES,
-	usePlaylistIdFromPath,
-} from "@/hooks/use-playlist-id";
+import { usePlaylistIdFromPath } from "@/hooks/use-playlist-id";
 import {
 	deletePlaylistAction,
 	preparePlaylistSwitchAction,
@@ -34,17 +29,16 @@ import {
 } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useCallback, useEffect, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { useCallback, useTransition } from "react";
 import { toast } from "sonner";
 import { usePlaylists } from "./playlist-context";
-import { NO_PLAYLIST_ID, type Playlist } from "./types";
+import type { Playlist } from "./types";
 
 export function PlaylistSwitcher() {
 	const playlists = usePlaylists();
 	const { isMobile, setOpenMobile, openMobile } = useSidebar();
 	const router = useRouter();
-	const pathname = usePathname();
 	const [isPending, startTransition] = useTransition();
 	const { section, playlistId: playlistIdFromPath } = usePlaylistIdFromPath();
 
@@ -76,15 +70,9 @@ export function PlaylistSwitcher() {
 		}
 
 		const basePath = buildSectionRoute(section);
-		const previousPlaylistId =
-			activePlaylist?.id && activePlaylist.id !== NO_PLAYLIST_ID
-				? activePlaylist.id
-				: null;
-		const nextPlaylistId = playlist.id !== NO_PLAYLIST_ID ? playlist.id : null;
-		const nextRoute =
-			nextPlaylistId === null
-				? basePath
-				: buildPlaylistRoute(basePath, nextPlaylistId);
+		const previousPlaylistId = activePlaylist?.id ?? null;
+		const nextPlaylistId = playlist.id;
+		const nextRoute = buildPlaylistRoute(basePath, nextPlaylistId);
 
 		startTransition(async () => {
 			try {
@@ -98,44 +86,29 @@ export function PlaylistSwitcher() {
 		});
 	};
 
-	useEffect(() => {
-		if (
-			!activePlaylist ||
-			activePlaylist.id === NO_PLAYLIST_ID ||
-			playlistIdFromPath
-		) {
-			return;
-		}
-		const parts = pathname.split("/").filter(Boolean);
-		const isNonPlaylistRoute =
-			parts.length >= 2 &&
-			NON_PLAYLIST_ROUTES.includes(
-				parts[1] as (typeof NON_PLAYLIST_ROUTES)[number],
-			);
-		const isSearchSubRoute =
-			PLAYLIST_SECTIONS.includes(
-				parts[1] as (typeof PLAYLIST_SECTIONS)[number],
-			) &&
-			SEARCH_SUB_ROUTES.includes(
-				(parts[2] ?? "") as (typeof SEARCH_SUB_ROUTES)[number],
-			);
-		if (isNonPlaylistRoute || isSearchSubRoute) {
-			return;
-		}
-		const basePath = buildSectionRoute(section);
-		router.replace(buildPlaylistRoute(basePath, activePlaylist.id));
-	}, [
-		activePlaylist,
-		playlistIdFromPath,
-		section,
-		pathname,
-		router,
-		buildPlaylistRoute,
-		buildSectionRoute,
-	]);
-
 	if (!activePlaylist) {
-		return null;
+		return (
+			<SidebarMenu>
+				<SidebarMenuItem>
+					<SidebarMenuButton
+						size="lg"
+						tooltip="Add a playlist"
+						render={<Link href="/dashboard/addplaylist" />}
+					>
+						<div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
+							<ListVideoIcon />
+						</div>
+						<div className="grid flex-1 text-left text-sm leading-tight">
+							<span className="truncate font-medium">No playlist</span>
+							<span className="truncate text-xs text-muted-foreground">
+								Add a playlist to get started
+							</span>
+						</div>
+						<PlusIcon className="ml-auto" />
+					</SidebarMenuButton>
+				</SidebarMenuItem>
+			</SidebarMenu>
+		);
 	}
 	return (
 		<SidebarMenu>
@@ -172,82 +145,67 @@ export function PlaylistSwitcher() {
 							<DropdownMenuLabel className="text-muted-foreground text-xs">
 								My Playlists
 							</DropdownMenuLabel>
-							{playlists[0].id ===
-							"NoPlaylisfreàçuhgpzfiru_thgrpituehgriptgrt" ? (
-								<DropdownMenuItem className="gap-2 p-2 cursor-pointer">
-									<div className="flex size-6 items-center justify-center rounded-md border">
-										<ListVideoIcon className="size-4" />
-									</div>
+							{playlists.map((playlist) => (
+								<DropdownMenuItem
+									key={playlist.id}
+									onClick={() => {
+										openMobile && setOpenMobile(false);
+										setActivePlaylist(playlist);
+									}}
+									className="gap-2 p-2 cursor-pointer"
+								>
 									<div className="flex-1 min-w-0">
-										<div className="truncate font-medium">No playlist</div>
+										<div className="truncate font-medium">
+											{playlist.playlistName}
+										</div>
 										<div className="truncate text-xs text-muted-foreground">
-											Add a playlist to get started
+											{playlist.username} · {playlist.serverUrl}
 										</div>
 									</div>
-								</DropdownMenuItem>
-							) : (
-								playlists.map((playlist) => (
-									<DropdownMenuItem
-										key={playlist.id}
-										onClick={() => {
-											openMobile && setOpenMobile(false);
-											setActivePlaylist(playlist);
+									<Button
+										size="sm"
+										disabled={isPending}
+										className="ml-2 "
+										onClick={(e) => {
+											e.stopPropagation();
+											startTransition(async () => {
+												try {
+													await refreshPlaylistCacheAction(playlist.id);
+													router.refresh();
+													toast.success(
+														`Cache refreshed for ${playlist.playlistName}`,
+													);
+												} catch {
+													toast.error("Unable to refresh playlist cache");
+												}
+											});
 										}}
-										className="gap-2 p-2 cursor-pointer"
 									>
-										<div className="flex-1 min-w-0">
-											<div className="truncate font-medium">
-												{playlist.playlistName}
-											</div>
-											<div className="truncate text-xs text-muted-foreground">
-												{playlist.username} · {playlist.serverUrl}
-											</div>
-										</div>
-										<Button
-											size="sm"
-											disabled={isPending}
-											className="ml-2 "
-											onClick={(e) => {
-												e.stopPropagation();
-												startTransition(async () => {
-													try {
-														await refreshPlaylistCacheAction(playlist.id);
-														router.refresh();
-														toast.success(
-															`Cache refreshed for ${playlist.playlistName}`,
-														);
-													} catch {
-														toast.error("Unable to refresh playlist cache");
-													}
-												});
-											}}
-										>
-											<RefreshCwIcon className="size-4" />
-										</Button>
-										<Button
-											size="sm"
-											disabled={isPending}
-											className="ml-2"
-											onClick={(e) => {
-												e.stopPropagation();
-												startTransition(async () => {
-													try {
-														await deletePlaylistAction(playlist.id);
-														router.replace("/dashboard");
-														toast.success(
-															`Playlist deleted: ${playlist.playlistName}`,
-														);
-													} catch {
-														toast.error("Unable to delete playlist ");
-													}
-												});
-											}}
-										>
-											<Trash2Icon className="size-4" />
-										</Button>
-									</DropdownMenuItem>
-								))
-							)}
+										<RefreshCwIcon className="size-4" />
+									</Button>
+									<Button
+										size="sm"
+										disabled={isPending}
+										className="ml-2"
+										onClick={(e) => {
+											e.stopPropagation();
+											startTransition(async () => {
+												try {
+													await deletePlaylistAction(playlist.id);
+													router.replace("/dashboard");
+													toast.success(
+														`Playlist deleted: ${playlist.playlistName}`,
+													);
+												} catch {
+													toast.error("Unable to delete playlist ");
+												}
+											});
+										}}
+									>
+										<Trash2Icon className="size-4" />
+									</Button>
+								</DropdownMenuItem>
+							))}
 						</DropdownMenuGroup>
 						<DropdownMenuSeparator />
 						<DropdownMenuGroup>

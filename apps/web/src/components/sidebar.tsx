@@ -17,7 +17,6 @@ import {
 	BreadcrumbSeparator,
 } from "./ui/breadcrumb";
 import { Button } from "./ui/button";
-import { Separator } from "./ui/separator";
 import { SidebarInset, SidebarTrigger } from "./ui/sidebar";
 
 function Sidebar({
@@ -51,11 +50,7 @@ function SidebarContent({ children }: { children: React.ReactNode }) {
 			<SidebarInset>
 				<header className="flex h-16 z-10 shrink-0 justify-between items-center gap-2 border-b px-4">
 					<div className="flex items-center gap-2">
-						<SidebarTrigger className="-ml-1" />
-						<Separator
-							className="mr-2 data-[orientation=vertical]:h-4"
-							orientation="vertical"
-						/>
+						<SidebarTrigger className="-ml-1 size-8 rounded-lg bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary hover:brightness-90 hover:text-sidebar-primary-foreground dark:hover:bg-sidebar-primary dark:hover:text-sidebar-primary-foreground md:hidden" />
 						<Breadcrumb>
 							<BreadcrumbList>
 								{pathname

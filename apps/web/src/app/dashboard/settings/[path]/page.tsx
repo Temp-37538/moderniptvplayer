@@ -27,7 +27,7 @@ export default async function SettingsPage({ params }: { params: Params }) {
 
 	return (
 		<Suspense fallback={fallback}>
-			<div className="h-full overflow-y-auto no-scrollbar">
+			<div className="h-full overflow-y-auto">
 				<SettingsContent params={params} />
 			</div>
 		</Suspense>

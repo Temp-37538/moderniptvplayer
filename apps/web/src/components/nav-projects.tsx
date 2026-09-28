@@ -30,21 +30,23 @@ export function NavProjects({
 		if (url.startsWith("/dashboard/")) return `${url}/${playlistId}` as Route;
 		return url as Route;
 	}
+
 	return (
-		<SidebarGroup className="group-data-[collapsible=icon]:hidden">
+		<SidebarGroup>
 			<SidebarGroupLabel>Projects</SidebarGroupLabel>
 			<SidebarMenu>
 				{projects.map((item) => {
-					const builtHref = buildHref(item.url);
-					const isActive = pathname === builtHref || pathname.startsWith(`${builtHref}/`);
+					const href = buildHref(item.url);
+					const isActive = pathname === href || pathname.startsWith(`${href}/`);
 					return (
 						<SidebarMenuItem key={item.name}>
 							<SidebarMenuButton
+								tooltip={item.name}
 								onClick={() => {
 									openMobile && setOpenMobile(false);
 								}}
 								isActive={isActive}
-								render={<Link href={builtHref} />}
+								render={<Link href={href} />}
 							>
 								{item.icon}
 								<span>{item.name}</span>

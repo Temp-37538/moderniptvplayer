@@ -10,7 +10,6 @@ import { useIsMutating } from "@tanstack/react-query";
 import { type SyntheticEvent, useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
 	Field,
@@ -107,14 +106,17 @@ export function SignIn({
 		emailAndPassword?.enabled && socialProviders && socialProviders.length > 0;
 
 	return (
-		<Card className={cn("w-full max-w-sm", className)}>
-			<CardHeader>
-				<CardTitle className="text-xl font-semibold">
+		<div className={cn("w-full", className)}>
+			<div className="mb-6 flex flex-col items-center gap-2 text-center">
+				<h1 className="text-2xl font-semibold tracking-tight">
 					{localization.auth.signIn}
-				</CardTitle>
-			</CardHeader>
+				</h1>
+				<p className="text-muted-foreground text-sm">
+					Enter your email below to sign in to your account
+				</p>
+			</div>
 
-			<CardContent>
+			<div>
 				<div className="flex flex-col gap-6">
 					{socialPosition === "top" && (
 						<>
@@ -242,7 +244,7 @@ export function SignIn({
 								)}
 
 								<div className="flex flex-col gap-3">
-									<Button type="submit" disabled={isPending}>
+									<Button type="submit" disabled={isPending} className="w-full">
 										{signInEmailPending && <Spinner />}
 
 										{localization.auth.signIn}
@@ -276,7 +278,7 @@ export function SignIn({
 					)}
 				</div>
 
-				<div className="flex flex-col gap-3 items-center w-full mt-4">
+				<div className="mt-6 flex w-full flex-col items-center gap-3">
 					{emailAndPassword?.enabled && emailAndPassword?.forgotPassword && (
 						<Link
 							href={`${basePaths.auth}/${viewPaths.auth.forgotPassword}`}
@@ -298,7 +300,7 @@ export function SignIn({
 						</FieldDescription>
 					)}
 				</div>
-			</CardContent>
-		</Card>
+			</div>
+		</div>
 	);
 }
