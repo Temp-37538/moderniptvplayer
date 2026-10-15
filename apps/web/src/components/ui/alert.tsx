@@ -33,7 +33,6 @@ function Alert({
 		/>
 	);
 }
- 
 
 function AlertDescription({
 	className,
@@ -49,5 +48,5 @@ function AlertDescription({
 			{...props}
 		/>
 	);
-} 
+}
 export { Alert, AlertDescription };

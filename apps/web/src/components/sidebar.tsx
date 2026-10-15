@@ -121,7 +121,7 @@ function SidebarContent({ children }: { children: React.ReactNode }) {
 								size={"sm"}
 								className="hover:bg-sidebar-accent/50 bg-accent text-accent-foreground w-fit  "
 							>
-								Logout 
+								Logout
 							</Button>
 						)}
 					</div>

@@ -81,13 +81,13 @@ function SkeletonSidebar({ children }: { children: React.ReactNode }) {
 						<SidebarGroupLabel>
 							<Skeleton className="h-3 w-14 rounded" />
 						</SidebarGroupLabel>
-						<SidebarMenu> 
-								<SidebarMenuItem >
-									<SidebarMenuButton className="pointer-events-none">
-										<Skeleton className="size-4 rounded shrink-0" />
-										<Skeleton className="h-3.5 w-24 rounded" />
-									</SidebarMenuButton>
-								</SidebarMenuItem> 
+						<SidebarMenu>
+							<SidebarMenuItem>
+								<SidebarMenuButton className="pointer-events-none">
+									<Skeleton className="size-4 rounded shrink-0" />
+									<Skeleton className="h-3.5 w-24 rounded" />
+								</SidebarMenuButton>
+							</SidebarMenuItem>
 							<SidebarMenuItem>
 								<SidebarMenuButton className="pointer-events-none">
 									<Skeleton className="size-4 rounded shrink-0" />

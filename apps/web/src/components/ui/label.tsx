@@ -1,3 +1,4 @@
+/** biome-ignore-all lint/a11y/noLabelWithoutControl: shadcn base label primitive */
 "use client";
 
 import type * as React from "react";

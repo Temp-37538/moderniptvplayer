@@ -134,7 +134,7 @@ export function UserButton({
 	});
 
 	return (
-		<DropdownMenu >
+		<DropdownMenu>
 			<DropdownMenuTrigger
 				aria-label={size === "icon" ? localization.auth.account : undefined}
 				className={

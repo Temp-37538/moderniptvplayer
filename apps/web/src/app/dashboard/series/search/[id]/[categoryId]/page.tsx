@@ -12,7 +12,9 @@ type PageProps = {
 	params: Promise<{ id: string; categoryId: string }>;
 };
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export async function generateMetadata({
+	params,
+}: PageProps): Promise<Metadata> {
 	const { id, categoryId } = await params;
 	const context = await getCategoryMetadataContext("series", id, categoryId);
 	const categoryTitle = context?.categoryName ?? "Series Search";

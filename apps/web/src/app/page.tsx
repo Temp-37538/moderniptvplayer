@@ -63,6 +63,6 @@ async function HomeGate() {
 	if (session?.user.id) {
 		redirect("/dashboard");
 	} else {
-		return <HeroSection />; 
+		return <HeroSection />;
 	}
 }

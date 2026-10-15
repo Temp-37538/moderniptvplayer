@@ -17,7 +17,10 @@ export const instant = false;
 
 const ITEMS_PER_PAGE = 20;
 
-export async function generateMetadata({ params, searchParams }: PageProps): Promise<Metadata> {
+export async function generateMetadata({
+	params,
+	searchParams,
+}: PageProps): Promise<Metadata> {
 	const { id, categoryId } = await params;
 	const { page: pageParam } = await searchParams;
 	const currentPage = Number(pageParam) || 1;
@@ -42,13 +45,12 @@ export default function SeriesByCategoryPage({
 	params,
 	searchParams,
 }: PageProps) {
-	return <SeriesByCategoryContent params={params} searchParams={searchParams} />;
+	return (
+		<SeriesByCategoryContent params={params} searchParams={searchParams} />
+	);
 }
 
-async function SeriesByCategoryContent({
-	params,
-	searchParams,
-}: PageProps) {
+async function SeriesByCategoryContent({ params, searchParams }: PageProps) {
 	const { id, categoryId } = await params;
 	const { page: pageParam } = await searchParams;
 	const currentPage = Number(pageParam) || 1;

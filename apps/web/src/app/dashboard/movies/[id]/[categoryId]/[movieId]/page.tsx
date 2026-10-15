@@ -31,7 +31,9 @@ function safeHref(url: string): string | undefined {
 	}
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export async function generateMetadata({
+	params,
+}: PageProps): Promise<Metadata> {
 	const { id, categoryId, movieId } = await params;
 	const context = await getMovieMetadataContext(id, movieId);
 	const movieTitle = context?.movie?.name ?? "Movie Details";
@@ -78,7 +80,7 @@ async function MovieDetailContent({ params }: PageProps) {
 	});
 
 	const itemStatus = await getItemStatus(id, movieId, "movie");
-	const safePosterSrc = toSafeImageSrc(movie.poster); 
+	const safePosterSrc = toSafeImageSrc(movie.poster);
 	return (
 		<div className="min-h-full overflow-y-scroll scrollbar-none">
 			<div className="relative mb-4 md:mb-0">

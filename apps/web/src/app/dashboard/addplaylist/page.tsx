@@ -64,7 +64,7 @@ function Page() {
 							</CardDescription>
 						</CardContent>
 					</Card>
-				</Link> 
+				</Link>
 			</div>
 		</div>
 	);

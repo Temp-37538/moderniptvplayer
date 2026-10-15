@@ -6,29 +6,29 @@ import type { Metadata } from "next";
 export const instant = false;
 
 export async function generateMetadata({
-		params,
-	}: {
-		params: Promise<{ playlistId: string }>;
-	}): Promise<Metadata> {
-		const { playlistId } = await params;
-		const playlist = await getPlaylistMetadataContext(playlistId);
+	params,
+}: {
+	params: Promise<{ playlistId: string }>;
+}): Promise<Metadata> {
+	const { playlistId } = await params;
+	const playlist = await getPlaylistMetadataContext(playlistId);
 
-		if (!playlist) {
-			return createPageMetadata({
-				title: "Playlist",
-				description: "Browse a saved IPTV playlist from your dashboard.",
-				path: `/dashboard/${playlistId}`,
-				noIndex: true,
-			});
-		}
-
+	if (!playlist) {
 		return createPageMetadata({
-			title: playlist.playlistName,
-			description: `Browse channels, movies, and series from the ${playlist.playlistName} playlist.`,
+			title: "Playlist",
+			description: "Browse a saved IPTV playlist from your dashboard.",
 			path: `/dashboard/${playlistId}`,
 			noIndex: true,
 		});
 	}
+
+	return createPageMetadata({
+		title: playlist.playlistName,
+		description: `Browse channels, movies, and series from the ${playlist.playlistName} playlist.`,
+		path: `/dashboard/${playlistId}`,
+		noIndex: true,
+	});
+}
 
 export default function PlaylistHomePage({
 	params,

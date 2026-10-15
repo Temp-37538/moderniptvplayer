@@ -1,12 +1,12 @@
 "use client";
 import { Button } from "@/components/ui/button";
 
-export default function Error({
+export default function RouteError({
 	error,
-	unstable_retry,
+	retry,
 }: {
 	error: Error & { digest?: string };
-	unstable_retry: () => void;
+	retry: () => void;
 }) {
 	return (
 		<div className="flex flex-col items-start gap-4 p-4">
@@ -30,7 +30,7 @@ export default function Error({
 				)}
 			</div>
 
-			<Button variant="outline" onClick={() => unstable_retry()}>
+			<Button variant="outline" onClick={() => retry()}>
 				Try again
 			</Button>
 		</div>

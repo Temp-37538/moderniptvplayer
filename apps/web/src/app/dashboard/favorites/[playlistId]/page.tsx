@@ -11,7 +11,9 @@ import { Heart } from "lucide-react";
 // See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
 export const instant = false;
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export async function generateMetadata({
+	params,
+}: PageProps): Promise<Metadata> {
 	const { playlistId } = await params;
 	const playlist = await getPlaylistMetadataContext(playlistId);
 

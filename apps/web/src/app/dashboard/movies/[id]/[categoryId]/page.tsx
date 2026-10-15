@@ -18,7 +18,10 @@ export const instant = false;
 
 const ITEMS_PER_PAGE = 20;
 
-export async function generateMetadata({ params, searchParams }: PageProps): Promise<Metadata> {
+export async function generateMetadata({
+	params,
+	searchParams,
+}: PageProps): Promise<Metadata> {
 	const { id, categoryId } = await params;
 	const { page: pageParam } = await searchParams;
 	const currentPage = Number(pageParam) || 1;
@@ -43,13 +46,12 @@ export default function MoviesByCategoryPage({
 	params,
 	searchParams,
 }: PageProps) {
-	return <MoviesByCategoryContent params={params} searchParams={searchParams} />;
+	return (
+		<MoviesByCategoryContent params={params} searchParams={searchParams} />
+	);
 }
 
-async function MoviesByCategoryContent({
-	params,
-	searchParams,
-}: PageProps) {
+async function MoviesByCategoryContent({ params, searchParams }: PageProps) {
 	const { id, categoryId } = await params;
 	const { page: pageParam } = await searchParams;
 	const currentPage = Number(pageParam) || 1;
