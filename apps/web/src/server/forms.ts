@@ -205,9 +205,14 @@ export async function preparePlaylistSwitchAction(
 	}
 
 	if (nextPlaylistId) {
+		// Only read on the server (resolveActivePlaylistId): the browser never
+		// needs to see it, and it should not travel on cross-site requests.
 		cookieStore.set(ACTIVE_PLAYLIST_COOKIE, nextPlaylistId, {
 			path: "/",
 			maxAge: 60 * 60 * 24 * 30,
+			httpOnly: true,
+			sameSite: "lax",
+			secure: process.env.NODE_ENV === "production",
 		});
 	} else {
 		cookieStore.delete(ACTIVE_PLAYLIST_COOKIE);

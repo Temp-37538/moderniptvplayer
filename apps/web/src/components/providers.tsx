@@ -2,6 +2,7 @@
 import { authClient } from "@/lib/auth-client";
 import { deleteUserPlugin } from "@/lib/auth/delete-user-plugin";
 import { getQueryClient } from "@/lib/query-client";
+import { toSafeRedirectPath } from "@/lib/safe-redirect";
 import { QueryClientProvider } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -22,10 +23,7 @@ function AuthProviderWithRedirect({
 	const searchParams = useSearchParams();
 	const rawRedirectTo =
 		searchParams.get("redirectTo") || searchParams.get("redirect");
-	const safeRedirectTo =
-		rawRedirectTo?.startsWith("/") && !rawRedirectTo.startsWith("//")
-			? rawRedirectTo
-			: "/dashboard";
+	const safeRedirectTo = toSafeRedirectPath(rawRedirectTo);
 
 	return (
 		<AuthProvider
@@ -40,13 +38,7 @@ function AuthProviderWithRedirect({
 			redirectTo={safeRedirectTo}
 			socialProviders={[]}
 			navigate={({ to, replace }) => {
-				const dest = to as string;
-				const isSafe = dest.startsWith("/") && !dest.startsWith("//");
-
-				if (!isSafe) {
-					window.location.href = "/dashboard";
-					return;
-				}
+				const dest = toSafeRedirectPath(to as string);
 
 				if (dest.startsWith("/auth")) {
 					return replace
