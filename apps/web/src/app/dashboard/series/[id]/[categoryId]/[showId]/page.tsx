@@ -202,7 +202,7 @@ async function ShowDetailContent({ params }: PageProps) {
 									{season.episodeCount} episode
 									{season.episodeCount !== 1 ? "s" : ""}
 									{season.voteAverage > 0 &&
-										` · ★ ${Number(season.voteAverage).toFixed(1)}`}
+										` ★ ${Number(season.voteAverage).toFixed(1)}`}
 								</p>
 							</div>
 						</div>
