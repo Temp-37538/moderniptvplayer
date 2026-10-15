@@ -9,6 +9,7 @@ import type { RemoveItemButtonProps } from "@/components/types";
 import { toggleWatchLater, toggleFavorite } from "@/server/user-items";
 import { Trash2 } from "lucide-react";
 import { useTransition } from "react";
+import { toast } from "sonner";
 
 export function RemoveItemButton({
 	itemId,
@@ -22,10 +23,12 @@ export function RemoveItemButton({
 
 	function handleRemove() {
 		startTransition(async () => {
-			if (variant === "watchlater") {
-				await toggleWatchLater(playlistId, itemId, itemType, itemName, itemUrl);
-			} else {
-				await toggleFavorite(playlistId, itemId, itemType, itemName, itemUrl);
+			const toggle =
+				variant === "watchlater" ? toggleWatchLater : toggleFavorite;
+			try {
+				await toggle(playlistId, itemId, itemType, itemName, itemUrl);
+			} catch {
+				toast.error("Unable to remove this item. Please try again.");
 			}
 		});
 	}

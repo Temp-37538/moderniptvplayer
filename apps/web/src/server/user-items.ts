@@ -23,11 +23,16 @@ function isInternalAppPath(value: string) {
 	return true;
 }
 
-const toggleInputSchema = z.object({
+const itemKeySchema = z.object({
 	playlistId: z.string().min(1).max(64),
-	itemId: z.string().min(1).max(128),
+	itemId: z.string().min(1).max(1024),
 	itemType: z.enum(["channel", "movie", "series"]),
-	itemName: z.string().max(300),
+});
+
+// Only needed to create an item, never to remove one: an old item whose name
+// or URL would not pass today's checks must still be removable.
+const itemDetailsSchema = z.object({
+	itemName: z.string().transform((value) => value.slice(0, 300)),
 	itemUrl: z.string().max(512).refine(isInternalAppPath),
 });
 
@@ -100,11 +105,11 @@ async function toggleItem(
 		itemUrl: string;
 	},
 ): Promise<boolean> {
-	const parsed = toggleInputSchema.safeParse(input);
-	if (!parsed.success) {
+	const key = itemKeySchema.safeParse(input);
+	if (!key.success) {
 		throw new Error("Invalid item");
 	}
-	const { playlistId, itemId, itemType, itemName, itemUrl } = parsed.data;
+	const { playlistId, itemId, itemType } = key.data;
 
 	const playlist = await verifyPlaylistOwnership(playlistId);
 
@@ -122,11 +127,17 @@ async function toggleItem(
 		return false;
 	}
 
+	// Creating: only now do the name and the URL matter.
+	const details = itemDetailsSchema.safeParse(input);
+	if (!details.success) {
+		throw new Error("Invalid item");
+	}
+
 	const data = {
 		itemId,
 		itemType,
-		itemName,
-		itemUrl,
+		itemName: details.data.itemName,
+		itemUrl: details.data.itemUrl,
 		playlistId,
 		userId: playlist.userId,
 	};
