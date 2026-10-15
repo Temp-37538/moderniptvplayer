@@ -8,6 +8,7 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { toSafeImageSrc } from "@/lib/image-url";
+import { toYoutubeEmbedUrl } from "@/lib/youtube";
 import { getCachedMovie } from "@/server/cached-content";
 import { getItemStatus } from "@/server/user-items";
 import { createXtreamClient, getPlaylistById } from "@/server/xtream";
@@ -81,6 +82,8 @@ async function MovieDetailContent({ params }: PageProps) {
 
 	const itemStatus = await getItemStatus(id, movieId, "movie");
 	const safePosterSrc = toSafeImageSrc(movie.poster);
+	// The provider's value is untrusted: only a valid YouTube id gets an embed.
+	const trailerUrl = toYoutubeEmbedUrl(movie.youtubeId);
 	return (
 		<div className="min-h-full overflow-y-scroll scrollbar-none">
 			<div className="relative mb-4 md:mb-0">
@@ -229,7 +232,7 @@ async function MovieDetailContent({ params }: PageProps) {
 					</div>
 				</div>
 			</div>
-			{movie.youtubeId && (
+			{trailerUrl && (
 				<div className=" pb-8">
 					<h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
 						<Film className="size-5 text-primary" />
@@ -238,7 +241,7 @@ async function MovieDetailContent({ params }: PageProps) {
 					<div className="relative w-full max-w-3xl rounded-xl overflow-hidden border border-border/50 shadow-xl aspect-video">
 						<iframe
 							className="absolute inset-0 size-full"
-							src={`https://www.youtube.com/embed/${movie.youtubeId}`}
+							src={trailerUrl}
 							title={`${movie.name} trailer`}
 							allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
 							allowFullScreen
