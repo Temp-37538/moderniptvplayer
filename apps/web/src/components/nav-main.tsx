@@ -33,11 +33,7 @@ type NavItem = {
 	}[];
 };
 
-export function NavMain({
-	items,
-}: {
-	items: NavItem[];
-}) {
+export function NavMain({ items }: { items: NavItem[] }) {
 	const pathname = usePathname();
 	const { playlistId } = usePlaylistIdFromPath();
 	const { setOpenMobile, openMobile } = useSidebar();
@@ -85,7 +81,8 @@ function NavMainItem({
 		const isSearch = subItem.url.includes("/search");
 		return isSearch
 			? pathname === subHref || pathname.startsWith(`${subHref}/`)
-			: (pathname === subHref || pathname.startsWith(`${subHref}/`)) && !pathname.includes("/search");
+			: (pathname === subHref || pathname.startsWith(`${subHref}/`)) &&
+					!pathname.includes("/search");
 	});
 
 	const [prevPathname, setPrevPathname] = useState(pathname);
@@ -121,7 +118,9 @@ function NavMainItem({
 							const isSearch = subItem.url.includes("/search");
 							const isActive = isSearch
 								? pathname === subHref || pathname.startsWith(`${subHref}/`)
-								: (pathname === subHref || pathname.startsWith(`${subHref}/`)) && !pathname.includes("/search");
+								: (pathname === subHref ||
+										pathname.startsWith(`${subHref}/`)) &&
+									!pathname.includes("/search");
 
 							return (
 								<SidebarMenuSubItem key={subItem.title}>
@@ -143,4 +142,3 @@ function NavMainItem({
 		</Collapsible>
 	);
 }
-

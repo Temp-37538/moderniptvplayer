@@ -28,7 +28,7 @@ export default async function AuthPage({
 	params: Promise<{ path: string }>;
 }) {
 	const { path } = await params;
-	
+
 	if (!Object.values(viewPaths.auth).includes(path)) {
 		notFound();
 	}
@@ -62,7 +62,5 @@ export default async function AuthPage({
 }
 
 async function AuthCard({ path }: { path: string }) {
-	return (
-		<Auth socialPosition={undefined} path={path} />
-	);
+	return <Auth socialPosition={undefined} path={path} />;
 }

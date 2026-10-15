@@ -6,10 +6,13 @@ node_modules
 # Build outputs
 dist
 build
+.next
 *.tsbuildinfo
 
 # Environment variables
 .env
+.env.*
+!.env.example
 .env*.local
 
 # IDEs and editors
@@ -42,6 +45,9 @@ lerna-debug.log*
 # Testing
 coverage
 .nyc_output
+
+# Agent tooling lockfile
+skills-lock.json
 
 # Misc
 *.tgz

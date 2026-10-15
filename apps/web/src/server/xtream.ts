@@ -1,16 +1,12 @@
-import {
-	defineSerializers,
-	Xtream,
-	type XtreamEpisode,
-} from "@iptv/xtream-api";
+import { defineSerializers, type XtreamEpisode } from "@iptv/xtream-api";
 import { standardizedSerializer } from "@iptv/xtream-api/standardized";
 import prisma from "@moderniptvplayer/db";
 import { env } from "@moderniptvplayer/env/server";
-import { cacheLife, cacheTag } from "next/cache";
 import camelcaseKeys from "camelcase-keys";
 import Cryptr from "cryptr";
 import "server-only";
 import { requireAuthenticatedUserId } from "./auth-utils";
+import { SafeXtream } from "./xtream-client";
 
 const cryptr = new Cryptr(env.SECRET_KEY);
 
@@ -21,15 +17,36 @@ type DecryptedPlaylist = {
 	playlistName: string;
 };
 
+// Decrypted credentials live only in this process, for a short time. They are
+// deliberately NOT stored with `use cache`: cached values and cache keys can
+// end up in a shared/persistent cache handler.
+const CREDENTIAL_TTL_MS = 60_000;
+const MAX_CACHED_CREDENTIALS = 200;
+const credentialCache = new Map<
+	string,
+	{ expires: number; value: DecryptedPlaylist }
+>();
+
+export function forgetPlaylistCredentials(playlistId: string) {
+	for (const key of credentialCache.keys()) {
+		if (key.endsWith(`:${playlistId}`)) {
+			credentialCache.delete(key);
+		}
+	}
+}
+
 export async function getCachedPlaylistByUserAndId(
 	userId: string,
 	playlistId: string,
 ): Promise<DecryptedPlaylist | null> {
-	"use cache";
-	cacheLife("days");
-	cacheTag(`playlist-${playlistId}`);
+	const key = `${userId}:${playlistId}`;
+	const now = Date.now();
+	const hit = credentialCache.get(key);
+	if (hit && hit.expires > now) {
+		return hit.value;
+	}
 
-	const playlist = await prisma.playlist.findUnique({
+	const playlist = await prisma.playlist.findFirst({
 		where: {
 			id: playlistId,
 			userId,
@@ -37,21 +54,28 @@ export async function getCachedPlaylistByUserAndId(
 	});
 
 	if (!playlist) {
+		credentialCache.delete(key);
 		return null;
 	}
 
-	return {
+	const value: DecryptedPlaylist = {
 		serverUrl: playlist.serverUrl,
 		username: playlist.username,
 		password: cryptr.decrypt(playlist.password),
 		playlistName: playlist.playlistName,
 	};
+
+	if (credentialCache.size >= MAX_CACHED_CREDENTIALS) {
+		credentialCache.clear();
+	}
+	credentialCache.set(key, { expires: now + CREDENTIAL_TTL_MS, value });
+	return value;
 }
 
 export async function getPlaylistById(playlistId: string) {
 	const userId = await requireAuthenticatedUserId();
 	return getCachedPlaylistByUserAndId(userId, playlistId);
-} 
+}
 
 const toStringSafe = (value: unknown) =>
 	value === undefined || value === null ? "" : String(value);
@@ -240,7 +264,7 @@ function serializeShow(input: unknown) {
 		? data.seasons.map(toRecordSafe)
 		: [];
 	const episodesBySeason = isRecord(data.episodes) ? data.episodes : {};
- 
+
 	const showId = toStringSafe(info.seriesId ?? info.id);
 	if (!showId) {
 		throw new Error("seriesId is required");
@@ -253,7 +277,6 @@ function serializeShow(input: unknown) {
 
 	return extractShowInfo(info, showId, normalizedSeasons);
 }
- 
 
 const safeSerializer = defineSerializers("StandardizedSafe", {
 	...standardizedSerializer.serializers,
@@ -270,7 +293,7 @@ const safeSerializer = defineSerializers("StandardizedSafe", {
 			const id = toStringSafe(data.streamId ?? data.id);
 			if (!id) {
 				return [];
-			} 
+			}
 			const categoryIdsRaw =
 				data.categoryIds ??
 				(data.categoryId !== undefined && data.categoryId !== null
@@ -355,13 +378,19 @@ export function createXtreamClient(playlist: {
 	username: string;
 	password: string;
 }) {
-	return new Xtream({
+	return new SafeXtream({
 		url: playlist.serverUrl,
 		username: playlist.username,
 		password: playlist.password,
 		serializer: safeSerializer,
+		allowPrivateHosts: env.ALLOW_PRIVATE_PLAYLIST_HOSTS,
 	});
 }
+
+type ShowPayload = {
+	info?: Record<string, unknown> | null;
+	episodes?: Record<string, unknown> | null;
+} | null;
 
 export async function getShowSafe(
 	playlist: {
@@ -372,22 +401,7 @@ export async function getShowSafe(
 	showId: string,
 ) {
 	const xtream = createXtreamClient(playlist);
-	const baseUrl = playlist.serverUrl.replace(/\/$/, "");
-	const url = `${baseUrl}/player_api.php?username=${encodeURIComponent(
-		playlist.username,
-	)}&password=${encodeURIComponent(
-		playlist.password,
-	)}&action=get_series_info&series_id=${encodeURIComponent(showId)}`;
-
-	const response = await fetch(url, {
-		headers: { "Content-Type": "application/json" },
-	});
-
-	if (!response.ok) {
-		throw new Error(response.statusText);
-	}
-
-	const data = await response.json();
+	const data = (await xtream.getSeriesInfoRaw(showId)) as ShowPayload;
 
 	if (data?.info?.name === null) {
 		throw new Error("Show Not Found");
@@ -404,21 +418,22 @@ export async function getShowSafe(
 
 	const episodesBySeason =
 		data?.episodes && typeof data.episodes === "object" ? data.episodes : {};
-	Object.keys(episodesBySeason).forEach((seasonKey) => {
-		const list = Array.isArray(episodesBySeason[seasonKey])
-			? episodesBySeason[seasonKey]
+	for (const seasonKey of Object.keys(episodesBySeason)) {
+		const seasonEpisodes = episodesBySeason[seasonKey];
+		const list = Array.isArray(seasonEpisodes)
+			? (seasonEpisodes as XtreamEpisode[])
 			: [];
-		list.forEach((episode: XtreamEpisode) => {
+		for (const episode of list) {
 			if (!episode?.id) {
-				return;
+				continue;
 			}
 			episode.url = xtream.generateStreamUrl({
 				type: "episode",
 				streamId: episode.id,
 				extension: episode.container_extension ?? "mp4",
 			});
-		});
-	});
+		}
+	}
 
 	return serializeShow(data);
 }

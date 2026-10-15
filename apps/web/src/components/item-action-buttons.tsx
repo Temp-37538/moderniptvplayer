@@ -9,6 +9,7 @@ import type { ItemActionButtonsProps } from "@/components/types";
 import { toggleWatchLater, toggleFavorite } from "@/server/user-items";
 import { Clock, Heart } from "lucide-react";
 import { useOptimistic, useTransition } from "react";
+import { toast } from "sonner";
 
 export function ItemActionButtons({
 	playlistId,
@@ -28,14 +29,24 @@ export function ItemActionButtons({
 	function handleToggleWatchLater() {
 		startTransitionWL(async () => {
 			setOptimisticWL(!optimisticWL);
-			await toggleWatchLater(playlistId, itemId, itemType, itemName, itemUrl);
+			try {
+				await toggleWatchLater(playlistId, itemId, itemType, itemName, itemUrl);
+			} catch {
+				// The optimistic state reverts once the transition ends.
+				toast.error("Unable to update Watch Later. Please try again.");
+			}
 		});
 	}
 
 	function handleToggleFavorite() {
 		startTransitionFav(async () => {
 			setOptimisticFav(!optimisticFav);
-			await toggleFavorite(playlistId, itemId, itemType, itemName, itemUrl);
+			try {
+				await toggleFavorite(playlistId, itemId, itemType, itemName, itemUrl);
+			} catch {
+				// The optimistic state reverts once the transition ends.
+				toast.error("Unable to update Favorites. Please try again.");
+			}
 		});
 	}
 
@@ -46,7 +57,9 @@ export function ItemActionButtons({
 					render={
 						<button
 							type="button"
-							aria-label={optimisticWL ? "Remove from Watch Later" : "Add to Watch Later"}
+							aria-label={
+								optimisticWL ? "Remove from Watch Later" : "Add to Watch Later"
+							}
 							disabled={isPendingWL}
 							className="inline-flex cursor-pointer items-center justify-center size-8 rounded-[min(var(--radius-md),10px)] hover:bg-muted transition-colors disabled:opacity-50"
 							onClick={handleToggleWatchLater}
@@ -71,7 +84,9 @@ export function ItemActionButtons({
 					render={
 						<button
 							type="button"
-							aria-label={optimisticFav ? "Remove from Favorites" : "Add to Favorites"}
+							aria-label={
+								optimisticFav ? "Remove from Favorites" : "Add to Favorites"
+							}
 							disabled={isPendingFav}
 							className="inline-flex cursor-pointer items-center justify-center size-8 rounded-[min(var(--radius-md),10px)] hover:bg-muted transition-colors disabled:opacity-50"
 							onClick={handleToggleFavorite}

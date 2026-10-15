@@ -14,7 +14,7 @@ import Link from "next/link";
 // See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
 export const instant = false;
 
-export const metadata : Metadata = createPageMetadata({
+export const metadata: Metadata = createPageMetadata({
 	title: "Dashboard",
 	description:
 		"Open your private dashboard to manage playlists and browse your library.",

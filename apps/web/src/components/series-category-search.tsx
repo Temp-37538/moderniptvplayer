@@ -57,7 +57,7 @@ function CategorySearchBase({
 							{title}
 						</h1>
 						<p className="text-xs md:text-sm text-muted-foreground truncate">
-							{playlistName} · {filteredCategories.length} categories
+							{playlistName} {filteredCategories.length} categories
 						</p>
 					</div>
 				</div>

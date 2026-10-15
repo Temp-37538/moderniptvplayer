@@ -34,14 +34,7 @@ export const metadata: Metadata = {
 		template: `%s | ${APP_NAME}`,
 	},
 	description: APP_DESCRIPTION,
-	keywords: [
-		"IPTV",
-		"Xtream Codes",
-		"M3U", 
-		"live TV",
-		"movies",
-		"series",
-	],
+	keywords: ["IPTV", "Xtream Codes", "M3U", "live TV", "movies", "series"],
 	referrer: "origin-when-cross-origin",
 	creator: APP_NAME,
 	publisher: APP_NAME,
@@ -77,7 +70,8 @@ export default async function RootLayout({
 	children: React.ReactNode;
 }>) {
 	const cookieStore = await cookies();
-	const defaultSidebarOpen = cookieStore.get("sidebar_state")?.value !== "false";
+	const defaultSidebarOpen =
+		cookieStore.get("sidebar_state")?.value !== "false";
 
 	return (
 		<html lang="en" suppressHydrationWarning>

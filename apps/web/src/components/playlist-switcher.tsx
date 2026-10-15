@@ -129,7 +129,7 @@ export function PlaylistSwitcher() {
 							<span className="truncate font-medium">
 								{activePlaylist.playlistName}
 							</span>
-							<span className="truncate text-xs text-muted-foreground">
+							<span className="truncate text-xs text-muted-foreground group-hover/menu-button:text-sidebar-accent-foreground">
 								{activePlaylist.serverUrl}
 							</span>
 						</div>
@@ -152,14 +152,14 @@ export function PlaylistSwitcher() {
 										openMobile && setOpenMobile(false);
 										setActivePlaylist(playlist);
 									}}
-									className="gap-2 p-2 cursor-pointer"
+									className="gap-2 p-2 cursor-pointer hover:bg-secondary hover:text-secondary-foreground"
 								>
 									<div className="flex-1 min-w-0">
 										<div className="truncate font-medium">
 											{playlist.playlistName}
 										</div>
 										<div className="truncate text-xs text-muted-foreground">
-											{playlist.username} · {playlist.serverUrl}
+											{playlist.username} {playlist.serverUrl}
 										</div>
 									</div>
 									<Button
@@ -209,7 +209,7 @@ export function PlaylistSwitcher() {
 						</DropdownMenuGroup>
 						<DropdownMenuSeparator />
 						<DropdownMenuGroup>
-							<DropdownMenuItem className="cursor-pointer hover:bg-primary p-0">
+							<DropdownMenuItem className="cursor-pointer hover:bg-primary hover:text-primary-foreground p-0">
 								<Link
 									onClick={() => {
 										openMobile && setOpenMobile(false);

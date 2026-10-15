@@ -96,7 +96,6 @@ function DropdownMenuItem({
 		/>
 	);
 }
- 
 
 function DropdownMenuCheckboxItem({
 	className,
@@ -212,6 +211,5 @@ export {
 	DropdownMenuRadioItem,
 	DropdownMenuSeparator,
 	DropdownMenuShortcut,
-	DropdownMenuTrigger
+	DropdownMenuTrigger,
 };
-

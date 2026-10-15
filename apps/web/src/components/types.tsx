@@ -14,12 +14,15 @@ export type CategorySearchProps = {
 	categories: StandardXtreamCategory[];
 };
 
+/**
+ * Playlist as exposed to client components. The encrypted password is never
+ * part of it.
+ */
 export interface Playlist {
 	id: string;
 	serverUrl: string;
 	username: string;
 	playlistName: string;
-	password: string;
 	userId: string;
 	createdAt: string | Date;
 	updatedAt: string | Date;

@@ -7,9 +7,19 @@ import type {
 	StandardXtreamShow,
 } from "@iptv/xtream-api/standardized";
 import { cacheLife, cacheTag } from "next/cache";
-import { createXtreamClient, getShowSafe } from "@/server/xtream";
+import { requireAuthenticatedUserId } from "@/server/auth-utils";
+import {
+	createXtreamClient,
+	getCachedPlaylistByUserAndId,
+	getShowSafe,
+} from "@/server/xtream";
 
-type XtreamPlaylistCredentials = {
+/**
+ * @deprecated Kept so existing call sites keep compiling. Credentials are now
+ * resolved server-side from `playlistId`, so they never become part of a
+ * `use cache` key or value. The argument is ignored.
+ */
+type LegacyPlaylistArgument = {
 	serverUrl: string;
 	username: string;
 	password: string;
@@ -64,48 +74,54 @@ export const getPlaylistCacheTags = (playlistId: string) =>
 		getPlaylistParentTag(playlistId),
 	] as const;
 
-export async function getCachedMovieCategories(
-	playlistId: string,
-	playlist: XtreamPlaylistCredentials,
-) {
+async function resolvePlaylist(userId: string, playlistId: string) {
+	const playlist = await getCachedPlaylistByUserAndId(userId, playlistId);
+	if (!playlist) {
+		throw new Error("Playlist not found");
+	}
+	return playlist;
+}
+
+async function resolveClient(userId: string, playlistId: string) {
+	return createXtreamClient(await resolvePlaylist(userId, playlistId));
+}
+
+// Cached functions only receive non-secret arguments (user and playlist ids):
+// their arguments are part of the cache key and their results are persisted.
+
+async function loadMovieCategories(userId: string, playlistId: string) {
 	"use cache";
 	cacheLife("hours");
 	cacheTag(getMovieCategoriesCacheTag(playlistId));
 	cacheTag(getPlaylistParentTag(playlistId));
-	const xtream = createXtreamClient(playlist);
+	const xtream = await resolveClient(userId, playlistId);
 	const categories = await xtream.getMovieCategories();
 	return categories as StandardXtreamCategory[];
 }
 
-export async function getCachedSeriesCategories(
-	playlistId: string,
-	playlist: XtreamPlaylistCredentials,
-) {
+async function loadSeriesCategories(userId: string, playlistId: string) {
 	"use cache";
 	cacheLife("hours");
 	cacheTag(getSeriesCategoriesCacheTag(playlistId));
 	cacheTag(getPlaylistParentTag(playlistId));
-	const xtream = createXtreamClient(playlist);
+	const xtream = await resolveClient(userId, playlistId);
 	const categories = await xtream.getShowCategories();
 	return categories as StandardXtreamCategory[];
 }
 
-export async function getCachedChannelCategories(
-	playlistId: string,
-	playlist: XtreamPlaylistCredentials,
-) {
+async function loadChannelCategories(userId: string, playlistId: string) {
 	"use cache";
 	cacheLife("hours");
 	cacheTag(getChannelCategoriesCacheTag(playlistId));
 	cacheTag(getPlaylistParentTag(playlistId));
-	const xtream = createXtreamClient(playlist);
+	const xtream = await resolveClient(userId, playlistId);
 	const categories = await xtream.getChannelCategories();
 	return categories as StandardXtreamCategory[];
 }
 
-export async function getCachedChannels(
+async function loadChannels(
+	userId: string,
 	playlistId: string,
-	playlist: XtreamPlaylistCredentials,
 	categoryId: string,
 	page: number,
 	limit: number,
@@ -114,7 +130,7 @@ export async function getCachedChannels(
 	cacheLife("hours");
 	cacheTag(getChannelsCacheTag(playlistId, categoryId, page));
 	cacheTag(getPlaylistParentTag(playlistId));
-	const xtream = createXtreamClient(playlist);
+	const xtream = await resolveClient(userId, playlistId);
 	return (await xtream.getChannels({
 		categoryId,
 		page,
@@ -122,9 +138,9 @@ export async function getCachedChannels(
 	})) as StandardXtreamChannel[];
 }
 
-export async function getCachedChannel(
+async function loadChannel(
+	userId: string,
 	playlistId: string,
-	playlist: XtreamPlaylistCredentials,
 	categoryId: string,
 	channelId: string,
 ) {
@@ -132,16 +148,16 @@ export async function getCachedChannel(
 	cacheLife("hours");
 	cacheTag(getChannelCacheTag(playlistId, channelId));
 	cacheTag(getPlaylistParentTag(playlistId));
-	const xtream = createXtreamClient(playlist);
-	const allChannels = (await xtream.getChannels({
+	const xtream = await resolveClient(userId, playlistId);
+	return (await xtream.getChannel({
 		categoryId,
-	})) as StandardXtreamChannel[];
-	return allChannels.find((ch) => ch.id === channelId) ?? null;
+		channelId,
+	})) as StandardXtreamChannel | null;
 }
 
-export async function getCachedMovies(
+async function loadMovies(
+	userId: string,
 	playlistId: string,
-	playlist: XtreamPlaylistCredentials,
 	categoryId: string,
 	page: number,
 	limit: number,
@@ -150,7 +166,7 @@ export async function getCachedMovies(
 	cacheLife("hours");
 	cacheTag(getMoviesCacheTag(playlistId, categoryId, page));
 	cacheTag(getPlaylistParentTag(playlistId));
-	const xtream = createXtreamClient(playlist);
+	const xtream = await resolveClient(userId, playlistId);
 	return (await xtream.getMovies({
 		categoryId,
 		page,
@@ -158,9 +174,9 @@ export async function getCachedMovies(
 	})) as StandardXtreamMovieListing[];
 }
 
-export async function getCachedMovie(
+async function loadMovie(
+	userId: string,
 	playlistId: string,
-	playlist: XtreamPlaylistCredentials,
 	movieId: string,
 ): Promise<StandardXtreamMovie | null> {
 	"use cache";
@@ -168,7 +184,7 @@ export async function getCachedMovie(
 	cacheTag(getMovieCacheTag(playlistId, movieId));
 	cacheTag(getPlaylistParentTag(playlistId));
 
-	const xtream = createXtreamClient(playlist);
+	const xtream = await resolveClient(userId, playlistId);
 
 	let lastError: unknown;
 	for (let attempt = 1; attempt <= MOVIE_FETCH_MAX_ATTEMPTS; attempt += 1) {
@@ -197,9 +213,9 @@ export async function getCachedMovie(
 	throw lastError;
 }
 
-export async function getCachedShows(
+async function loadShows(
+	userId: string,
 	playlistId: string,
-	playlist: XtreamPlaylistCredentials,
 	categoryId: string,
 	page: number,
 	limit: number,
@@ -208,7 +224,7 @@ export async function getCachedShows(
 	cacheLife("hours");
 	cacheTag(getShowsCacheTag(playlistId, categoryId, page));
 	cacheTag(getPlaylistParentTag(playlistId));
-	const xtream = createXtreamClient(playlist);
+	const xtream = await resolveClient(userId, playlistId);
 	return (await xtream.getShows({
 		categoryId,
 		page,
@@ -216,14 +232,110 @@ export async function getCachedShows(
 	})) as unknown as Array<Omit<StandardXtreamShow, "seasons">>;
 }
 
-export async function getCachedShow(
-	playlistId: string,
-	playlist: XtreamPlaylistCredentials,
-	showId: string,
-) {
+async function loadShow(userId: string, playlistId: string, showId: string) {
 	"use cache";
 	cacheLife("hours");
 	cacheTag(getShowCacheTag(playlistId, showId));
 	cacheTag(getPlaylistParentTag(playlistId));
+	const playlist = await resolvePlaylist(userId, playlistId);
 	return (await getShowSafe(playlist, showId)) as StandardXtreamShow;
+}
+
+export async function getCachedMovieCategories(
+	playlistId: string,
+	_playlist?: LegacyPlaylistArgument,
+) {
+	return loadMovieCategories(await requireAuthenticatedUserId(), playlistId);
+}
+
+export async function getCachedSeriesCategories(
+	playlistId: string,
+	_playlist?: LegacyPlaylistArgument,
+) {
+	return loadSeriesCategories(await requireAuthenticatedUserId(), playlistId);
+}
+
+export async function getCachedChannelCategories(
+	playlistId: string,
+	_playlist?: LegacyPlaylistArgument,
+) {
+	return loadChannelCategories(await requireAuthenticatedUserId(), playlistId);
+}
+
+export async function getCachedChannels(
+	playlistId: string,
+	_playlist: LegacyPlaylistArgument | undefined,
+	categoryId: string,
+	page: number,
+	limit: number,
+) {
+	return loadChannels(
+		await requireAuthenticatedUserId(),
+		playlistId,
+		categoryId,
+		page,
+		limit,
+	);
+}
+
+export async function getCachedChannel(
+	playlistId: string,
+	_playlist: LegacyPlaylistArgument | undefined,
+	categoryId: string,
+	channelId: string,
+) {
+	return loadChannel(
+		await requireAuthenticatedUserId(),
+		playlistId,
+		categoryId,
+		channelId,
+	);
+}
+
+export async function getCachedMovies(
+	playlistId: string,
+	_playlist: LegacyPlaylistArgument | undefined,
+	categoryId: string,
+	page: number,
+	limit: number,
+) {
+	return loadMovies(
+		await requireAuthenticatedUserId(),
+		playlistId,
+		categoryId,
+		page,
+		limit,
+	);
+}
+
+export async function getCachedMovie(
+	playlistId: string,
+	_playlist: LegacyPlaylistArgument | undefined,
+	movieId: string,
+): Promise<StandardXtreamMovie | null> {
+	return loadMovie(await requireAuthenticatedUserId(), playlistId, movieId);
+}
+
+export async function getCachedShows(
+	playlistId: string,
+	_playlist: LegacyPlaylistArgument | undefined,
+	categoryId: string,
+	page: number,
+	limit: number,
+) {
+	return loadShows(
+		await requireAuthenticatedUserId(),
+		playlistId,
+		categoryId,
+		page,
+		limit,
+	);
+}
+
+export async function getCachedShow(
+	playlistId: string,
+	_playlist: LegacyPlaylistArgument | undefined,
+	showId: string,
+) {
+	return loadShow(await requireAuthenticatedUserId(), playlistId, showId);
 }

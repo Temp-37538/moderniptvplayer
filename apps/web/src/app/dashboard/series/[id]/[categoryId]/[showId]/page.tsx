@@ -31,7 +31,9 @@ function safeHref(url: string): string | undefined {
 	}
 }
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export async function generateMetadata({
+	params,
+}: PageProps): Promise<Metadata> {
 	const { id, categoryId, showId } = await params;
 	const context = await getShowMetadataContext(id, showId);
 	const showTitle = context?.show?.name ?? "Series Details";
@@ -74,7 +76,7 @@ async function ShowDetailContent({ params }: PageProps) {
 	}
 
 	const itemStatus = await getItemStatus(id, showId, "series");
-	const safePosterSrc = toSafeImageSrc(show.poster); 
+	const safePosterSrc = toSafeImageSrc(show.poster);
 
 	return (
 		<div className="min-h-full overflow-y-scroll scrollbar-thin scrollbar-thumb-rounded-lg scrollbar-thumb-border/50 scrollbar-track-border/20">
@@ -202,7 +204,7 @@ async function ShowDetailContent({ params }: PageProps) {
 									{season.episodeCount} episode
 									{season.episodeCount !== 1 ? "s" : ""}
 									{season.voteAverage > 0 &&
-										` · ★ ${Number(season.voteAverage).toFixed(1)}`}
+										` ★ ${Number(season.voteAverage).toFixed(1)}`}
 								</p>
 							</div>
 						</div>

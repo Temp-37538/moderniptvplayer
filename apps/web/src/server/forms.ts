@@ -4,24 +4,58 @@ import { updateTag } from "next/cache";
 import { cookies } from "next/headers";
 import { z } from "zod";
 import { ACTIVE_PLAYLIST_COOKIE } from "./active-playlist";
+import { requireAuthenticatedUserId } from "./auth-utils";
 import { getPlaylistCacheTags } from "./cached-content";
 import {
 	addPlaylist,
 	deletePlaylist,
 	doesPlaylistExist,
 	isPlaylistValid,
+	PlaylistAlreadyExistsError,
 } from "./queries";
+import { checkRateLimit } from "./rate-limit";
 import { getPlaylistById } from "./xtream";
+
+const VALIDATION_LIMIT = 10;
+const VALIDATION_WINDOW_MS = 60_000;
+
+function alreadyExistsState(rawData: xtreamFormData): FormState {
+	return {
+		errors: {
+			properties: {
+				serverUrl: { errors: ["Playlist already exists"] },
+				password: { errors: ["Playlist already exists"] },
+				username: { errors: ["Playlist already exists"] },
+			},
+		},
+		success: false,
+		inputs: rawData,
+		message: "You have already added this playlist.",
+	};
+}
 
 export async function validate(
 	_prev: FormState,
 	formData: FormData,
 ): Promise<FormState> {
 	const xtreamCodesSchema = z.object({
-		username: z.string().min(1, "Username is required"),
-		password: z.string().min(1, "Password is required"),
-		serverUrl: z.url("Please enter a valid URL"),
-		playlistName: z.string().min(1, "Playlist name is required"),
+		username: z.string().trim().min(1, "Username is required").max(128),
+		password: z.string().trim().min(1, "Password is required").max(256),
+		serverUrl: z
+			.string()
+			.trim()
+			.max(2048)
+			.pipe(
+				z.url({
+					protocol: /^https?$/,
+					error: "Please enter a valid http(s) URL",
+				}),
+			),
+		playlistName: z
+			.string()
+			.trim()
+			.min(1, "Playlist name is required")
+			.max(100),
 	});
 
 	const rawData: xtreamFormData = {
@@ -43,25 +77,30 @@ export async function validate(
 		};
 	}
 
+	// This action makes the server contact a user-supplied host: bound how
+	// often one account can trigger it.
+	const userId = await requireAuthenticatedUserId();
+	const limit = checkRateLimit(
+		`validate-playlist:${userId}`,
+		VALIDATION_LIMIT,
+		VALIDATION_WINDOW_MS,
+	);
+	if (!limit.allowed) {
+		return {
+			errors: {},
+			success: false,
+			inputs: rawData,
+			message: `Too many attempts. Try again in ${limit.retryAfterSeconds}s.`,
+		};
+	}
+
 	const alreadyExists = await doesPlaylistExist(
 		validatedData.data.username,
 		validatedData.data.serverUrl,
-		validatedData.data.password,
 	);
 
 	if (alreadyExists) {
-		return {
-			errors: {
-				properties: {
-					serverUrl: { errors: ["Playlist already exists"] },
-					password: { errors: ["Playlist already exists"] },
-					username: { errors: ["Playlist already exists"] },
-				},
-			},
-			success: false,
-			inputs: rawData,
-			message: "You have already added this playlist.",
-		};
+		return alreadyExistsState(rawData);
 	}
 
 	const valid = await isPlaylistValid(
@@ -102,12 +141,19 @@ export async function validate(
 		};
 	}
 
-	await addPlaylist(
-		validatedData.data.username,
-		validatedData.data.serverUrl,
-		validatedData.data.playlistName,
-		validatedData.data.password,
-	);
+	try {
+		await addPlaylist(
+			validatedData.data.username,
+			validatedData.data.serverUrl,
+			validatedData.data.playlistName,
+			validatedData.data.password,
+		);
+	} catch (error) {
+		if (error instanceof PlaylistAlreadyExistsError) {
+			return alreadyExistsState(rawData);
+		}
+		throw error;
+	}
 
 	return {
 		errors: {},

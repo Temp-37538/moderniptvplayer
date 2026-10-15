@@ -58,4 +58,3 @@ export function NavProjects({
 		</SidebarGroup>
 	);
 }
-

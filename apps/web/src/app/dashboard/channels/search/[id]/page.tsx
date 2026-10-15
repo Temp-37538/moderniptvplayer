@@ -10,7 +10,9 @@ import { notFound } from "next/navigation";
 // See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
 export const instant = false;
 
-export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+export async function generateMetadata({
+	params,
+}: PageProps): Promise<Metadata> {
 	const { id } = await params;
 	const playlist = await getPlaylistMetadataContext(id);
 
@@ -31,15 +33,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 	});
 }
 
-export default function ChannelSearchCategoriesPage({
-	params,
-}: PageProps) {
+export default function ChannelSearchCategoriesPage({ params }: PageProps) {
 	return <ChannelSearchCategoriesContent params={params} />;
 }
 
-async function ChannelSearchCategoriesContent({
-	params,
-}: PageProps) {
+async function ChannelSearchCategoriesContent({ params }: PageProps) {
 	const { id } = await params;
 	const playlist = await getPlaylistById(id);
 

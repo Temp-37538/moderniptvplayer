@@ -79,6 +79,7 @@ function SidebarProvider({
 			}
 
 			try {
+				// biome-ignore lint/suspicious/noDocumentCookie: shadcn sidebar uses document.cookie
 				document.cookie = `${SIDEBAR_COOKIE_NAME}=${String(openState)}; path=/; max-age=${60 * 60 * 24 * 7}; samesite=lax`;
 			} catch {}
 		},
@@ -710,6 +711,5 @@ export {
 	SidebarRail,
 	SidebarSeparator,
 	SidebarTrigger,
-	useSidebar
+	useSidebar,
 };
-

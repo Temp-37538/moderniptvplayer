@@ -46,13 +46,12 @@ export default function ChannelsByCategoryPage({
 	params,
 	searchParams,
 }: PageProps) {
-	return <ChannelsByCategoryContent params={params} searchParams={searchParams} />;
+	return (
+		<ChannelsByCategoryContent params={params} searchParams={searchParams} />
+	);
 }
 
-async function ChannelsByCategoryContent({
-	params,
-	searchParams,
-}: PageProps) {
+async function ChannelsByCategoryContent({ params, searchParams }: PageProps) {
 	const { id, categoryId } = await params;
 	const { page: pageParam } = await searchParams;
 	const currentPage = Number(pageParam) || 1;
@@ -97,20 +96,20 @@ async function ChannelsByCategoryContent({
 								href={`/dashboard/channels/${id}/${categoryId}/${channel.id}`}
 								className="group flex items-center gap-4 rounded-xl border border-border/50 bg-card p-4 transition-all duration-200 hover:border-primary/30 hover:bg-accent/50 hover:shadow-lg hover:shadow-primary/5"
 							>
-									<div className="flex items-center justify-center size-12 rounded-lg bg-muted overflow-hidden shrink-0">
-										{safeLogoSrc ? (
-											<Image
-												src={safeLogoSrc}
-												alt={channel.name}
-												width={48}
-												height={48}
-												unoptimized
-												className="size-full object-contain p-1"
-											/>
-										) : (
-											<Radio className="size-5 text-muted-foreground/40" />
-										)}
-									</div>
+								<div className="flex items-center justify-center size-12 rounded-lg bg-muted overflow-hidden shrink-0">
+									{safeLogoSrc ? (
+										<Image
+											src={safeLogoSrc}
+											alt={channel.name}
+											width={48}
+											height={48}
+											unoptimized
+											className="size-full object-contain p-1"
+										/>
+									) : (
+										<Radio className="size-5 text-muted-foreground/40" />
+									)}
+								</div>
 								<div className="flex-1 min-w-0">
 									<h3 className="text-sm font-medium leading-tight line-clamp-1 group-hover:text-primary transition-colors">
 										{channel.name}

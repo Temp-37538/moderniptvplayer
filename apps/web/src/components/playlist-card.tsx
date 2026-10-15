@@ -38,7 +38,7 @@ export function PlaylistCard({
 			<div className="mt-4 min-w-0">
 				<p className="font-medium truncate">{playlistName}</p>
 				<p className="text-xs text-muted-foreground truncate">
-					{username} · {serverUrl}
+					{username} {serverUrl}
 				</p>
 				<p className="text-xs text-muted-foreground/70">{createdAt}</p>
 			</div>
