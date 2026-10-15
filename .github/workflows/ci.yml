@@ -34,8 +34,10 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # Run Prisma directly (like the Vercel build): going through turbo would
+      # strip DATABASE_URL from the task environment (turbo strict env mode).
       - name: Generate Prisma client
-        run: pnpm db:generate
+        run: pnpm --filter @moderniptvplayer/db db:generate
       - name: Biome
         run: pnpm check
       - name: Type check
@@ -53,7 +55,11 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm build
+      - name: Generate Prisma client
+        run: pnpm --filter @moderniptvplayer/db db:generate
+      - name: Next build
+        working-directory: apps/web
+        run: pnpm exec next build
 
   audit:
     name: Dependency audit
