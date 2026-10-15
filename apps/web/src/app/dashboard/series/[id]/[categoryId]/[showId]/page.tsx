@@ -15,6 +15,7 @@ import { Calendar, Clock, ExternalLink, Film, Star, Tv } from "lucide-react";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { toSafeImageSrc } from "@/lib/image-url";
+import { toYoutubeEmbedUrl } from "@/lib/youtube";
 
 // TODO: Cache Components adoption. Refactor this route so this opt-out can be removed.
 // See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
@@ -77,6 +78,8 @@ async function ShowDetailContent({ params }: PageProps) {
 
 	const itemStatus = await getItemStatus(id, showId, "series");
 	const safePosterSrc = toSafeImageSrc(show.poster);
+	// The provider's value is untrusted: only a valid YouTube id gets an embed.
+	const trailerUrl = toYoutubeEmbedUrl(show.youtubeId);
 
 	return (
 		<div className="min-h-full overflow-y-scroll scrollbar-thin scrollbar-thumb-rounded-lg scrollbar-thumb-border/50 scrollbar-track-border/20">
@@ -167,7 +170,7 @@ async function ShowDetailContent({ params }: PageProps) {
 					</div>
 				</div>
 			</div>
-			{show.youtubeId && (
+			{trailerUrl && (
 				<div className="px-6 py-4 md:px-8 pb-6">
 					<h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
 						<Film className="size-5 text-primary z-10" />
@@ -176,7 +179,7 @@ async function ShowDetailContent({ params }: PageProps) {
 					<div className="relative w-full max-w-3xl rounded-xl overflow-hidden border border-border/50 shadow-xl aspect-video">
 						<iframe
 							className="absolute inset-0 size-full"
-							src={`https://www.youtube.com/embed/${show.youtubeId}`}
+							src={trailerUrl}
 							title={`${show.name} trailer`}
 							allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
 							allowFullScreen
