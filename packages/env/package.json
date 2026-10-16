@@ -17,7 +17,7 @@
   },
   "devDependencies": {
     "@moderniptvplayer/config": "workspace:*",
-    "@types/node": "^22.13.14",
+    "@types/node": "^26.6.5",
     "typescript": "catalog:"
   }
 }
