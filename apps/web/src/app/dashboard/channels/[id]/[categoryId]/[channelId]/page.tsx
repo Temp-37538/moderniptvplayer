@@ -3,6 +3,7 @@ import type { ChannelDetailPageProps as PageProps } from "@/components/types";
 import type { Metadata } from "next";
 import { CopyStreamButton } from "@/components/copy-stream-button";
 import { ItemActionButtons } from "@/components/item-action-buttons";
+import { VideoPlayer } from "@/components/video-player";
 import {
 	Tooltip,
 	TooltipContent,
@@ -107,6 +108,22 @@ async function ChannelDetailContent({ params }: PageProps) {
 							)}
 						</div>
 					</div>
+				</div>
+				<div className="p-6 border-t border-border/30">
+					{/* HLS first; some providers only serve raw MPEG-TS. */}
+					<VideoPlayer
+						live
+						sources={[
+							{
+								kind: "hls",
+								src: `/api/stream/live/${encodeURIComponent(id)}/${encodeURIComponent(channelId)}?ext=m3u8`,
+							},
+							{
+								kind: "mpegts",
+								src: `/api/stream/live/${encodeURIComponent(id)}/${encodeURIComponent(channelId)}?ext=ts`,
+							},
+						]}
+					/>
 				</div>
 				<div className="flex flex-wrap gap-3 p-6 border-t border-border/30">
 					<CopyStreamButton url={streamUrl} />

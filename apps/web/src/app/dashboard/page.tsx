@@ -1,4 +1,5 @@
 import { createPageMetadata } from "@/app/metadata";
+import { ContinueWatching } from "@/components/continue-watching";
 import { NoPlaylistNotice } from "@/components/no-playlist-notice";
 import {
 	PlaylistCard,
@@ -9,6 +10,7 @@ import { fetchPlaylists } from "@/server/queries";
 import { PlusIcon } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
 
 // TODO: Cache Components adoption. Refactor this route so this opt-out can be removed.
 // See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
@@ -45,6 +47,9 @@ async function Page() {
 
 	return (
 		<div className="flex h-full flex-col overflow-y-auto">
+			<Suspense fallback={null}>
+				<ContinueWatching />
+			</Suspense>
 			<div className="mb-6 flex items-center justify-between">
 				<h1 className="text-2xl font-bold tracking-tight">Your playlists</h1>
 				<Button

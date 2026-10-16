@@ -1,5 +1,6 @@
 import "server-only";
 import prisma from "@moderniptvplayer/db";
+import { requireAuthenticatedUserId } from "./auth-utils";
 
 // Past this share of the duration the title counts as watched.
 export const COMPLETED_RATIO = 0.92;
@@ -79,4 +80,71 @@ export async function saveWatchProgress(
 		await save();
 	}
 	return true;
+}
+
+export type ResumeInfo = {
+	positionSec: number;
+	durationSec: number;
+	completed: boolean;
+};
+
+const resumeSelect = {
+	positionSec: true,
+	durationSec: true,
+	completed: true,
+} as const;
+
+export async function getResumeInfo(
+	playlistId: string,
+	itemId: string,
+	itemType: "movie" | "episode",
+): Promise<ResumeInfo | null> {
+	const userId = await requireAuthenticatedUserId();
+	return prisma.watchProgress.findFirst({
+		where: { playlistId, itemId, itemType, userId },
+		select: resumeSelect,
+	});
+}
+
+/** Progress of every episode of a show, by episode id. */
+export async function getEpisodeProgress(
+	playlistId: string,
+	showId: string,
+): Promise<Map<string, ResumeInfo>> {
+	const userId = await requireAuthenticatedUserId();
+	const rows = await prisma.watchProgress.findMany({
+		where: { playlistId, showId, itemType: "episode", userId },
+		select: { itemId: true, ...resumeSelect },
+	});
+	return new Map(rows.map(({ itemId, ...info }) => [itemId, info]));
+}
+
+/** Unfinished titles, latest first; a show appears once (its latest episode). */
+export async function getContinueWatching(limit = 12) {
+	const userId = await requireAuthenticatedUserId();
+	const rows = await prisma.watchProgress.findMany({
+		where: { userId },
+		orderBy: { updatedAt: "desc" },
+		take: limit * 4,
+	});
+
+	const seenShows = new Set<string>();
+	const items: typeof rows = [];
+	for (const row of rows) {
+		if (row.showId) {
+			const key = `${row.playlistId}:${row.showId}`;
+			if (seenShows.has(key)) {
+				continue;
+			}
+			seenShows.add(key);
+		}
+		// Judged on the latest episode only: a finished one hides the show.
+		if (!row.completed) {
+			items.push(row);
+		}
+		if (items.length === limit) {
+			break;
+		}
+	}
+	return items;
 }
