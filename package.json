@@ -23,7 +23,7 @@
   "devDependencies": {
     "@biomejs/biome": "2.3.15",
     "@moderniptvplayer/config": "workspace:*",
-    "@types/node": "^22.13.14",
+    "@types/node": "^26.6.5",
     "turbo": "2.9.14",
     "typescript": "catalog:"
   },
