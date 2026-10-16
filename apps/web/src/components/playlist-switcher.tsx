@@ -30,7 +30,7 @@ import {
 import type { Route } from "next";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useTransition } from "react";
+import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { usePlaylists } from "./playlist-context";
 import type { Playlist } from "./types";
@@ -39,7 +39,7 @@ export function PlaylistSwitcher() {
 	const playlists = usePlaylists();
 	const { isMobile, setOpenMobile, openMobile } = useSidebar();
 	const router = useRouter();
-	const [isPending, startTransition] = useTransition();
+	const [pendingAction, setPendingAction] = useState<string | null>(null);
 	const { section, playlistId: playlistIdFromPath } = usePlaylistIdFromPath();
 
 	const activePlaylist = (() => {
@@ -64,8 +64,8 @@ export function PlaylistSwitcher() {
 		[],
 	);
 
-	const setActivePlaylist = (playlist: Playlist) => {
-		if (playlist.id === activePlaylist?.id) {
+	const setActivePlaylist = async (playlist: Playlist) => {
+		if (playlist.id === activePlaylist?.id || pendingAction !== null) {
 			return;
 		}
 
@@ -74,16 +74,41 @@ export function PlaylistSwitcher() {
 		const nextPlaylistId = playlist.id;
 		const nextRoute = buildPlaylistRoute(basePath, nextPlaylistId);
 
-		startTransition(async () => {
-			try {
-				if (previousPlaylistId || nextPlaylistId) {
-					await preparePlaylistSwitchAction(previousPlaylistId, nextPlaylistId);
-				}
-				router.replace(nextRoute);
-			} catch {
-				toast.error("Unable to switch playlist");
-			}
-		});
+		setPendingAction(`switch:${nextPlaylistId}`);
+		try {
+			await preparePlaylistSwitchAction(previousPlaylistId, nextPlaylistId);
+			router.replace(nextRoute);
+		} catch {
+			toast.error("Unable to switch playlist");
+		} finally {
+			setPendingAction(null);
+		}
+	};
+
+	const refreshCache = async (playlist: Playlist) => {
+		setPendingAction(`refresh:${playlist.id}`);
+		try {
+			await refreshPlaylistCacheAction(playlist.id);
+			router.refresh();
+			toast.success(`Cache refreshed for ${playlist.playlistName}`);
+		} catch {
+			toast.error("Unable to refresh playlist cache");
+		} finally {
+			setPendingAction(null);
+		}
+	};
+
+	const deletePlaylist = async (playlist: Playlist) => {
+		setPendingAction(`delete:${playlist.id}`);
+		try {
+			await deletePlaylistAction(playlist.id);
+			router.replace("/dashboard");
+			toast.success(`Playlist deleted: ${playlist.playlistName}`);
+		} catch {
+			toast.error("Unable to delete playlist");
+		} finally {
+			setPendingAction(null);
+		}
 	};
 
 	if (!activePlaylist) {
@@ -164,42 +189,24 @@ export function PlaylistSwitcher() {
 									</div>
 									<Button
 										size="sm"
-										disabled={isPending}
+										disabled={pendingAction === `refresh:${playlist.id}`}
 										className="ml-2 "
 										onClick={(e) => {
 											e.stopPropagation();
-											startTransition(async () => {
-												try {
-													await refreshPlaylistCacheAction(playlist.id);
-													router.refresh();
-													toast.success(
-														`Cache refreshed for ${playlist.playlistName}`,
-													);
-												} catch {
-													toast.error("Unable to refresh playlist cache");
-												}
-											});
+											refreshCache(playlist);
 										}}
 									>
-										<RefreshCwIcon className="size-4" />
+										<RefreshCwIcon
+											className={`size-4 ${pendingAction === `refresh:${playlist.id}` ? "animate-spin" : ""}`}
+										/>
 									</Button>
 									<Button
 										size="sm"
-										disabled={isPending}
+										disabled={pendingAction === `delete:${playlist.id}`}
 										className="ml-2"
 										onClick={(e) => {
 											e.stopPropagation();
-											startTransition(async () => {
-												try {
-													await deletePlaylistAction(playlist.id);
-													router.replace("/dashboard");
-													toast.success(
-														`Playlist deleted: ${playlist.playlistName}`,
-													);
-												} catch {
-													toast.error("Unable to delete playlist ");
-												}
-											});
+											deletePlaylist(playlist);
 										}}
 									>
 										<Trash2Icon className="size-4" />

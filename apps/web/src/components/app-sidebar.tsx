@@ -10,12 +10,14 @@ import {
 	SidebarTrigger,
 	useSidebar,
 } from "@/components/ui/sidebar";
+import { ListVideoIcon } from "lucide-react";
 import type * as React from "react";
+import { Button } from "./ui/button";
 import { UserButton } from "./auth/user/user-button";
 import { ModeToggle } from "./mode-toggle";
 
 export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
-	const { state, isMobile } = useSidebar();
+	const { state, isMobile, toggleSidebar } = useSidebar();
 	const collapsed = state === "collapsed" && !isMobile;
 
 	return (
@@ -25,13 +27,19 @@ export function AppSidebar(props: React.ComponentProps<typeof Sidebar>) {
 					<div className="min-w-0 flex-1 transition-opacity duration-200 group-data-[collapsible=icon]:pointer-events-none group-data-[collapsible=icon]:opacity-0">
 						<PlaylistSwitcher />
 					</div>
-					<SidebarTrigger
-						className={
-							collapsed
-								? "size-8 rounded-lg bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary hover:brightness-90 hover:text-sidebar-primary-foreground dark:hover:bg-sidebar-primary dark:hover:text-sidebar-primary-foreground"
-								: undefined
-						}
-					/>
+					{collapsed ? (
+						<Button
+							variant="ghost"
+							size="icon-sm"
+							aria-label="Expand Sidebar"
+							className="size-8 rounded-lg bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary hover:brightness-90 hover:text-sidebar-primary-foreground dark:hover:bg-sidebar-primary dark:hover:text-sidebar-primary-foreground"
+							onClick={toggleSidebar}
+						>
+							<ListVideoIcon className="size-4" />
+						</Button>
+					) : (
+						<SidebarTrigger />
+					)}
 				</div>
 			</SidebarHeader>
 			<SidebarContent>

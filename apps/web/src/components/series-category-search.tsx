@@ -49,9 +49,6 @@ function CategorySearchBase({
 		<div className="h-full flex flex-col gap-3 md:gap-4  scrollbar-thin scrollbar-thumb-rounded-lg scrollbar-thumb-border/50 scrollbar-track-border/20">
 			<div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
 				<div className="flex items-center gap-2.5 md:gap-3 min-w-0">
-					<div className="flex items-center justify-center size-8 md:size-10 rounded-xl bg-primary/10 text-primary shrink-0">
-						<Icon className="size-4 md:size-5" />
-					</div>
 					<div className="min-w-0">
 						<h1 className="text-lg md:text-2xl font-bold tracking-tight truncate">
 							{title}

@@ -32,8 +32,7 @@ export function ItemActionButtons({
 			try {
 				await toggleWatchLater(playlistId, itemId, itemType, itemName, itemUrl);
 			} catch {
-				// The optimistic state reverts once the transition ends.
-				toast.error("Unable to update Watch Later. Please try again.");
+				toast.error(`Unable to update Watch Later for ${itemName}`);
 			}
 		});
 	}
@@ -44,8 +43,7 @@ export function ItemActionButtons({
 			try {
 				await toggleFavorite(playlistId, itemId, itemType, itemName, itemUrl);
 			} catch {
-				// The optimistic state reverts once the transition ends.
-				toast.error("Unable to update Favorites. Please try again.");
+				toast.error(`Unable to update Favorites for ${itemName}`);
 			}
 		});
 	}
@@ -66,8 +64,7 @@ export function ItemActionButtons({
 						>
 							<Clock
 								className={`size-4 transition-transform duration-150 ${
-									optimisticWL ? "text-blue-500 fill-blue-500 scale-110" : ""
-								}`}
+									optimisticWL ? "text-blue-500 scale-110" : ""								}`}
 							/>
 						</button>
 					}
@@ -93,8 +90,7 @@ export function ItemActionButtons({
 						>
 							<Heart
 								className={`size-4 transition-transform duration-150 ${
-									optimisticFav ? "text-red-500 fill-red-500 scale-110" : ""
-								}`}
+									optimisticFav ? "text-red-500 scale-110" : ""								}`}
 							/>
 						</button>
 					}

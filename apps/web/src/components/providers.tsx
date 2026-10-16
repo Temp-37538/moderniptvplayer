@@ -74,7 +74,6 @@ export default function Providers({
 		<ThemeProvider
 			attribute="class"
 			defaultTheme="dark"
-			disableTransitionOnChange
 		>
 			<SidebarProvider defaultOpen={defaultSidebarOpen}>
 				<TooltipProvider>

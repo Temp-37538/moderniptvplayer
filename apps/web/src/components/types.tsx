@@ -141,6 +141,11 @@ export type CopyStreamButtonProps = {
 	url: string;
 };
 
+export type ExternalStreamLinkProps = {
+	href: string;
+	label: string;
+};
+
 export type EmptyStateProps = {
 	icon?: React.ReactNode;
 	title: string;

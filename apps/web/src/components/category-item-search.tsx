@@ -224,9 +224,7 @@ export function CategoryItemSearch({
 		<div className="h-full flex flex-col gap-4">
 			<div className="flex flex-col gap-3">
 				<div className="flex items-center gap-3">
-					<div className="flex items-center justify-center size-10 rounded-xl bg-primary/10 text-primary">
-						<Icon className="size-5" />
-					</div>
+
 					<div>
 						<h1 className="text-2xl font-bold tracking-tight">{title}</h1>
 						<p className="text-sm text-muted-foreground">
