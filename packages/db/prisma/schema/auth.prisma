@@ -11,6 +11,7 @@ model User {
   playlists     Playlist[]
   watchLater    WatchLater[]
   favorites     Favorite[]
+  watchProgress WatchProgress[]
 
   @@unique([email])
   @@map("user")
@@ -28,6 +29,7 @@ model Playlist {
   updatedAt DateTime @updatedAt
   watchLater WatchLater[]
   favorites  Favorite[]
+  watchProgress WatchProgress[]
 
   @@unique([userId, serverUrl, username])
   @@index([userId])

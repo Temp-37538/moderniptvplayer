@@ -95,7 +95,7 @@ for (const [network, prefix] of [
 	blockedRanges.addSubnet(network, prefix, "ipv6");
 }
 
-function normalizeHostname(hostname: string) {
+export function normalizeHostname(hostname: string) {
 	const lower = hostname.toLowerCase().replace(/\.$/, "");
 	return lower.startsWith("[") && lower.endsWith("]")
 		? lower.slice(1, -1)
@@ -146,7 +146,7 @@ export function assertHttpUrl(url: URL, allowPrivateHosts = false) {
  * DNS lookup used for the actual connection: the address that gets validated
  * is the address that gets connected to, which closes the rebinding window.
  */
-const strictLookup: LookupFunction = (hostname, options, callback) => {
+export const strictLookup: LookupFunction = (hostname, options, callback) => {
 	dnsLookup(
 		hostname,
 		{ ...options, all: true, verbatim: true },
@@ -184,7 +184,7 @@ const strictLookup: LookupFunction = (hostname, options, callback) => {
 
 // Separate pools: a socket opened without address validation must never be
 // reused by a strict request to the same host:port.
-const agents = {
+export const agents = {
 	strict: {
 		http: new http.Agent({ keepAlive: true, maxSockets: 32 }),
 		https: new https.Agent({ keepAlive: true, maxSockets: 32 }),
