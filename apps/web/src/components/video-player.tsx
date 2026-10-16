@@ -32,6 +32,8 @@ type VideoPlayerProps = {
 	live?: boolean;
 	autoPlay?: boolean;
 	progress?: ProgressDetails;
+	/** Called once the media has played to its end (after progress is saved). */
+	onEnded?: () => void;
 	className?: string;
 };
 
@@ -47,6 +49,7 @@ export function VideoPlayer({
 	live = false,
 	autoPlay = false,
 	progress,
+	onEnded,
 	className,
 }: VideoPlayerProps) {
 	const videoRef = useRef<HTMLVideoElement>(null);
@@ -66,6 +69,11 @@ export function VideoPlayer({
 	const progressRef = useRef(progress);
 	useEffect(() => {
 		progressRef.current = progress;
+	});
+
+	const onEndedRef = useRef(onEnded);
+	useEffect(() => {
+		onEndedRef.current = onEnded;
 	});
 
 	// Declared before the playback effect on purpose: on unmount, cleanups run
@@ -91,15 +99,21 @@ export function VideoPlayer({
 			) {
 				return;
 			}
-			const now = Date.now();
-			if (
-				(!force && now - lastSentAt < SAVE_INTERVAL_MS) ||
+			// Reaching the end must always be recorded, however close the previous
+			// save was: it is what marks the title as watched.
+			const finished = video.ended || position >= duration - 1;
+			if (finished) {
+				if (lastSentPosition >= duration - 1) {
+					return;
+				}
+			} else if (
+				(!force && Date.now() - lastSentAt < SAVE_INTERVAL_MS) ||
 				Math.abs(position - lastSentPosition) < 3
 			) {
 				return;
 			}
-			lastSentAt = now;
-			lastSentPosition = position;
+			lastSentAt = Date.now();
+			lastSentPosition = finished ? duration : position;
 
 			const image = details.itemImage;
 			// keepalive lets the request outlive the page (tab closed).
@@ -118,7 +132,7 @@ export function VideoPlayer({
 							? image
 							: null,
 					showId: details.showId ?? null,
-					positionSec: position,
+					positionSec: finished ? duration : position,
 					durationSec: duration,
 				}),
 			}).catch(() => {});
@@ -146,6 +160,18 @@ export function VideoPlayer({
 			window.removeEventListener("pagehide", onSettled);
 		};
 	}, [progressKey, live]);
+
+	// After the progress effect: its "ended" listener (the final save) is
+	// registered first, so the position is stored before the callback moves on.
+	useEffect(() => {
+		const video = videoRef.current;
+		if (!video) {
+			return;
+		}
+		const handleEnded = () => onEndedRef.current?.();
+		video.addEventListener("ended", handleEnded);
+		return () => video.removeEventListener("ended", handleEnded);
+	}, []);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: sourcesKey stands for the sources array
 	useEffect(() => {
