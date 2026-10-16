@@ -7,3 +7,30 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+// Where a user stopped in a film or an episode ("continue watching").
+// Name, image and URL are kept so the list renders without asking the
+// playlist server again.
+model WatchProgress {
+  id          String   @id @default(cuid())
+  itemId      String
+  itemType    String
+  itemName    String
+  itemUrl     String
+  itemImage   String?
+  showId      String?
+  positionSec Int
+  durationSec Int
+  completed   Boolean  @default(false)
+  playlistId  String
+  playlist    Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([playlistId, itemId, itemType])
+  @@index([playlistId])
+  @@index([userId, updatedAt])
+  @@map("watch_progress")
+}
