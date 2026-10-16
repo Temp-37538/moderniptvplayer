@@ -2,7 +2,21 @@
 
 import { CopyStreamButton } from "@/components/copy-stream-button";
 import { ExternalStreamLink } from "@/components/external-stream-link";
-import { ChevronDown, Clock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+	Sheet,
+	SheetContent,
+	SheetHeader,
+	SheetTitle,
+} from "@/components/ui/sheet";
+import { VideoPlayer } from "@/components/video-player";
+import {
+	type EpisodeProgressEntry,
+	formatTimestamp,
+	pickResumeEpisode,
+} from "@/lib/series-resume";
+import { CheckIcon, ChevronDown, Clock, PlayIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 type Episode = {
@@ -22,6 +36,29 @@ type Season = {
 	voteAverage: number;
 };
 
+type SeasonsListProps = {
+	seasons: Season[];
+	playlistId: string;
+	categoryId: string;
+	showId: string;
+	showName: string;
+	/** The provider's poster URL: stored with the progress. */
+	showPoster?: string | null;
+	/** Poster shown in the player before playback (already proxied). */
+	posterSrc?: string;
+	/** Where the user stopped, by episode id. */
+	progress: Record<string, EpisodeProgressEntry>;
+};
+
+type PlayableEpisode = {
+	id: string;
+	/** "Show - Season 2 - E04" */
+	name: string;
+	/** "Season 2 - E04" */
+	label: string;
+	extension: string;
+};
+
 const MOBILE_BREAKPOINT = "(min-width: 640px)";
 
 // This whole block is a client component on purpose. The season toggle needs state,
@@ -32,7 +69,18 @@ const MOBILE_BREAKPOINT = "(min-width: 640px)";
 // seasons start collapsed with only the first one open. From sm up the two-column
 // grid is compact enough that hiding episodes behind a click only gets in the way,
 // so everything starts open and the headers stop being interactive.
-export function SeasonsList({ seasons }: { seasons: Season[] }) {
+export function SeasonsList({
+	seasons,
+	playlistId,
+	categoryId,
+	showId,
+	showName,
+	showPoster,
+	posterSrc,
+	progress,
+}: SeasonsListProps) {
+	const router = useRouter();
+	const [playingId, setPlayingId] = useState<string | null>(null);
 	const [openSeasons, setOpenSeasons] = useState<Set<string>>(
 		() => new Set(seasons.map((season) => season.id)),
 	);
@@ -55,6 +103,65 @@ export function SeasonsList({ seasons }: { seasons: Season[] }) {
 		return () => query.removeEventListener("change", sync);
 	}, [seasons]);
 
+	// "Continue watching" links here with #episode-<id>.
+	useEffect(() => {
+		const id = /^#episode-(.+)$/.exec(window.location.hash)?.[1];
+		if (id) {
+			setPlayingId(decodeURIComponent(id));
+		}
+	}, []);
+
+	// Watching order: season after season, only what has a stream.
+	const playable: PlayableEpisode[] = seasons.flatMap((season) =>
+		(season.episodes ?? [])
+			.filter((episode) => episode.url)
+			.map((episode) => {
+				const label = `${season.name} - E${String(episode.number).padStart(2, "0")}`;
+				return {
+					id: episode.id,
+					name: `${showName} - ${label}`,
+					label,
+					extension: (
+						episode.url?.match(/\.([a-z0-9]{2,5})(?:\?.*)?$/i)?.[1] ?? "mp4"
+					).toLowerCase(),
+				};
+			}),
+	);
+	const playingIndex = playable.findIndex(
+		(episode) => episode.id === playingId,
+	);
+	const playing = playingIndex === -1 ? null : (playable[playingIndex] ?? null);
+	const nextEpisode = playing ? playable[playingIndex + 1] : undefined;
+
+	const resumeTarget = pickResumeEpisode(
+		playable.map((episode) => episode.id),
+		progress,
+	);
+	const resumeEpisode = resumeTarget
+		? playable.find((episode) => episode.id === resumeTarget.episodeId)
+		: undefined;
+	const resumeText = !(resumeTarget && resumeEpisode)
+		? ""
+		: resumeTarget.kind === "resume"
+			? `Resume ${resumeEpisode.label} at ${formatTimestamp(progress[resumeEpisode.id]?.positionSec ?? 0)}`
+			: resumeTarget.kind === "next"
+				? `Next episode: ${resumeEpisode.label}`
+				: resumeTarget.kind === "rewatch"
+					? `Watch again from ${resumeEpisode.label}`
+					: `Play ${resumeEpisode.label}`;
+
+	function startAt(episodeId: string) {
+		const entry = progress[episodeId];
+		return entry && !entry.completed ? entry.positionSec : 0;
+	}
+
+	function closePlayer() {
+		setPlayingId(null);
+		// The player saved where you stopped as it closed: reload the page data
+		// so the resume button and the episode marks are up to date.
+		setTimeout(() => router.refresh(), 1000);
+	}
+
 	function toggle(id: string) {
 		if (isDesktop) {
 			return;
@@ -73,6 +180,61 @@ export function SeasonsList({ seasons }: { seasons: Season[] }) {
 
 	return (
 		<div className="mt-12 space-y-6 sm:space-y-12">
+			{resumeEpisode && (
+				<Button size="lg" onClick={() => setPlayingId(resumeEpisode.id)}>
+					<PlayIcon className="size-4" />
+					{resumeText}
+				</Button>
+			)}
+			<Sheet
+				open={playing !== null}
+				onOpenChange={(open) => {
+					if (!open) {
+						closePlayer();
+					}
+				}}
+			>
+				<SheetContent side="bottom" className="mx-auto w-full max-w-4xl pb-6">
+					<SheetHeader>
+						<SheetTitle className="pr-10">{playing?.name}</SheetTitle>
+					</SheetHeader>
+					{playing && (
+						<div className="space-y-3 px-4">
+							<VideoPlayer
+								key={playing.id}
+								autoPlay
+								poster={posterSrc}
+								startAt={startAt(playing.id)}
+								progress={{
+									playlistId,
+									itemId: playing.id,
+									itemType: "episode",
+									itemName: playing.name,
+									itemUrl: `/dashboard/series/${playlistId}/${categoryId}/${showId}#episode-${playing.id}`,
+									itemImage: showPoster ?? null,
+									showId,
+								}}
+								sources={[
+									{
+										kind: playing.extension === "m3u8" ? "hls" : "native",
+										src: `/api/stream/vod/${encodeURIComponent(playlistId)}/episode/${encodeURIComponent(playing.id)}?ext=${encodeURIComponent(playing.extension)}`,
+									},
+								]}
+								onEnded={() => {
+									if (nextEpisode) {
+										setPlayingId(nextEpisode.id);
+									}
+								}}
+							/>
+							{nextEpisode && (
+								<p className="text-xs text-muted-foreground">
+									Up next: {nextEpisode.label} (starts when this one ends)
+								</p>
+							)}
+						</div>
+					)}
+				</SheetContent>
+			</Sheet>
 			{seasons.map((season) => {
 				const isOpen = openSeasons.has(season.id);
 
@@ -122,6 +284,7 @@ export function SeasonsList({ seasons }: { seasons: Season[] }) {
 										{season.episodes.map((episode) => (
 											<li
 												key={episode.id}
+												id={`episode-${episode.id}`}
 												className="group flex items-start gap-3.5 border-b border-border/40 p-4 transition-colors duration-200 ease-out sm:border-r sm:even:border-r-0 hover:bg-muted/40"
 											>
 												<span className="mt-0.5 text-xs font-medium tracking-wider text-muted-foreground/70 tabular-nums">
@@ -143,15 +306,67 @@ export function SeasonsList({ seasons }: { seasons: Season[] }) {
 															{episode.durationFormatted}
 														</p>
 													)}
+													{(() => {
+														const entry = progress[episode.id];
+														if (
+															!entry ||
+															entry.completed ||
+															entry.durationSec <= 0
+														) {
+															return null;
+														}
+														const percent = Math.min(
+															100,
+															(entry.positionSec / entry.durationSec) * 100,
+														);
+														return (
+															<div
+																role="progressbar"
+																aria-label="Watched"
+																aria-valuenow={Math.round(percent)}
+																className="mt-2 h-0.5 w-full max-w-40 overflow-hidden rounded-full bg-border"
+															>
+																<div
+																	className="h-full bg-primary"
+																	style={{ width: `${percent}%` }}
+																/>
+															</div>
+														);
+													})()}
 												</div>
 
 												{episode.url && (
-													<div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity duration-200 ease-out group-hover:opacity-100 focus-within:opacity-100">
-														<CopyStreamButton url={episode.url} />
-														<ExternalStreamLink
-															href={episode.url}
-															label="Watch episode in external window"
-														/>
+													<div className="flex shrink-0 items-center gap-0.5">
+														<Button
+															variant="ghost"
+															size="icon-sm"
+															aria-label={
+																progress[episode.id]?.completed
+																	? "Watch episode again"
+																	: "Play episode"
+															}
+															title={
+																progress[episode.id]?.completed
+																	? "Watched"
+																	: startAt(episode.id) > 0
+																		? "Resume"
+																		: "Play"
+															}
+															onClick={() => setPlayingId(episode.id)}
+														>
+															{progress[episode.id]?.completed ? (
+																<CheckIcon className="size-4 text-primary" />
+															) : (
+																<PlayIcon className="size-4" />
+															)}
+														</Button>
+														<div className="flex items-center gap-0.5 opacity-0 transition-opacity duration-200 ease-out group-hover:opacity-100 focus-within:opacity-100">
+															<CopyStreamButton url={episode.url} />
+															<ExternalStreamLink
+																href={episode.url}
+																label="Watch episode in external window"
+															/>
+														</div>
 													</div>
 												)}
 											</li>

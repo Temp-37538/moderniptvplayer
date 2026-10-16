@@ -10,6 +10,8 @@ import { Tv } from "lucide-react";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { toSafeImageSrc } from "@/lib/image-url";
+import { toYoutubeEmbedUrl } from "@/lib/youtube";
+import { getEpisodeProgress } from "@/server/watch-progress";
 
 // TODO: Cache Components adoption. Refactor this route so this opt-out can be removed.
 // See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
@@ -61,6 +63,9 @@ async function ShowDetailContent({ params }: PageProps) {
 
 	const itemStatus = await getItemStatus(id, showId, "series");
 	const safePosterSrc = toSafeImageSrc(show.poster);
+	const episodeProgress = await getEpisodeProgress(id, showId);
+	// The provider's value is untrusted: only a valid YouTube id gets an embed.
+	const trailerUrl = toYoutubeEmbedUrl(show.youtubeId);
 
 	return (
 		<div className="min-h-full overflow-y-auto scrollbar-thin scrollbar-thumb-rounded-lg scrollbar-thumb-border/50 scrollbar-track-border/20">
@@ -165,10 +170,19 @@ async function ShowDetailContent({ params }: PageProps) {
 						)}
 
 						{show.seasons && show.seasons.length > 0 && (
-							<SeasonsList seasons={show.seasons} />
+							<SeasonsList
+								seasons={show.seasons}
+								playlistId={id}
+								categoryId={categoryId}
+								showId={showId}
+								showName={show.name}
+								showPoster={show.poster}
+								posterSrc={safePosterSrc}
+								progress={episodeProgress}
+							/>
 						)}
 
-						{show.youtubeId && (
+						{trailerUrl && (
 							<section className="mt-14">
 								<h2 className="flex items-center gap-2 font-serif text-2xl tracking-tight">
 									Trailer
@@ -176,7 +190,7 @@ async function ShowDetailContent({ params }: PageProps) {
 								<div className="mt-4 aspect-video w-full max-w-2xl overflow-hidden rounded-xl border border-border/40 shadow-xl shadow-black/40">
 									<iframe
 										className="size-full"
-										src={`https://www.youtube.com/embed/${show.youtubeId}`}
+										src={trailerUrl}
 										title={`${show.name} trailer`}
 										allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
 										allowFullScreen

@@ -3,10 +3,13 @@ import { CopyStreamButton } from "@/components/copy-stream-button";
 import { ExternalStreamLink } from "@/components/external-stream-link";
 import { ItemActionButtons } from "@/components/item-action-buttons";
 import type { MovieDetailPageProps as PageProps } from "@/components/types";
+import { VideoPlayer } from "@/components/video-player";
 import { toSafeImageSrc } from "@/lib/image-url";
+import { formatTimestamp } from "@/lib/series-resume";
 import { toYoutubeEmbedUrl } from "@/lib/youtube";
 import { getCachedMovie } from "@/server/cached-content";
 import { getItemStatus } from "@/server/user-items";
+import { getResumeInfo } from "@/server/watch-progress";
 import { createXtreamClient, getPlaylistById } from "@/server/xtream";
 import { Film } from "lucide-react";
 import type { Metadata } from "next";
@@ -77,6 +80,12 @@ async function MovieDetailContent({ params }: PageProps) {
 	});
 
 	const itemStatus = await getItemStatus(id, movieId, "movie");
+	const resume = await getResumeInfo(id, movieId, "movie");
+	const resumeAt = resume && !resume.completed ? resume.positionSec : 0;
+	// The container (mkv, mp4...) is the one the provider announces.
+	const extension = (
+		movie.url?.match(/\.([a-z0-9]{2,5})(?:\?.*)?$/i)?.[1] ?? "mp4"
+	).toLowerCase();
 	const safePosterSrc = toSafeImageSrc(movie.poster);
 	// The provider's value is untrusted: only a valid YouTube id gets an embed.
 	const trailerUrl = toYoutubeEmbedUrl(movie.youtubeId);
@@ -155,6 +164,40 @@ async function MovieDetailContent({ params }: PageProps) {
 								{movie.plot}
 							</p>
 						) : null}
+
+						<section className="mt-10 space-y-3">
+							<div className="flex flex-wrap items-baseline justify-between gap-2">
+								<h2 className="font-serif text-2xl tracking-tight">Watch</h2>
+								{resumeAt > 0 ? (
+									<p className="text-xs font-medium text-muted-foreground tabular-nums">
+										Resuming at {formatTimestamp(resumeAt)}
+									</p>
+								) : resume?.completed ? (
+									<p className="text-xs font-medium text-muted-foreground">
+										Watched
+									</p>
+								) : null}
+							</div>
+							<VideoPlayer
+								className="rounded-2xl border-border/40 shadow-2xl shadow-black/50"
+								poster={safePosterSrc}
+								startAt={resumeAt}
+								progress={{
+									playlistId: id,
+									itemId: movieId,
+									itemType: "movie",
+									itemName: movie.name,
+									itemUrl: `/dashboard/movies/${id}/${categoryId}/${movieId}`,
+									itemImage: movie.poster,
+								}}
+								sources={[
+									{
+										kind: extension === "m3u8" ? "hls" : "native",
+										src: `/api/stream/vod/${encodeURIComponent(id)}/movie/${encodeURIComponent(movieId)}?ext=${encodeURIComponent(extension)}`,
+									},
+								]}
+							/>
+						</section>
 
 						<dl className="mt-8 grid gap-x-8 gap-y-4 border-y border-border/50 py-6 sm:grid-cols-2">
 							{movie.director && movie.director.length > 0 ? (
