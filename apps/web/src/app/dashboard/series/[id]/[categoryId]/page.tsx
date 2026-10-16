@@ -107,7 +107,6 @@ async function SeriesByCategoryContent({ params, searchParams }: PageProps) {
 											<Tv className="size-10 opacity-50" />
 										</div>
 									)}
-
 								</div>
 								<h3 className="mt-2 text-sm font-medium leading-tight line-clamp-2 group-hover:text-primary transition-colors">
 									{show.name}

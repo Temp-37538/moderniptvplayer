@@ -28,9 +28,7 @@ function Page() {
 					Add a playlist
 				</Link>
 
-				<h1 className="mt-4 text-2xl font-bold tracking-tight">
-					Xtream Codes
-				</h1>
+				<h1 className="mt-4 text-2xl font-bold tracking-tight">Xtream Codes</h1>
 				<p className="mt-2 text-sm text-muted-foreground">
 					Connect with the server URL, username and password from your IPTV
 					provider.

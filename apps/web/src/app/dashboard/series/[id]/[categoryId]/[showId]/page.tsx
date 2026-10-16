@@ -6,7 +6,7 @@ import type { PageProps } from "@/components/types";
 import { getItemStatus } from "@/server/user-items";
 import { getPlaylistById } from "@/server/xtream";
 import { getCachedShow } from "@/server/cached-content";
-import { Calendar, Film, Star, Tv } from "lucide-react";
+import { Tv } from "lucide-react";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { toSafeImageSrc } from "@/lib/image-url";
@@ -87,18 +87,17 @@ async function ShowDetailContent({ params }: PageProps) {
 						</div>
 
 						<dl className="mt-5 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs font-medium tracking-wide tabular-nums">
-
 							{show.releaseDate && (
 								<div className="flex items-center gap-1.5 text-muted-foreground">
 									<dt className="sr-only">Year</dt>
-									
+
 									<dd>{new Date(show.releaseDate).getFullYear()}</dd>
 								</div>
 							)}
 							{show.seasons && show.seasons.length > 0 && (
 								<div className="flex items-center gap-1.5 text-muted-foreground">
 									<dt className="sr-only">Seasons</dt>
-									
+
 									<dd>
 										{show.seasons.length} season
 										{show.seasons.length > 1 ? "s" : ""}
@@ -139,7 +138,7 @@ async function ShowDetailContent({ params }: PageProps) {
 						)}
 
 						<dl className="mt-8 grid gap-x-8 gap-y-4 border-y border-border/50 py-6 sm:grid-cols-2">
-							{show.director && show.director.some((name) => name !== "") && (
+							{show.director?.some((name) => name !== "") && (
 								<div>
 									<dt className="text-sm font-medium text-foreground/80">
 										Director
@@ -172,7 +171,6 @@ async function ShowDetailContent({ params }: PageProps) {
 						{show.youtubeId && (
 							<section className="mt-14">
 								<h2 className="flex items-center gap-2 font-serif text-2xl tracking-tight">
-									
 									Trailer
 								</h2>
 								<div className="mt-4 aspect-video w-full max-w-2xl overflow-hidden rounded-xl border border-border/40 shadow-xl shadow-black/40">

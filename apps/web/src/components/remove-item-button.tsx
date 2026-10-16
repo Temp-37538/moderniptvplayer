@@ -25,13 +25,18 @@ export function RemoveItemButton({
 		startTransition(async () => {
 			try {
 				if (variant === "watchlater") {
-					await toggleWatchLater(playlistId, itemId, itemType, itemName, itemUrl);
+					await toggleWatchLater(
+						playlistId,
+						itemId,
+						itemType,
+						itemName,
+						itemUrl,
+					);
 				} else {
 					await toggleFavorite(playlistId, itemId, itemType, itemName, itemUrl);
 				}
 			} catch {
 				toast.error(`Unable to remove ${itemName}`);
-
 			}
 		});
 	}

@@ -122,18 +122,13 @@ async function PlaylistHomeContent({
 							<h2 className="text-xl font-semibold tracking-tight transition-colors group-hover:text-primary">
 								Series
 							</h2>
-							<p className="mt-1 text-sm text-muted-foreground">
-								Episodic TV
-							</p>
+							<p className="mt-1 text-sm text-muted-foreground">Episodic TV</p>
 						</div>
 					</Link>
 				</nav>
 
 				<div className="grid gap-10 md:grid-cols-2">
-					<section
-						aria-labelledby="watch-later-heading"
-						className="space-y-4"
-					>
+					<section aria-labelledby="watch-later-heading" className="space-y-4">
 						<div className="flex items-baseline justify-between gap-4">
 							<h2
 								id="watch-later-heading"
@@ -164,10 +159,7 @@ async function PlaylistHomeContent({
 						)}
 					</section>
 
-					<section
-						aria-labelledby="favorites-heading"
-						className="space-y-4"
-					>
+					<section aria-labelledby="favorites-heading" className="space-y-4">
 						<div className="flex items-baseline justify-between gap-4">
 							<h2
 								id="favorites-heading"

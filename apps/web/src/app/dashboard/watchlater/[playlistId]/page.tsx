@@ -44,8 +44,7 @@ async function WatchLaterContent({ params }: PageProps) {
 	return (
 		<div className="max-w-2xl space-y-6">
 			<div className="space-y-1">
-				<h1 className="text-2xl font-bold tracking-tight">Watch Later
-				</h1>
+				<h1 className="text-2xl font-bold tracking-tight">Watch Later</h1>
 				<p className="text-sm text-muted-foreground">
 					{playlist.playlistName} - {items.length} item
 					{items.length !== 1 ? "s" : ""}

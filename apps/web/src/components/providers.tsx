@@ -71,10 +71,7 @@ export default function Providers({
 	const queryClient = getQueryClient();
 
 	return (
-		<ThemeProvider
-			attribute="class"
-			defaultTheme="dark"
-		>
+		<ThemeProvider attribute="class" defaultTheme="dark">
 			<SidebarProvider defaultOpen={defaultSidebarOpen}>
 				<TooltipProvider>
 					<QueryClientProvider client={queryClient}>

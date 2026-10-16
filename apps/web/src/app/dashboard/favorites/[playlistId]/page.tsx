@@ -44,8 +44,7 @@ async function FavoritesContent({ params }: PageProps) {
 	return (
 		<div className="max-w-2xl space-y-6">
 			<div className="space-y-1">
-				<h1 className="text-2xl font-bold tracking-tight">Favorites
-				</h1>
+				<h1 className="text-2xl font-bold tracking-tight">Favorites</h1>
 				<p className="text-sm text-muted-foreground">
 					{playlist.playlistName} - {items.length} item
 					{items.length !== 1 ? "s" : ""}

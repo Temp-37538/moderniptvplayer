@@ -26,7 +26,6 @@ export function PlaylistCard({
 	id,
 	playlistName,
 	serverUrl,
-	username,
 	createdAt,
 }: PlaylistCardData) {
 	const router = useRouter();
@@ -78,7 +77,6 @@ export function PlaylistCard({
 			</Link>
 
 			<div className="flex shrink-0 items-center gap-0.5 border-l border-border/60 pl-2">
-
 				<Button
 					size="icon-sm"
 					variant="ghost"

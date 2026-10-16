@@ -64,7 +64,8 @@ export function ItemActionButtons({
 						>
 							<Clock
 								className={`size-4 transition-transform duration-150 ${
-									optimisticWL ? "text-blue-500 scale-110" : ""								}`}
+									optimisticWL ? "text-blue-500 scale-110" : ""
+								}`}
 							/>
 						</button>
 					}
@@ -90,7 +91,8 @@ export function ItemActionButtons({
 						>
 							<Heart
 								className={`size-4 transition-transform duration-150 ${
-									optimisticFav ? "text-red-500 scale-110" : ""								}`}
+									optimisticFav ? "text-red-500 scale-110" : ""
+								}`}
 							/>
 						</button>
 					}

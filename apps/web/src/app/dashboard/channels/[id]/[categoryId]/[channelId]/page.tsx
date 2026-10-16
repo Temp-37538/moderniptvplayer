@@ -89,7 +89,10 @@ async function ChannelDetailContent({ params }: PageProps) {
 						{channel.name}
 					</h1>
 					<p className="truncate text-sm text-muted-foreground">
-						{[channel.number > 0 ? `Channel ${channel.number}` : null, channel.epgId]
+						{[
+							channel.number > 0 ? `Channel ${channel.number}` : null,
+							channel.epgId,
+						]
 							.filter(Boolean)
 							.join(", ")}
 					</p>

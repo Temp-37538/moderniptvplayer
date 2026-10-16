@@ -8,10 +8,10 @@ html[data-scroll-behavior="smooth"] {
 @custom-variant dark (&:is(.dark *));
 
 @utility scrollbar-none {
-  scrollbar-width: none;
-  &::-webkit-scrollbar {
-    display: none;
-  }
+	scrollbar-width: none;
+	&::-webkit-scrollbar {
+		display: none;
+	}
 }
 
 :root {

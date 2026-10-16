@@ -25,7 +25,6 @@ function CategorySearchBase({
 	emptyTitle,
 	emptyDescription,
 	hrefPrefix,
-	Icon,
 }: CategorySearchBaseProps) {
 	const pathname = usePathname();
 	const searchParams = useSearchParams();

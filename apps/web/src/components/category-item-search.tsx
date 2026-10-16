@@ -129,7 +129,7 @@ export function CategoryItemSearch({
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
-	const { title, placeholder, Icon } = SECTION_CONFIG[section];
+	const { title, placeholder } = SECTION_CONFIG[section];
 	const normalizedQuery = query.trim();
 	const isQueryValid = normalizedQuery.length >= MIN_QUERY_LENGTH;
 
@@ -224,7 +224,6 @@ export function CategoryItemSearch({
 		<div className="h-full flex flex-col gap-4">
 			<div className="flex flex-col gap-3">
 				<div className="flex items-center gap-3">
-
 					<div>
 						<h1 className="text-2xl font-bold tracking-tight">{title}</h1>
 						<p className="text-sm text-muted-foreground">

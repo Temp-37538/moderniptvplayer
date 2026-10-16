@@ -197,9 +197,7 @@ async function MovieDetailContent({ params }: PageProps) {
 
 						{trailerUrl ? (
 							<div className="mt-10 space-y-3">
-								<h2 className="font-serif text-2xl tracking-tight">
-									Trailer
-								</h2>
+								<h2 className="font-serif text-2xl tracking-tight">Trailer</h2>
 								<div className="overflow-hidden rounded-2xl border border-border/40 shadow-2xl shadow-black/50">
 									<div className="relative aspect-video">
 										<iframe
