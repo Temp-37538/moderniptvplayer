@@ -2,16 +2,13 @@ import { createPageMetadata, getChannelMetadataContext } from "@/app/metadata";
 import type { ChannelDetailPageProps as PageProps } from "@/components/types";
 import type { Metadata } from "next";
 import { CopyStreamButton } from "@/components/copy-stream-button";
+import { ExternalStreamLink } from "@/components/external-stream-link";
 import { ItemActionButtons } from "@/components/item-action-buttons";
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { VideoPlayer } from "@/components/video-player";
 import { getItemStatus } from "@/server/user-items";
 import { createXtreamClient, getPlaylistById } from "@/server/xtream";
 import { getCachedChannel } from "@/server/cached-content";
-import { ExternalLink, Hash, Radio, Satellite } from "lucide-react";
+import { Radio } from "lucide-react";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { toSafeImageSrc } from "@/lib/image-url";
@@ -71,73 +68,69 @@ async function ChannelDetailContent({ params }: PageProps) {
 	const safeLogoSrc = toSafeImageSrc(channel.logo);
 
 	return (
-		<div className="max-w-2xl">
-			<div className="rounded-xl border border-border/50 bg-card overflow-hidden">
-				<div className="flex items-center gap-6 p-6 bg-muted/20">
-					<div className="flex items-center justify-center size-24 rounded-xl bg-muted overflow-hidden shrink-0 border border-border/30">
-						{safeLogoSrc ? (
-							<Image
-								src={safeLogoSrc}
-								alt={channel.name}
-								width={96}
-								height={96}
-								unoptimized
-								className="size-full object-contain p-2"
-							/>
-						) : (
-							<Radio className="size-10 text-muted-foreground/30" />
-						)}
-					</div>
-					<div className="space-y-2">
-						<h1 className="text-2xl font-bold tracking-tight">
-							{channel.name}
-						</h1>
-						<div className="flex flex-wrap items-center gap-2">
-							{channel.number > 0 && (
-								<span className="inline-flex items-center gap-1 rounded-md bg-muted px-2.5 py-1 text-sm text-muted-foreground">
-									<Hash className="size-3.5" />
-									Channel {channel.number}
-								</span>
-							)}
-							{channel.epgId && (
-								<span className="inline-flex items-center gap-1 rounded-md bg-muted px-2.5 py-1 text-sm text-muted-foreground">
-									<Satellite className="size-3.5" />
-									{channel.epgId}
-								</span>
-							)}
-						</div>
-					</div>
-				</div>
-				<div className="flex flex-wrap gap-3 p-6 border-t border-border/30">
-					<CopyStreamButton url={streamUrl} />
-					<Tooltip>
-						<TooltipTrigger
-							render={
-								<a
-									href={streamUrl}
-									target="_blank"
-									rel="noopener noreferrer"
-									aria-label="Read the content in another player"
-									className="inline-flex cursor-pointer items-center justify-center size-8 rounded-[min(var(--radius-md),10px)] hover:bg-muted transition-colors"
-								>
-									<ExternalLink className="size-4" />
-								</a>
-							}
+		<div className="w-full max-w-2xl space-y-5">
+			<header className="flex items-center gap-4">
+				<div className="flex size-14 shrink-0 items-center justify-center">
+					{safeLogoSrc ? (
+						<Image
+							src={safeLogoSrc}
+							alt={channel.name}
+							width={56}
+							height={56}
+							unoptimized
+							className="size-full object-contain p-2"
 						/>
-						<TooltipContent>
-							<p>{"Read the content in another player"}</p>
-						</TooltipContent>
-					</Tooltip>
-					<ItemActionButtons
-						playlistId={id}
-						itemId={channelId}
-						itemType="channel"
-						itemName={channel.name}
-						itemUrl={`/dashboard/channels/${id}/${categoryId}/${channelId}`}
-						isWatchLater={itemStatus.isWatchLater}
-						isFavorite={itemStatus.isFavorite}
-					/>
+					) : (
+						<Radio className="size-6 text-muted-foreground/60" />
+					)}
 				</div>
+				<div className="min-w-0 space-y-1">
+					<h1 className="truncate text-xl font-semibold tracking-tight">
+						{channel.name}
+					</h1>
+					<p className="truncate text-sm text-muted-foreground">
+						{[
+							channel.number > 0 ? `Channel ${channel.number}` : null,
+							channel.epgId,
+						]
+							.filter(Boolean)
+							.join(", ")}
+					</p>
+				</div>
+			</header>
+
+			<div className="overflow-hidden rounded-lg border border-border/60 bg-card">
+				{/* HLS first; some providers only serve raw MPEG-TS. */}
+				<VideoPlayer
+					live
+					sources={[
+						{
+							kind: "hls",
+							src: `/api/stream/live/${encodeURIComponent(id)}/${encodeURIComponent(channelId)}?ext=m3u8`,
+						},
+						{
+							kind: "mpegts",
+							src: `/api/stream/live/${encodeURIComponent(id)}/${encodeURIComponent(channelId)}?ext=ts`,
+						},
+					]}
+				/>
+			</div>
+
+			<div className="flex flex-wrap items-center justify-end gap-2 text-sm">
+				<CopyStreamButton url={streamUrl} />
+				<ExternalStreamLink
+					href={streamUrl}
+					label="Read the content in another player"
+				/>
+				<ItemActionButtons
+					playlistId={id}
+					itemId={channelId}
+					itemType="channel"
+					itemName={channel.name}
+					itemUrl={`/dashboard/channels/${id}/${categoryId}/${channelId}`}
+					isWatchLater={itemStatus.isWatchLater}
+					isFavorite={itemStatus.isFavorite}
+				/>
 			</div>
 		</div>
 	);

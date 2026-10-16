@@ -1,36 +1,19 @@
 import { createPageMetadata, getShowMetadataContext } from "@/app/metadata";
-import { CopyStreamButton } from "@/components/copy-stream-button";
 import { ItemActionButtons } from "@/components/item-action-buttons";
+import { SeasonsList } from "@/components/seasons-list";
 import type { Metadata } from "next";
 import type { PageProps } from "@/components/types";
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { getItemStatus } from "@/server/user-items";
 import { getPlaylistById } from "@/server/xtream";
 import { getCachedShow } from "@/server/cached-content";
-import { Calendar, Clock, ExternalLink, Film, Star, Tv } from "lucide-react";
+import { Tv } from "lucide-react";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { toSafeImageSrc } from "@/lib/image-url";
-import { toYoutubeEmbedUrl } from "@/lib/youtube";
 
 // TODO: Cache Components adoption. Refactor this route so this opt-out can be removed.
 // See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
 export const instant = false;
-
-function safeHref(url: string): string | undefined {
-	try {
-		const parsed = new URL(url);
-		return parsed.protocol === "http:" || parsed.protocol === "https:"
-			? url
-			: undefined;
-	} catch {
-		return undefined;
-	}
-}
 
 export async function generateMetadata({
 	params,
@@ -78,207 +61,131 @@ async function ShowDetailContent({ params }: PageProps) {
 
 	const itemStatus = await getItemStatus(id, showId, "series");
 	const safePosterSrc = toSafeImageSrc(show.poster);
-	// The provider's value is untrusted: only a valid YouTube id gets an embed.
-	const trailerUrl = toYoutubeEmbedUrl(show.youtubeId);
 
 	return (
-		<div className="min-h-full overflow-y-scroll scrollbar-thin scrollbar-thumb-rounded-lg scrollbar-thumb-border/50 scrollbar-track-border/20">
-			<div className="relative mb-4 md:mb-0">
-				<div className="relative">
-					<div className="flex flex-col md:flex-row gap-8">
-						{safePosterSrc && (
-							<div className="shrink-0">
+		<div className="min-h-full overflow-y-auto scrollbar-thin scrollbar-thumb-rounded-lg scrollbar-thumb-border/50 scrollbar-track-border/20">
+			<div className="w-full px-6 pt-6 pb-10 md:px-10 md:pt-8 md:pb-12">
+				<div className="grid gap-10 md:grid-cols-[19rem_minmax(0,1fr)] md:gap-14">
+					<div className="md:sticky md:top-8 md:self-start space-y-5">
+						<div className="relative">
+							{safePosterSrc ? (
 								<Image
 									src={safePosterSrc}
 									alt={show.name}
-									width={224}
-									height={336}
+									width={304}
+									height={456}
 									unoptimized
-									className="w-48 md:w-56 rounded-xl shadow-2xl shadow-black/30 border border-border/30"
+									priority
+									className="w-full rounded-2xl border border-border/40 object-cover shadow-2xl shadow-black/50"
 								/>
-							</div>
-						)}
-						<div className="flex-1 space-y-5">
-							<h1 className="text-3xl font-bold tracking-tight">{show.name}</h1>
-							<div className="flex flex-wrap items-center gap-2">
-								{show.voteAverage > 0 && (
-									<span className="inline-flex items-center gap-1 rounded-md bg-amber-500/10 text-amber-500 px-2.5 py-1 text-sm font-semibold">
-										<Star className="size-3.5 fill-amber-500" />
-										{Number(show.voteAverage).toFixed(1)}
-									</span>
-								)}
-								{show.releaseDate && (
-									<span className="inline-flex items-center gap-1 rounded-md bg-muted px-2.5 py-1 text-sm text-muted-foreground">
-										<Calendar className="size-3.5" />
-										{new Date(show.releaseDate).getFullYear()}
-									</span>
-								)}
-								{show.seasons?.length > 0 && (
-									<span className="inline-flex items-center gap-1 rounded-md bg-muted px-2.5 py-1 text-sm text-muted-foreground">
-										<Tv className="size-3.5" />
-										{show.seasons.length} season
-										{show.seasons.length > 1 ? "s" : ""}
-									</span>
-								)}
-							</div>
-							{show.genre?.length > 0 && (
-								<div className="flex flex-wrap gap-1.5">
-									{show.genre.map((g) => (
-										<span
-											key={g}
-											className="rounded-full bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground"
-										>
-											{g}
-										</span>
-									))}
+							) : (
+								<div className="flex aspect-2/3 w-full items-center justify-center rounded-2xl border border-border/40 bg-muted">
+									<Tv className="size-12 text-muted-foreground/40" />
 								</div>
 							)}
-							{show.plot && (
-								<p className="text-sm leading-relaxed text-muted-foreground max-w-2xl">
-									{show.plot}
+							<div className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-inset ring-white/10" />
+						</div>
+
+						<dl className="mt-5 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs font-medium tracking-wide tabular-nums">
+							{show.releaseDate && (
+								<div className="flex items-center gap-1.5 text-muted-foreground">
+									<dt className="sr-only">Year</dt>
+
+									<dd>{new Date(show.releaseDate).getFullYear()}</dd>
+								</div>
+							)}
+							{show.seasons && show.seasons.length > 0 && (
+								<div className="flex items-center gap-1.5 text-muted-foreground">
+									<dt className="sr-only">Seasons</dt>
+
+									<dd>
+										{show.seasons.length} season
+										{show.seasons.length > 1 ? "s" : ""}
+									</dd>
+								</div>
+							)}
+						</dl>
+
+						<div className="mt-5 flex items-center justify-center gap-2 border-t border-border/50 pt-5">
+							<ItemActionButtons
+								playlistId={id}
+								itemId={showId}
+								itemType="series"
+								itemName={show.name}
+								itemUrl={`/dashboard/series/${id}/${categoryId}/${showId}`}
+								isWatchLater={itemStatus.isWatchLater}
+								isFavorite={itemStatus.isFavorite}
+							/>
+						</div>
+					</div>
+
+					<div className="min-w-0">
+						<header>
+							<h1 className="font-serif text-4xl leading-[1.05] tracking-tight text-balance md:text-5xl">
+								{show.name}
+							</h1>
+							{show.genre && show.genre.length > 0 && (
+								<p className="mt-4 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+									{show.genre.join(", ")}
 								</p>
 							)}
-							<div className="space-y-2 text-sm">
-								{show.director?.length > 0 &&
-									show.director.some((d) => d !== "") && (
-										<p>
-											<span className="text-muted-foreground">Director: </span>
-											<span className="font-medium">
-												{show.director.filter((d) => d !== "").join(", ")}
-											</span>
-										</p>
-									)}
-								{show.cast?.length > 0 && (
-									<p>
-										<span className="text-muted-foreground">Cast: </span>
-										<span className="font-medium">{show.cast.join(", ")}</span>
-									</p>
-								)}
-							</div>
-							<div className="flex flex-wrap gap-3 pt-2">
-								<ItemActionButtons
-									playlistId={id}
-									itemId={showId}
-									itemType="series"
-									itemName={show.name}
-									itemUrl={`/dashboard/series/${id}/${categoryId}/${showId}`}
-									isWatchLater={itemStatus.isWatchLater}
-									isFavorite={itemStatus.isFavorite}
-								/>
-							</div>
-						</div>
-					</div>
-				</div>
-			</div>
-			{trailerUrl && (
-				<div className="px-6 py-4 md:px-8 pb-6">
-					<h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-						<Film className="size-5 text-primary z-10" />
-						<p className="z-10">Trailer</p>
-					</h2>
-					<div className="relative w-full max-w-3xl rounded-xl overflow-hidden border border-border/50 shadow-xl aspect-video">
-						<iframe
-							className="absolute inset-0 size-full"
-							src={trailerUrl}
-							title={`${show.name} trailer`}
-							allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-							allowFullScreen
-						/>
-					</div>
-				</div>
-			)}
-			<div className="px-6 md:px-8 pb-8 space-y-8">
-				<h2 className="text-lg font-semibold flex items-center gap-2">
-					<Tv className="size-5 text-primary" />
-					Seasons
-				</h2>
-				{show.seasons?.length === 0 && (
-					<p className="text-muted-foreground">No seasons available.</p>
-				)}
-				{show.seasons?.map((season) => (
-					<section
-						key={season.id}
-						className="rounded-xl border border-border/50 bg-card overflow-hidden"
-					>
-						<div className="flex items-center justify-between px-5 py-4 border-b border-border/50 bg-muted/30">
-							<div>
-								<h3 className="font-semibold">{season.name}</h3>
-								<p className="text-sm text-muted-foreground">
-									{season.episodeCount} episode
-									{season.episodeCount !== 1 ? "s" : ""}
-									{season.voteAverage > 0 &&
-										` ★ ${Number(season.voteAverage).toFixed(1)}`}
-								</p>
-							</div>
-						</div>
-						{season.episodes === undefined ? (
-							<p className="px-5 py-4 text-sm text-muted-foreground">
-								Episodes data not loaded.
-							</p>
-						) : season.episodes.length > 0 ? (
-							<div className="divide-y divide-border/30">
-								{season.episodes.map((episode) => {
-									return (
-										<div
-											key={episode.id}
-											className="flex items-start gap-4 px-5 py-4 hover:bg-muted/20 transition-colors"
-										>
-											<div className="flex items-center justify-center size-8 rounded-lg bg-muted text-xs font-bold text-muted-foreground shrink-0 mt-0.5">
-												{episode.number}
-											</div>
-											<div className="flex-1 min-w-0 space-y-1">
-												<h4 className="text-sm font-medium leading-tight">
-													{episode.title}
-												</h4>
-												{episode.plot && (
-													<p className="text-xs text-muted-foreground line-clamp-2">
-														{episode.plot}
-													</p>
-												)}
-												{episode.durationFormatted && (
-													<span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-														<Clock className="size-3" />
-														{episode.durationFormatted}
-													</span>
-												)}
-											</div>
-											{episode.url && (
-												<div className="flex items-center gap-2 shrink-0">
-													<CopyStreamButton url={episode.url} />
-													{safeHref(episode.url) && (
-														<Tooltip>
-															<TooltipTrigger
-																render={
-																	<a
-																		target="_blank"
-																		aria-label="Watch episode in external window"
-																		rel="noopener noreferrer"
-																		href={safeHref(episode.url)}
-																		type="button"
-																		className="inline-flex cursor-pointer items-center justify-center size-8 rounded-[min(var(--radius-md),10px)] hover:bg-muted transition-colors"
-																	>
-																		<ExternalLink className="size-4" />
-																	</a>
-																}
-															/>
-															<TooltipContent>
-																Watch in external window
-															</TooltipContent>
-														</Tooltip>
-													)}
-												</div>
-											)}
-										</div>
-									);
-								})}
-							</div>
-						) : (
-							<p className="px-5 py-4 text-sm text-muted-foreground">
-								No episodes available for this season.
+						</header>
+
+						{show.plot && (
+							<p className="mt-6 max-w-prose text-[0.975rem] leading-relaxed text-foreground/80">
+								{show.plot}
 							</p>
 						)}
-					</section>
-				))}
+
+						<dl className="mt-8 grid gap-x-8 gap-y-4 border-y border-border/50 py-6 sm:grid-cols-2">
+							{show.director?.some((name) => name !== "") && (
+								<div>
+									<dt className="text-sm font-medium text-foreground/80">
+										Director
+									</dt>
+									<dd className="mt-1.5 text-sm">
+										{show.director.filter((name) => name !== "").join(", ")}
+									</dd>
+								</div>
+							)}
+							{show.cast && show.cast.length > 0 && (
+								<div>
+									<dt className="text-sm font-medium text-foreground/80">
+										Cast
+									</dt>
+									<dd className="mt-1.5 text-sm">{show.cast.join(", ")}</dd>
+								</div>
+							)}
+						</dl>
+
+						{show.seasons && show.seasons.length === 0 && (
+							<p className="mt-10 text-sm text-muted-foreground">
+								No seasons available.
+							</p>
+						)}
+
+						{show.seasons && show.seasons.length > 0 && (
+							<SeasonsList seasons={show.seasons} />
+						)}
+
+						{show.youtubeId && (
+							<section className="mt-14">
+								<h2 className="flex items-center gap-2 font-serif text-2xl tracking-tight">
+									Trailer
+								</h2>
+								<div className="mt-4 aspect-video w-full max-w-2xl overflow-hidden rounded-xl border border-border/40 shadow-xl shadow-black/40">
+									<iframe
+										className="size-full"
+										src={`https://www.youtube.com/embed/${show.youtubeId}`}
+										title={`${show.name} trailer`}
+										allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+										allowFullScreen
+									/>
+								</div>
+							</section>
+						)}
+					</div>
+				</div>
 			</div>
 		</div>
 	);

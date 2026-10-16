@@ -11,10 +11,9 @@ export function MediaGridSkeletonNoSearchBar({
 	count?: number;
 }) {
 	return (
-		<div className="h-full overflow-y-auto">
+		<div className="h-full overflow-y-auto scrollbar-none">
 			<div className="flex items-center justify-between mb-6">
 				<div className="flex items-center gap-3">
-					<Skeleton className="size-10 rounded-xl" />
 					<div className="space-y-2">
 						<Skeleton className="h-6 w-24" />
 						<Skeleton className="h-4 w-16" />
@@ -37,7 +36,6 @@ export function ChannelCategorySearchSkeleton() {
 		<div className="h-full flex flex-col gap-4">
 			<div className="flex flex-col gap-3">
 				<div className="flex items-center gap-3">
-					<Skeleton className="size-10 rounded-xl" />
 					<div className="space-y-2">
 						<Skeleton className="h-7 w-32" />
 						<Skeleton className="h-4 w-48" />
@@ -49,7 +47,7 @@ export function ChannelCategorySearchSkeleton() {
 				<Skeleton className="h-4 w-48" />
 			</div>
 
-			<div className="flex-1 overflow-y-auto pb-10">
+			<div className="flex-1 overflow-y-auto scrollbar-none pb-10">
 				<div className="flex justify-center items-center gap-3">
 					<div className="flex flex-col  items-center justify-center py-20 animate-pulse">
 						<div className="mb-4 size-12 rounded-md bg-muted  " />
@@ -68,10 +66,9 @@ export function ChannelListSkeletonNoSearchBar({
 	count?: number;
 }) {
 	return (
-		<div className="h-full overflow-y-auto">
+		<div className="h-full overflow-y-auto scrollbar-none">
 			<div className="flex items-center justify-between mb-6">
 				<div className="flex items-center gap-3">
-					<Skeleton className="size-10 rounded-xl" />
 					<div className="space-y-2">
 						<Skeleton className="h-6 w-24" />
 						<Skeleton className="h-4 w-16" />
@@ -106,7 +103,6 @@ export function CategoryGridSkeleton({ count = 35 }: { count?: number }) {
 		<div className="h-full flex flex-col gap-4">
 			<div className="flex items-center justify-between">
 				<div className="flex items-center gap-3">
-					<Skeleton className="size-10 rounded-xl" />
 					<div className="space-y-2">
 						<Skeleton className="h-7 w-22 md:w-32" />
 						<Skeleton className="h-4 w-22 md:w-48 " />
@@ -114,7 +110,7 @@ export function CategoryGridSkeleton({ count = 35 }: { count?: number }) {
 				</div>
 				<Skeleton className="h-8 w-40 md:w-70 rounded-md" />
 			</div>
-			<div className="flex-1 overflow-y-auto">
+			<div className="flex-1 overflow-y-auto scrollbar-none">
 				<div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
 					{Array.from({ length: count }).map((_, i) => (
 						<div
@@ -133,50 +129,48 @@ export function CategoryGridSkeleton({ count = 35 }: { count?: number }) {
 
 export function MediaDetailSkeleton() {
 	return (
-		<div className="min-h-full overflow-y-scroll scrollbar-none">
-			<div className="relative">
-				<div className="relative">
-					<div className="flex flex-col md:flex-row gap-8">
-						<div className="shrink-0">
-							<Skeleton className="w-48 md:w-56 aspect-2/3 rounded-xl shadow-2xl shadow-black/30 border border-border/30" />
+		<div className="min-h-full">
+			<div className="w-full px-6 pt-6 pb-10 md:px-10 md:pt-8 md:pb-12">
+				<div className="grid gap-10 md:grid-cols-[19rem_minmax(0,1fr)] md:gap-14">
+					<div className="md:sticky md:top-6 md:self-start">
+						<Skeleton className="aspect-2/3 w-full rounded-2xl" />
+						<div className="mt-5 flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
+							<Skeleton className="h-4 w-10" />
+							<Skeleton className="h-4 w-12" />
+							<Skeleton className="h-4 w-10" />
 						</div>
-						<div className="flex-1 space-y-5">
-							<div>
-								<Skeleton className="h-9 w-3/4 max-w-md mb-2" />
+						<div className="mt-5 flex items-center justify-center gap-2 border-t border-border/50 pt-5">
+							<Skeleton className="h-8 w-8 rounded-md" />
+							<Skeleton className="h-8 w-8 rounded-md" />
+							<Skeleton className="h-8 w-8 rounded-md" />
+						</div>
+					</div>
+
+					<div className="min-w-0">
+						<Skeleton className="h-10 w-3/4 max-w-md" />
+						<Skeleton className="mt-2 h-4 w-32" />
+						<Skeleton className="mt-4 h-4 w-24" />
+						<div className="mt-6 space-y-2">
+							<Skeleton className="h-4 w-full max-w-2xl" />
+							<Skeleton className="h-4 w-full max-w-xl" />
+							<Skeleton className="h-4 w-full max-w-2xl" />
+						</div>
+						<div className="mt-8 grid gap-x-8 gap-y-4 border-y border-border/50 py-6 sm:grid-cols-2">
+							<div className="space-y-1.5">
+								<Skeleton className="h-3 w-16" />
+								<Skeleton className="h-4 w-40" />
 							</div>
-							<div className="flex flex-wrap items-center gap-2">
-								<Skeleton className="h-7 w-14 rounded-md" />
-								<Skeleton className="h-7 w-24 rounded-md" />
-								<Skeleton className="h-7 w-20 rounded-md" />
+							<div className="space-y-1.5">
+								<Skeleton className="h-3 w-12" />
+								<Skeleton className="h-4 w-48" />
 							</div>
-							<div className="flex flex-wrap gap-1.5">
-								<Skeleton className="h-6 w-16 rounded-full" />
-								<Skeleton className="h-6 w-20 rounded-full" />
-								<Skeleton className="h-6 w-14 rounded-full" />
-							</div>
-							<div className="space-y-2">
-								<Skeleton className="h-4 w-full max-w-2xl" />
-								<Skeleton className="h-4 w-full max-w-2xl" />
-								<Skeleton className="h-4 w-full max-w-2xl" />
-							</div>
-							<div className="space-y-2 pt-2">
-								<Skeleton className="h-4 w-64" />
-								<Skeleton className="h-4 w-64" />
-								<Skeleton className="h-4 w-64" />
-							</div>
-							<div className="flex flex-wrap gap-3 pt-2">
-								<Skeleton className="h-9 w-10 rounded-md" />
-								<Skeleton className="h-9 w-10 rounded-md" />
-								<Skeleton className="h-9 w-10 rounded-md" />
-								<Skeleton className="h-9 w-10 rounded-md" />
-							</div>
+						</div>
+						<div className="mt-10 space-y-3">
+							<Skeleton className="h-4 w-16" />
+							<Skeleton className="aspect-video w-full rounded-2xl" />
 						</div>
 					</div>
 				</div>
-			</div>
-			<div className="  pb-8 mt-8">
-				<Skeleton className="h-7 w-24 mb-4" />
-				<Skeleton className="w-full max-w-3xl aspect-video rounded-xl shadow-xl border border-border/50" />
 			</div>
 		</div>
 	);
@@ -184,23 +178,20 @@ export function MediaDetailSkeleton() {
 
 export function ChannelDetailSkeleton() {
 	return (
-		<div className="max-w-2xl">
-			<div className="rounded-xl border border-border/50 bg-card overflow-hidden">
-				<div className="flex items-center gap-6 p-6 bg-muted/20">
-					<Skeleton className="size-24 rounded-xl shrink-0" />
-					<div className="space-y-2">
-						<Skeleton className="h-8 w-48" />
-						<div className="flex flex-wrap items-center gap-2">
-							<Skeleton className="h-7 w-24 rounded-md" />
-						</div>
-					</div>
+		<div className="w-full max-w-2xl space-y-5">
+			<div className="flex items-center gap-4">
+				<Skeleton className="size-14 shrink-0 rounded-lg" />
+				<div className="space-y-2">
+					<Skeleton className="h-6 w-48" />
+					<Skeleton className="h-4 w-32" />
 				</div>
-				<div className="flex flex-wrap gap-3 p-6 border-t border-border/30">
-					<Skeleton className="h-8 w-8 rounded-md" />
-					<Skeleton className="h-8 w-8 rounded-md" />
-					<Skeleton className="h-8 w-8 rounded-md" />
-					<Skeleton className="h-8 w-8 rounded-md" />
-				</div>
+			</div>
+			<Skeleton className="aspect-video w-full rounded-lg" />
+			<div className="flex flex-wrap items-center justify-end gap-2">
+				<Skeleton className="h-8 w-8 rounded-md" />
+				<Skeleton className="h-8 w-8 rounded-md" />
+				<Skeleton className="h-8 w-8 rounded-md" />
+				<Skeleton className="h-8 w-8 rounded-md" />
 			</div>
 		</div>
 	);
@@ -208,72 +199,92 @@ export function ChannelDetailSkeleton() {
 
 export function ShowDetailSkeleton() {
 	return (
-		<div className="min-h-full overflow-y-scroll scrollbar-none">
-			<div className="relative">
-				<div className="relative">
-					<div className="flex flex-col md:flex-row gap-8 mb-8">
-						<div className="shrink-0">
-							<Skeleton className="w-48 md:w-56 aspect-2/3 rounded-xl shadow-2xl shadow-black/30 border border-border/30" />
+		<div className="min-h-full overflow-y-auto scrollbar-thin scrollbar-thumb-rounded-lg scrollbar-thumb-border/50 scrollbar-track-border/20">
+			<div className="w-full px-6 pt-6 pb-10 md:px-10 md:pt-8 md:pb-12">
+				<div className="grid gap-10 md:grid-cols-[19rem_minmax(0,1fr)] md:gap-14">
+					<div className="md:sticky md:top-6 md:self-start">
+						<div className="relative">
+							<Skeleton className="aspect-2/3 w-full rounded-2xl border border-border/40" />
+							<div className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-inset ring-white/10" />
 						</div>
-						<div className="flex-1 space-y-5">
-							<Skeleton className="h-9 w-3/4 max-w-md" />
-							<div className="flex flex-wrap items-center gap-2">
-								<Skeleton className="h-7 w-16 rounded-md" />
-								<Skeleton className="h-7 w-20 rounded-md" />
-								<Skeleton className="h-7 w-24 rounded-md" />
+
+						<dl className="mt-5 flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
+							<div className="flex items-center gap-1.5">
+								<Skeleton className="size-3 rounded-full" />
+								<Skeleton className="h-3 w-7" />
 							</div>
-							<div className="flex flex-wrap gap-1.5">
-								<Skeleton className="h-6 w-16 rounded-full" />
-								<Skeleton className="h-6 w-20 rounded-full" />
+							<div className="flex items-center gap-1.5">
+								<Skeleton className="size-3 rounded-full" />
+								<Skeleton className="h-3 w-9" />
 							</div>
-							<div className="space-y-2">
-								<Skeleton className="h-4 w-full max-w-2xl" />
-								<Skeleton className="h-4 w-full max-w-xl" />
+							<div className="flex items-center gap-1.5">
+								<Skeleton className="size-3 rounded-full" />
+								<Skeleton className="h-3 w-16" />
 							</div>
-							<div className="space-y-2 pt-2">
-								<Skeleton className="h-4 w-64" />
-								<Skeleton className="h-4 w-80" />
-							</div>
-							<div className="flex flex-wrap gap-3 pt-2">
-								<Skeleton className="h-9 w-32 rounded-md" />
-							</div>
+						</dl>
+
+						<div className="mt-5 flex items-center justify-center gap-2 border-t border-border/50 pt-5">
+							<Skeleton className="size-8 rounded-[min(var(--radius-md),10px)]" />
+							<Skeleton className="size-8 rounded-[min(var(--radius-md),10px)]" />
 						</div>
 					</div>
-				</div>
-			</div>
 
-			<div className="px-6 md:px-8 pb-6">
-				<Skeleton className="h-7 w-24 mb-4" />
-				<Skeleton className="w-full max-w-3xl aspect-video rounded-xl shadow-xl border border-border/50" />
-			</div>
+					<div className="min-w-0">
+						<header>
+							<Skeleton className="h-3 w-14" />
+							<Skeleton className="mt-3 h-11 w-4/5 md:h-12" />
+						</header>
 
-			<div className="px-6 md:px-8 pb-8 space-y-8">
-				<Skeleton className="h-7 w-32" />
-				{Array.from({ length: 2 }).map((_, i) => (
-					<section
-						key={i}
-						className="rounded-xl border border-border/50 bg-card overflow-hidden"
-					>
-						<div className="flex items-center justify-between px-5 py-4 border-b border-border/50 bg-muted/30">
-							<div className="space-y-1.5">
-								<Skeleton className="h-5 w-32" />
-								<Skeleton className="h-4 w-24" />
-							</div>
+						<div className="mt-6 space-y-2">
+							<Skeleton className="h-4 w-full" />
+							<Skeleton className="h-4 w-full" />
+							<Skeleton className="h-4 w-11/12" />
+							<Skeleton className="h-4 w-2/3" />
 						</div>
-						<div className="divide-y divide-border/30">
-							{Array.from({ length: 3 }).map((_, j) => (
-								<div key={j} className="flex items-start gap-4 px-5 py-4">
-									<Skeleton className="size-8 rounded-lg shrink-0 mt-0.5" />
-									<div className="flex-1 space-y-2">
-										<Skeleton className="h-4 w-48" />
-										<Skeleton className="h-3 w-full max-w-2xl" />
-										<Skeleton className="h-3 w-full max-w-xl" />
+
+						<dl className="mt-8 grid gap-x-8 gap-y-4 border-y border-border/50 py-6 sm:grid-cols-2">
+							<div className="space-y-2">
+								<Skeleton className="h-2.5 w-16" />
+								<Skeleton className="h-4 w-44" />
+							</div>
+							<div className="space-y-2">
+								<Skeleton className="h-2.5 w-12" />
+								<Skeleton className="h-4 w-full" />
+							</div>
+						</dl>
+
+						<div className="mt-12 space-y-12">
+							{Array.from({ length: 2 }).map((_, index) => (
+								<section key={index}>
+									<div className="flex flex-wrap items-baseline justify-between gap-3 border-b border-border/50 pb-3">
+										<Skeleton className="h-7 w-28" />
+										<Skeleton className="h-3 w-32" />
 									</div>
-								</div>
+
+									<div className="grid grid-cols-1 border-t border-border/40 sm:grid-cols-2">
+										{Array.from({ length: 4 }).map((__, cell) => (
+											<div
+												key={cell}
+												className="flex items-start gap-3.5 border-b border-border/40 p-4 sm:border-r sm:even:border-r-0"
+											>
+												<Skeleton className="mt-0.5 h-3 w-5 shrink-0" />
+												<div className="min-w-0 flex-1 space-y-2">
+													<Skeleton className="h-3.5 w-3/4" />
+													<Skeleton className="h-3 w-1/4" />
+												</div>
+											</div>
+										))}
+									</div>
+								</section>
 							))}
 						</div>
-					</section>
-				))}
+
+						<section className="mt-14">
+							<Skeleton className="h-7 w-24" />
+							<Skeleton className="mt-4 aspect-video w-full max-w-2xl rounded-xl border border-border/40" />
+						</section>
+					</div>
+				</div>
 			</div>
 		</div>
 	);
@@ -290,14 +301,11 @@ export function SavedItemsListSkeleton({ count = 5 }: { count?: number }) {
 				{Array.from({ length: count }).map((_, i) => (
 					<div
 						key={i}
-						className="flex items-center gap-4 rounded-xl border border-border/50 bg-card px-5 py-4"
+						className="ml-4 flex items-center gap-4 py-3 border-b border-border/40 last:border-b-0"
 					>
-						<div className="flex items-center gap-4 flex-1 min-w-0">
-							<Skeleton className="size-8 rounded-lg shrink-0" />
-							<div className="flex-1 space-y-2">
-								<Skeleton className="h-4 w-3/4 max-w-xs" />
-								<Skeleton className="h-3 w-1/2 max-w-50" />
-							</div>
+						<div className="flex-1 space-y-2">
+							<Skeleton className="h-4 w-3/4 max-w-xs" />
+							<Skeleton className="h-3 w-1/2 max-w-50" />
 						</div>
 						<Skeleton className="size-8 rounded-md shrink-0" />
 					</div>
@@ -469,24 +477,61 @@ export function SecuritySettingsSkeleton() {
 	);
 }
 
-export function PlaylistHomeSkeleton() {
+function SavedItemsSectionSkeleton() {
 	return (
-		<div className="space-y-6">
-			<div className="space-y-2">
-				<Skeleton className="h-8 w-48" />
-				<Skeleton className="h-4 w-64" />
+		<div className="space-y-4">
+			<div className="flex items-baseline justify-between gap-4">
+				<Skeleton className="h-7 w-32" />
+				<Skeleton className="h-5 w-12" />
 			</div>
-			<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+			<div className="space-y-2">
 				{Array.from({ length: 3 }).map((_, i) => (
 					<div
 						key={i}
-						className="flex flex-col gap-3 rounded-xl border border-border/50 bg-card p-5"
+						className="ml-4 flex items-center gap-4 py-3 border-b border-border/40 last:border-b-0"
 					>
-						<Skeleton className="size-10 rounded-lg" />
-						<Skeleton className="h-5 w-24" />
-						<Skeleton className="h-4 w-full" />
+						<div className="flex-1 space-y-1.5">
+							<Skeleton className="h-4 w-3/4" />
+							<Skeleton className="h-3 w-1/3" />
+						</div>
 					</div>
 				))}
+			</div>
+		</div>
+	);
+}
+
+export function PlaylistHomeSkeleton() {
+	return (
+		<div className="flex h-full flex-col overflow-y-auto scrollbar-none p-6">
+			<div className="w-full max-w-4xl space-y-10">
+				<header className="space-y-1">
+					<Skeleton className="h-9 w-48" />
+					<Skeleton className="h-5 w-64" />
+				</header>
+
+				<div className="grid gap-x-8 sm:grid-cols-3">
+					{Array.from({ length: 3 }).map((_, i) => (
+						<div
+							key={i}
+							className="flex min-h-32 flex-col justify-between py-5"
+						>
+							<div className="flex items-center justify-between">
+								<Skeleton className="size-5" />
+								<Skeleton className="size-4" />
+							</div>
+							<div className="space-y-2">
+								<Skeleton className="h-7 w-24" />
+								<Skeleton className="h-5 w-32" />
+							</div>
+						</div>
+					))}
+				</div>
+
+				<div className="grid gap-10 md:grid-cols-2">
+					<SavedItemsSectionSkeleton />
+					<SavedItemsSectionSkeleton />
+				</div>
 			</div>
 		</div>
 	);

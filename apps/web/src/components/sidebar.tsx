@@ -106,20 +106,19 @@ function SidebarContent({ children }: { children: React.ReactNode }) {
 					</div>
 					<div className="flex items-center gap-2">
 						<Button
-							className={
-								"p-0 hover:bg-primary/50 bg-primary text-primary-foreground"
-							}
-							size="sm"
+							variant="ghost"
+							size="icon-sm"
+							aria-label="Home"
+							nativeButton={false}
+							render={<Link href={"/dashboard" as Route} />}
 						>
-							<Link className="py-4 px-4 m-0" href={"/dashboard" as Route}>
-								<House />
-							</Link>
+							<House className="size-4" />
 						</Button>
 						{session && (
 							<Button
 								onClick={handleLogout}
-								size={"sm"}
-								className="hover:bg-sidebar-accent/50 bg-accent text-accent-foreground w-fit  "
+								size="sm"
+								className="hover:bg-sidebar-accent/50 bg-accent text-accent-foreground w-fit"
 							>
 								Logout
 							</Button>

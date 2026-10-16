@@ -77,9 +77,6 @@ async function ChannelsByCategoryContent({ params, searchParams }: PageProps) {
 		<div className="h-full overflow-y-auto ">
 			<div className="flex items-center justify-between mb-6">
 				<div className="flex items-center gap-3">
-					<div className="flex items-center justify-center size-10 rounded-xl bg-primary/10 text-primary">
-						<Radio className="size-5" />
-					</div>
 					<div>
 						<h1 className="text-2xl font-bold tracking-tight">Channels</h1>
 						<p className="text-sm text-muted-foreground">Page {currentPage}</p>

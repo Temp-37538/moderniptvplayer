@@ -72,7 +72,7 @@ export function Settings({ className, view, path, hideNav }: SettingsProps) {
 				<TabsList aria-label={localization.settings.settings}>
 					<TabsTrigger
 						value="account"
-						className="gap-1"
+						className="gap-1 cursor-pointer"
 						onClick={() =>
 							navigate({
 								to: `${basePaths.settings}/${viewPaths.settings.account}`,
@@ -86,7 +86,7 @@ export function Settings({ className, view, path, hideNav }: SettingsProps) {
 
 					<TabsTrigger
 						value="security"
-						className="gap-1"
+						className="gap-1 cursor-pointer"
 						onClick={() =>
 							navigate({
 								to: `${basePaths.settings}/${viewPaths.settings.security}`,

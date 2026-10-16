@@ -6,7 +6,7 @@ import { notFound } from "next/navigation";
 import { getPlaylistById } from "@/server/xtream";
 import { getCachedMovies } from "@/server/cached-content";
 
-import { Film, Star } from "lucide-react";
+import { Film } from "lucide-react";
 import Image from "next/image";
 import { EmptyState } from "@/components/empty-state";
 import { PaginationNav } from "@/components/pagination-nav";
@@ -77,9 +77,6 @@ async function MoviesByCategoryContent({ params, searchParams }: PageProps) {
 		<div className="h-full overflow-y-auto  scrollbar-thin scrollbar-thumb-rounded-lg scrollbar-thumb-border/50 scrollbar-track-border/20">
 			<div className="flex items-center justify-between mb-6">
 				<div className="flex items-center gap-3">
-					<div className="flex items-center justify-center size-10 rounded-xl bg-primary/10 text-primary">
-						<Film className="size-5" />
-					</div>
 					<div>
 						<h1 className="text-2xl font-bold tracking-tight">Movies</h1>
 						<p className="text-sm text-muted-foreground">Page {currentPage}</p>
@@ -109,12 +106,6 @@ async function MoviesByCategoryContent({ params, searchParams }: PageProps) {
 									) : (
 										<div className="flex items-center justify-center size-full text-muted-foreground">
 											<Film className="size-10 opacity-50" />
-										</div>
-									)}
-									{movie.voteAverage > 0 && (
-										<div className="absolute top-2 right-2 rounded-md bg-amber-500/90 text-amber-50 text-xs font-semibold px-2 py-1 flex items-center gap-1">
-											<Star className="size-3 fill-amber-50" />
-											{Number(movie.voteAverage).toFixed(1)}
 										</div>
 									)}
 								</div>

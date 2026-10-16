@@ -23,12 +23,20 @@ export function RemoveItemButton({
 
 	function handleRemove() {
 		startTransition(async () => {
-			const toggle =
-				variant === "watchlater" ? toggleWatchLater : toggleFavorite;
 			try {
-				await toggle(playlistId, itemId, itemType, itemName, itemUrl);
+				if (variant === "watchlater") {
+					await toggleWatchLater(
+						playlistId,
+						itemId,
+						itemType,
+						itemName,
+						itemUrl,
+					);
+				} else {
+					await toggleFavorite(playlistId, itemId, itemType, itemName, itemUrl);
+				}
 			} catch {
-				toast.error("Unable to remove this item. Please try again.");
+				toast.error(`Unable to remove ${itemName}`);
 			}
 		});
 	}
@@ -49,7 +57,7 @@ export function RemoveItemButton({
 						onClick={handleRemove}
 					>
 						<Trash2
-							className={`size-4 text-muted-foreground hover:text-destructive transition-colors ${isPending ? "opacity-50" : ""}`}
+							className={`size-4 text-destructive transition-colors ${isPending ? "opacity-50" : ""}`}
 						/>
 					</button>
 				}

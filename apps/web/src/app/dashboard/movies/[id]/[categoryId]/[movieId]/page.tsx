@@ -1,18 +1,14 @@
 import { createPageMetadata, getMovieMetadataContext } from "@/app/metadata";
 import { CopyStreamButton } from "@/components/copy-stream-button";
+import { ExternalStreamLink } from "@/components/external-stream-link";
 import { ItemActionButtons } from "@/components/item-action-buttons";
 import type { MovieDetailPageProps as PageProps } from "@/components/types";
-import {
-	Tooltip,
-	TooltipContent,
-	TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { toSafeImageSrc } from "@/lib/image-url";
 import { toYoutubeEmbedUrl } from "@/lib/youtube";
 import { getCachedMovie } from "@/server/cached-content";
 import { getItemStatus } from "@/server/user-items";
 import { createXtreamClient, getPlaylistById } from "@/server/xtream";
-import { Calendar, Clock, ExternalLink, Film, Globe, Star } from "lucide-react";
+import { Film } from "lucide-react";
 import type { Metadata } from "next";
 import Image from "next/image";
 import { notFound } from "next/navigation";
@@ -85,170 +81,139 @@ async function MovieDetailContent({ params }: PageProps) {
 	// The provider's value is untrusted: only a valid YouTube id gets an embed.
 	const trailerUrl = toYoutubeEmbedUrl(movie.youtubeId);
 	return (
-		<div className="min-h-full overflow-y-scroll scrollbar-none">
-			<div className="relative mb-4 md:mb-0">
-				<div className="relative ">
-					<div className="flex flex-col md:flex-row gap-8">
-						{safePosterSrc && (
-							<div className="shrink-0">
-								<Image
-									src={safePosterSrc}
-									alt={movie.name}
-									width={224}
-									height={336}
-									unoptimized
-									className="w-48 md:w-56 rounded-xl shadow-2xl shadow-black/30 border border-border/30"
-								/>
+		<div className="min-h-full overflow-y-auto scrollbar-thin scrollbar-thumb-rounded-lg scrollbar-thumb-border/50 scrollbar-track-border/20">
+			<div className="w-full px-6 pt-6 pb-10 md:px-10 md:pt-8 md:pb-12">
+				<div className="grid gap-10 md:grid-cols-[19rem_minmax(0,1fr)] md:gap-14">
+					<div className="md:sticky md:top-8 md:self-start space-y-5">
+						{safePosterSrc ? (
+							<Image
+								src={safePosterSrc}
+								alt={movie.name}
+								width={304}
+								height={456}
+								unoptimized
+								className="w-full rounded-2xl border border-border/40 object-cover shadow-2xl shadow-black/50"
+							/>
+						) : (
+							<div className="flex aspect-2/3 w-full items-center justify-center rounded-2xl border border-border/40 bg-muted">
+								<Film className="size-12 text-muted-foreground/40" />
 							</div>
 						)}
-						<div className="flex-1 space-y-5">
-							<div>
-								<h1 className="text-3xl font-bold tracking-tight mb-1">
-									{movie.name}
-								</h1>
-								{movie.originalName && movie.originalName !== movie.name && (
-									<p className="text-base text-muted-foreground italic">
-										{movie.originalName}
-									</p>
-								)}
-							</div>
-							<div className="flex flex-wrap items-center gap-2">
-								{movie.voteAverage > 0 && (
-									<span className="inline-flex items-center gap-1 rounded-md bg-amber-500/10 text-amber-500 px-2.5 py-1 text-sm font-semibold">
-										<Star className="size-3.5 fill-amber-500" />
-										{Number(movie.voteAverage).toFixed(1)}
-									</span>
-								)}
-								{movie.durationFormatted && (
-									<span className="inline-flex items-center gap-1 rounded-md bg-muted px-2.5 py-1 text-sm text-muted-foreground">
-										<Clock className="size-3.5" />
-										{movie.durationFormatted}
-									</span>
-								)}
-								{movie.releaseDate && (
-									<span className="inline-flex items-center gap-1 rounded-md bg-muted px-2.5 py-1 text-sm text-muted-foreground">
-										<Calendar className="size-3.5" />
-										{new Date(movie.releaseDate).getFullYear()}
-									</span>
-								)}
-								{movie.country && (
-									<span className="inline-flex items-center gap-1 rounded-md bg-muted px-2.5 py-1 text-sm text-muted-foreground">
-										<Globe className="size-3.5" />
-										{movie.country}
-									</span>
-								)}
-								{movie.rating?.mpaa && (
-									<span className="inline-flex items-center rounded-md border border-border px-2.5 py-1 text-sm font-semibold">
-										{movie.rating.mpaa}
-									</span>
-								)}
-							</div>
-							{movie.genre?.length > 0 && (
-								<div className="flex flex-wrap gap-1.5">
-									{movie.genre.map((g) => (
-										<span
-											key={g}
-											className="rounded-full bg-secondary px-3 py-1 text-xs font-medium text-secondary-foreground"
-										>
-											{g}
-										</span>
-									))}
+						<dl className="mt-5 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs font-medium tabular-nums text-muted-foreground">
+							{movie.durationFormatted ? (
+								<div className="flex items-center gap-1.5">
+									<span>{movie.durationFormatted}</span>
 								</div>
-							)}
-							{movie.plot && (
-								<p className="text-sm leading-relaxed text-muted-foreground max-w-2xl">
-									{movie.plot}
-								</p>
-							)}
-							<div className="space-y-2 text-sm">
-								{movie.director?.length > 0 && (
-									<p>
-										<span className="text-muted-foreground">Director: </span>
-										<span className="font-medium">
-											{movie.director.join(", ")}
-										</span>
-									</p>
-								)}
-								{movie.createdAt && (
-									<p>
-										<span className="text-muted-foreground">
-											Release date :{" "}
-										</span>
-										<span className="font-medium">
-											{`${movie.createdAt.getDate().toString().padStart(2, "0")}/${(movie.createdAt.getMonth() + 1).toString().padStart(2, "0")}/${movie.createdAt.getFullYear()} `}
-										</span>
-									</p>
-								)}
-								{movie.cast?.length > 0 && (
-									<p>
-										<span className="text-muted-foreground">Cast: </span>
-										<span className="font-medium">{movie.cast.join(", ")}</span>
-									</p>
-								)}
-								{movie.subtitles?.length > 0 && (
-									<p>
-										<span className="text-muted-foreground">Subtitles: </span>
-										<span className="font-medium">
-											{movie.subtitles.join(", ")}
-										</span>
-									</p>
-								)}
-							</div>
-							{streamUrl && (
-								<div className="flex flex-wrap gap-3 pt-2">
-									<CopyStreamButton url={movie.url ? movie.url : streamUrl} />
-									{safeHref(movie.url ? movie.url : "") && (
-										<Tooltip>
-											<TooltipTrigger
-												render={
-													<a
-														href={safeHref(movie.url ? movie.url : "")}
-														target="_blank"
-														rel="noopener noreferrer"
-														aria-label="Read the content in another player"
-														className="inline-flex cursor-pointer items-center justify-center size-8 rounded-[min(var(--radius-md),10px)] hover:bg-muted transition-colors"
-													>
-														<ExternalLink className="size-4" />
-													</a>
-												}
-											/>
-											<TooltipContent>
-												<p>{"Read the content in another player"}</p>
-											</TooltipContent>
-										</Tooltip>
-									)}
-									<ItemActionButtons
-										playlistId={id}
-										itemId={movieId}
-										itemType="movie"
-										itemName={movie.name}
-										itemUrl={`/dashboard/movies/${id}/${categoryId}/${movieId}`}
-										isWatchLater={itemStatus.isWatchLater}
-										isFavorite={itemStatus.isFavorite}
+							) : null}
+							{movie.releaseDate ? (
+								<div className="flex items-center gap-1.5">
+									<span>{new Date(movie.releaseDate).getFullYear()}</span>
+								</div>
+							) : null}
+						</dl>
+						{streamUrl ? (
+							<div className="mt-5 flex items-center justify-center gap-2 border-t border-border/50 pt-5">
+								<CopyStreamButton url={movie.url ? movie.url : streamUrl} />
+								{safeHref(movie.url ?? "") ? (
+									<ExternalStreamLink
+										href={safeHref(movie.url ?? "") ?? ""}
+										label="Read the content in another player"
 									/>
+								) : null}
+								<ItemActionButtons
+									playlistId={id}
+									itemId={movieId}
+									itemType="movie"
+									itemName={movie.name}
+									itemUrl={`/dashboard/movies/${id}/${categoryId}/${movieId}`}
+									isWatchLater={itemStatus.isWatchLater}
+									isFavorite={itemStatus.isFavorite}
+								/>
+							</div>
+						) : null}
+					</div>
+
+					<div className="min-w-0">
+						<header>
+							<h1 className="font-serif text-4xl leading-[1.05] tracking-tight text-balance md:text-5xl">
+								{movie.name}
+							</h1>
+							{movie.originalName && movie.originalName !== movie.name ? (
+								<p className="mt-2 text-sm text-muted-foreground italic">
+									{movie.originalName}
+								</p>
+							) : null}
+							{movie.genre && movie.genre.length > 0 ? (
+								<p className="mt-4 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+									{movie.genre.join(" - ")}
+								</p>
+							) : null}
+						</header>
+
+						{movie.plot ? (
+							<p className="mt-6 max-w-prose text-[0.975rem] leading-relaxed text-foreground/80">
+								{movie.plot}
+							</p>
+						) : null}
+
+						<dl className="mt-8 grid gap-x-8 gap-y-4 border-y border-border/50 py-6 sm:grid-cols-2">
+							{movie.director && movie.director.length > 0 ? (
+								<div>
+									<dt className="text-sm font-medium text-foreground/80">
+										Director
+									</dt>
+									<dd className="mt-1.5 text-sm">
+										{movie.director.join(", ")}
+									</dd>
 								</div>
-							)}
-						</div>
+							) : null}
+							{movie.cast && movie.cast.length > 0 ? (
+								<div>
+									<dt className="text-sm font-medium text-foreground/80">
+										Cast
+									</dt>
+									<dd className="mt-1.5 text-sm">{movie.cast.join(", ")}</dd>
+								</div>
+							) : null}
+							{movie.subtitles && movie.subtitles.length > 0 ? (
+								<div>
+									<dt className="text-sm font-medium text-foreground/80">
+										Subtitles
+									</dt>
+									<dd className="mt-1.5 text-sm">
+										{movie.subtitles.join(", ")}
+									</dd>
+								</div>
+							) : null}
+							{movie.country ? (
+								<div>
+									<dt className="text-sm font-medium text-foreground/80">
+										Country
+									</dt>
+									<dd className="mt-1.5 text-sm">{movie.country}</dd>
+								</div>
+							) : null}
+						</dl>
+
+						{trailerUrl ? (
+							<div className="mt-10 space-y-3">
+								<h2 className="font-serif text-2xl tracking-tight">Trailer</h2>
+								<div className="overflow-hidden rounded-2xl border border-border/40 shadow-2xl shadow-black/50">
+									<div className="relative aspect-video">
+										<iframe
+											className="absolute inset-0 size-full"
+											src={trailerUrl}
+											title={`${movie.name} trailer`}
+											allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+											allowFullScreen
+										/>
+									</div>
+								</div>
+							</div>
+						) : null}
 					</div>
 				</div>
 			</div>
-			{trailerUrl && (
-				<div className=" pb-8">
-					<h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-						<Film className="size-5 text-primary" />
-						Trailer
-					</h2>
-					<div className="relative w-full max-w-3xl rounded-xl overflow-hidden border border-border/50 shadow-xl aspect-video">
-						<iframe
-							className="absolute inset-0 size-full"
-							src={trailerUrl}
-							title={`${movie.name} trailer`}
-							allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-							allowFullScreen
-						/>
-					</div>
-				</div>
-			)}
 		</div>
 	);
 }
