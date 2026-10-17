@@ -185,26 +185,30 @@ export function SeasonsList({
 					}
 				}}
 			>
-				<SheetContent side="bottom" className="mx-auto w-full max-w-4xl rounded-t-2xl border-t-0 !border-t-0 pb-6" showCloseButton={false}>
+				<SheetContent
+					side="bottom"
+					className="mx-auto w-full max-w-4xl rounded-t-2xl border-t-0 !border-t-0 pb-6"
+					showCloseButton={false}
+				>
 					<SheetHeader className="pb-2">
 						<div className="flex items-center justify-between gap-3">
 							<SheetTitle className="min-w-0 truncate leading-none">
 								{playing?.name}
 							</SheetTitle>
 							<div className="flex shrink-0 items-center gap-3">
-								<label className="flex cursor-pointer items-center gap-2 leading-none text-xs text-muted-foreground">
+								<label
+									htmlFor="episode-auto-next"
+									className="flex cursor-pointer items-center gap-2 leading-none text-xs text-muted-foreground"
+								>
 									<span>Auto next</span>
 									<Switch
+										id="episode-auto-next"
 										size="sm"
 										checked={autoNext}
 										onCheckedChange={setAutoNext}
 									/>
 								</label>
-								<SheetClose
-									render={
-										<Button variant="ghost" size="icon-sm" />
-									}
-								>
+								<SheetClose render={<Button variant="ghost" size="icon-sm" />}>
 									<XIcon />
 									<span className="sr-only">Close</span>
 								</SheetClose>

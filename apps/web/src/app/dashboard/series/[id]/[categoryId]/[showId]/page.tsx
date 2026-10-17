@@ -9,6 +9,7 @@ import { getCachedShow } from "@/server/cached-content";
 import { getItemStatus } from "@/server/user-items";
 import { getEpisodeProgress } from "@/server/watch-progress";
 import { getPlaylistById } from "@/server/xtream";
+import type { StandardXtreamEpisode } from "@iptv/xtream-api/standardized";
 import { PlayIcon, Tv } from "lucide-react";
 import type { Metadata } from "next";
 import Image from "next/image";
@@ -65,7 +66,10 @@ async function ShowDetailContent({ params }: PageProps) {
 	const episodeProgress = await getEpisodeProgress(id, showId);
 
 	// Resume target for the "continue watching" button under the poster.
-	const episodesById = new Map<string, { episode: any; seasonName: string }>();
+	const episodesById = new Map<
+		string,
+		{ episode: StandardXtreamEpisode; seasonName: string }
+	>();
 	const playableIds: string[] = [];
 	for (const season of show.seasons ?? []) {
 		for (const episode of season.episodes ?? []) {
