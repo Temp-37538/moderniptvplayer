@@ -1,13 +1,13 @@
 import { createPageMetadata, getPlaylistMetadataContext } from "@/app/metadata";
+import { EmptyState } from "@/components/empty-state";
+import { SavedItemsList } from "@/components/saved-items-list";
 import type { PlaylistIdPageProps as PageProps } from "@/components/types";
+import { getWatchLaterItems } from "@/server/user-items";
+import { getPlaylistById } from "@/server/xtream";
+import { Clock } from "lucide-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getPlaylistById } from "@/server/xtream";
-import { getWatchLaterItems } from "@/server/user-items";
-import { SavedItemsList } from "@/components/saved-items-list";
 
-// TODO: Cache Components adoption. Refactor this route so this opt-out can be removed.
-// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
 export const instant = false;
 
 export async function generateMetadata({
@@ -42,19 +42,31 @@ async function WatchLaterContent({ params }: PageProps) {
 	const items = await getWatchLaterItems(playlistId);
 
 	return (
-		<div className="max-w-2xl space-y-6">
-			<div className="space-y-1">
+		<div className="space-y-6">
+			<div className="max-w-2xl space-y-1">
 				<h1 className="text-2xl font-bold tracking-tight">Watch Later</h1>
 				<p className="text-sm text-muted-foreground">
 					{playlist.playlistName} - {items.length} item
 					{items.length !== 1 ? "s" : ""}
 				</p>
 			</div>
-			<SavedItemsList
-				items={items}
-				playlistId={playlistId}
-				variant="watchlater"
-			/>
+			{items.length === 0 ? (
+				<div className="flex min-h-[60vh] items-center justify-center">
+					<EmptyState
+						icon={<Clock className="size-12 mb-4 opacity-30" />}
+						title="No items in Watch Later"
+						description="Add items to watch later from channel, movie or series pages"
+					/>
+				</div>
+			) : (
+				<div className="max-w-2xl">
+					<SavedItemsList
+						items={items}
+						playlistId={playlistId}
+						variant="watchlater"
+					/>
+				</div>
+			)}
 		</div>
 	);
 }

@@ -16,8 +16,6 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 
-// TODO: Cache Components adoption. Refactor this route so this opt-out can be removed.
-// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
 export const instant = false;
 
 function safeHref(url: string): string | undefined {
@@ -202,7 +200,7 @@ async function MovieDetailContent({ params }: PageProps) {
 						<dl className="mt-8 grid gap-x-8 gap-y-4 border-y border-border/50 py-6 sm:grid-cols-2">
 							{movie.director && movie.director.length > 0 ? (
 								<div>
-									<dt className="text-sm font-medium text-foreground/80">
+									<dt className="font-serif text-base font-medium text-foreground/80">
 										Director
 									</dt>
 									<dd className="mt-1.5 text-sm">
@@ -212,7 +210,7 @@ async function MovieDetailContent({ params }: PageProps) {
 							) : null}
 							{movie.cast && movie.cast.length > 0 ? (
 								<div>
-									<dt className="text-sm font-medium text-foreground/80">
+									<dt className="font-serif text-base font-medium text-foreground/80">
 										Cast
 									</dt>
 									<dd className="mt-1.5 text-sm">{movie.cast.join(", ")}</dd>

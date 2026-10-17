@@ -1,13 +1,13 @@
 import { createPageMetadata, getPlaylistMetadataContext } from "@/app/metadata";
+import { EmptyState } from "@/components/empty-state";
+import { SavedItemsList } from "@/components/saved-items-list";
 import type { PlaylistIdPageProps as PageProps } from "@/components/types";
+import { getFavoriteItems } from "@/server/user-items";
+import { getPlaylistById } from "@/server/xtream";
+import { Heart } from "lucide-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getPlaylistById } from "@/server/xtream";
-import { getFavoriteItems } from "@/server/user-items";
-import { SavedItemsList } from "@/components/saved-items-list";
 
-// TODO: Cache Components adoption. Refactor this route so this opt-out can be removed.
-// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
 export const instant = false;
 
 export async function generateMetadata({
@@ -42,19 +42,31 @@ async function FavoritesContent({ params }: PageProps) {
 	const items = await getFavoriteItems(playlistId);
 
 	return (
-		<div className="max-w-2xl space-y-6">
-			<div className="space-y-1">
+		<div className="space-y-6">
+			<div className="max-w-2xl space-y-1">
 				<h1 className="text-2xl font-bold tracking-tight">Favorites</h1>
 				<p className="text-sm text-muted-foreground">
 					{playlist.playlistName} - {items.length} item
 					{items.length !== 1 ? "s" : ""}
 				</p>
 			</div>
-			<SavedItemsList
-				items={items}
-				playlistId={playlistId}
-				variant="favorites"
-			/>
+			{items.length === 0 ? (
+				<div className="flex min-h-[60vh] items-center justify-center">
+					<EmptyState
+						icon={<Heart className="size-12 mb-4 opacity-30" />}
+						title="No favorites yet"
+						description="Add favorites from channel, movie or series pages"
+					/>
+				</div>
+			) : (
+				<div className="max-w-2xl">
+					<SavedItemsList
+						items={items}
+						playlistId={playlistId}
+						variant="favorites"
+					/>
+				</div>
+			)}
 		</div>
 	);
 }
