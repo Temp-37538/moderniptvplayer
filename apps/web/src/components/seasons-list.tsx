@@ -3,19 +3,17 @@
 import { CopyStreamButton } from "@/components/copy-stream-button";
 import { ExternalStreamLink } from "@/components/external-stream-link";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import {
 	Sheet,
+	SheetClose,
 	SheetContent,
 	SheetHeader,
 	SheetTitle,
 } from "@/components/ui/sheet";
 import { VideoPlayer } from "@/components/video-player";
-import {
-	type EpisodeProgressEntry,
-	formatTimestamp,
-	pickResumeEpisode,
-} from "@/lib/series-resume";
-import { CheckIcon, ChevronDown, Clock, PlayIcon } from "lucide-react";
+import type { EpisodeProgressEntry } from "@/lib/series-resume";
+import { CheckIcon, ChevronDown, Clock, PlayIcon, XIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -85,6 +83,15 @@ export function SeasonsList({
 		() => new Set(seasons.map((season) => season.id)),
 	);
 	const [isDesktop, setIsDesktop] = useState(true);
+	const [autoNext, setAutoNext] = useState(() => {
+		if (typeof window === "undefined") {
+			return true;
+		}
+		return localStorage.getItem("iptv:auto-next") !== "false";
+	});
+	useEffect(() => {
+		localStorage.setItem("iptv:auto-next", String(autoNext));
+	}, [autoNext]);
 
 	useEffect(() => {
 		const query = window.matchMedia(MOBILE_BREAKPOINT);
@@ -105,10 +112,15 @@ export function SeasonsList({
 
 	// "Continue watching" links here with #episode-<id>.
 	useEffect(() => {
-		const id = /^#episode-(.+)$/.exec(window.location.hash)?.[1];
-		if (id) {
-			setPlayingId(decodeURIComponent(id));
-		}
+		const openFromHash = () => {
+			const id = /^#episode-(.+)$/.exec(window.location.hash)?.[1];
+			if (id) {
+				setPlayingId(decodeURIComponent(id));
+			}
+		};
+		openFromHash();
+		window.addEventListener("hashchange", openFromHash);
+		return () => window.removeEventListener("hashchange", openFromHash);
 	}, []);
 
 	// Watching order: season after season, only what has a stream.
@@ -133,22 +145,7 @@ export function SeasonsList({
 	const playing = playingIndex === -1 ? null : (playable[playingIndex] ?? null);
 	const nextEpisode = playing ? playable[playingIndex + 1] : undefined;
 
-	const resumeTarget = pickResumeEpisode(
-		playable.map((episode) => episode.id),
-		progress,
-	);
-	const resumeEpisode = resumeTarget
-		? playable.find((episode) => episode.id === resumeTarget.episodeId)
-		: undefined;
-	const resumeText = !(resumeTarget && resumeEpisode)
-		? ""
-		: resumeTarget.kind === "resume"
-			? `Resume ${resumeEpisode.label} at ${formatTimestamp(progress[resumeEpisode.id]?.positionSec ?? 0)}`
-			: resumeTarget.kind === "next"
-				? `Next episode: ${resumeEpisode.label}`
-				: resumeTarget.kind === "rewatch"
-					? `Watch again from ${resumeEpisode.label}`
-					: `Play ${resumeEpisode.label}`;
+	// (resume CTA moved to the series page, under the poster)
 
 	function startAt(episodeId: string) {
 		const entry = progress[episodeId];
@@ -180,12 +177,6 @@ export function SeasonsList({
 
 	return (
 		<div className="mt-12 space-y-6 sm:space-y-12">
-			{resumeEpisode && (
-				<Button size="lg" onClick={() => setPlayingId(resumeEpisode.id)}>
-					<PlayIcon className="size-4" />
-					{resumeText}
-				</Button>
-			)}
 			<Sheet
 				open={playing !== null}
 				onOpenChange={(open) => {
@@ -194,9 +185,31 @@ export function SeasonsList({
 					}
 				}}
 			>
-				<SheetContent side="bottom" className="mx-auto w-full max-w-4xl pb-6">
-					<SheetHeader>
-						<SheetTitle className="pr-10">{playing?.name}</SheetTitle>
+				<SheetContent side="bottom" className="mx-auto w-full max-w-4xl rounded-t-2xl border-t-0 !border-t-0 pb-6" showCloseButton={false}>
+					<SheetHeader className="pb-2">
+						<div className="flex items-center justify-between gap-3">
+							<SheetTitle className="min-w-0 truncate leading-none">
+								{playing?.name}
+							</SheetTitle>
+							<div className="flex shrink-0 items-center gap-3">
+								<label className="flex cursor-pointer items-center gap-2 leading-none text-xs text-muted-foreground">
+									<span>Auto next</span>
+									<Switch
+										size="sm"
+										checked={autoNext}
+										onCheckedChange={setAutoNext}
+									/>
+								</label>
+								<SheetClose
+									render={
+										<Button variant="ghost" size="icon-sm" />
+									}
+								>
+									<XIcon />
+									<span className="sr-only">Close</span>
+								</SheetClose>
+							</div>
+						</div>
 					</SheetHeader>
 					{playing && (
 						<div className="space-y-3 px-4">
@@ -221,7 +234,7 @@ export function SeasonsList({
 									},
 								]}
 								onEnded={() => {
-									if (nextEpisode) {
+									if (autoNext && nextEpisode) {
 										setPlayingId(nextEpisode.id);
 									}
 								}}
