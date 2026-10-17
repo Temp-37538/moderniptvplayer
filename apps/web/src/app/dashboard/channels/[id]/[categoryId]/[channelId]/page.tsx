@@ -1,20 +1,18 @@
 import { createPageMetadata, getChannelMetadataContext } from "@/app/metadata";
-import type { ChannelDetailPageProps as PageProps } from "@/components/types";
-import type { Metadata } from "next";
 import { CopyStreamButton } from "@/components/copy-stream-button";
 import { ExternalStreamLink } from "@/components/external-stream-link";
 import { ItemActionButtons } from "@/components/item-action-buttons";
+import type { ChannelDetailPageProps as PageProps } from "@/components/types";
 import { VideoPlayer } from "@/components/video-player";
+import { toSafeImageSrc } from "@/lib/image-url";
+import { getCachedChannel } from "@/server/cached-content";
 import { getItemStatus } from "@/server/user-items";
 import { createXtreamClient, getPlaylistById } from "@/server/xtream";
-import { getCachedChannel } from "@/server/cached-content";
 import { Radio } from "lucide-react";
+import type { Metadata } from "next";
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import { toSafeImageSrc } from "@/lib/image-url";
 
-// TODO: Cache Components adoption. Refactor this route so this opt-out can be removed.
-// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
 export const instant = false;
 
 export async function generateMetadata({
