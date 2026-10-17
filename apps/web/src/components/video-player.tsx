@@ -37,6 +37,80 @@ type VideoPlayerProps = {
 	className?: string;
 };
 
+type NoticeKind = "no-video" | "no-audio";
+
+const NOTICES: Record<NoticeKind, string> = {
+	"no-video":
+		"No picture: this stream's video codec (often HEVC/H.265) isn't supported by your browser. Open it in another player (VLC) to see it.",
+	"no-audio":
+		"No sound: this stream's audio codec (often AC3, E-AC3 or DTS) isn't supported by your browser. Open it in another player (VLC) to hear it.",
+};
+
+type FailureDetail = { reason: string; technical?: string };
+
+// Seconds of real playback before judging what the browser decoded.
+const DECODE_CHECK_AFTER_S = 3;
+
+function describeMediaError(video: HTMLVideoElement) {
+	const message = video.error?.message;
+	return message ? `browser: ${message}` : undefined;
+}
+
+/**
+ * Why a stream that cannot play does not play. A refusal by the playlist
+ * server (blocked IP, account limit...) and an undecodable codec look the same
+ * to the video element, but only the first one answers with an HTTP error: ask
+ * the proxy again, now that the player has let go of the connection.
+ */
+async function probe(src: string): Promise<string | null> {
+	const controller = new AbortController();
+	const timer = setTimeout(() => controller.abort(), 8000);
+	try {
+		const response = await fetch(src, {
+			headers: { range: "bytes=0-0" },
+			signal: controller.signal,
+		});
+		if (response.ok) {
+			void response.body?.cancel();
+			return null;
+		}
+		const body = (await response.json().catch(() => null)) as {
+			error?: string;
+			upstreamStatus?: number;
+			code?: string;
+		} | null;
+		const extra = [
+			`HTTP ${response.status}`,
+			body?.upstreamStatus ? `provider answered ${body.upstreamStatus}` : "",
+			body?.code ?? "",
+		].filter(Boolean);
+		return `${body?.error ?? "The server refused the stream."} (${extra.join(", ")})`;
+	} catch {
+		return null;
+	} finally {
+		clearTimeout(timer);
+		controller.abort();
+	}
+}
+
+async function diagnose(
+	sources: PlayerSource[],
+	technical?: string,
+): Promise<FailureDetail> {
+	for (const source of sources) {
+		const problem = await probe(source.src);
+		if (problem) {
+			return { reason: problem, technical };
+		}
+	}
+	return {
+		reason: technical?.includes("NO_SUPPORTED_STREAMS")
+			? "None of the streams in this file uses a codec your browser can decode (typically HEVC video with E-AC3 or DTS audio)."
+			: "The server answered, but the browser could not decode the stream.",
+		technical,
+	};
+}
+
 const SAVE_INTERVAL_MS = 15_000;
 // Opening a title for a few seconds must not clutter "continue watching".
 const MIN_SAVED_POSITION = 10;
@@ -55,6 +129,13 @@ export function VideoPlayer({
 	const videoRef = useRef<HTMLVideoElement>(null);
 	const [attempt, setAttempt] = useState({ key: "", index: 0 });
 	const [failedKey, setFailedKey] = useState("");
+	const [failureDetail, setFailureDetail] = useState<
+		(FailureDetail & { key: string }) | null
+	>(null);
+	const [notice, setNotice] = useState<{
+		key: string;
+		kind: NoticeKind;
+	} | null>(null);
 
 	const sourcesKey = sources
 		.map((source) => `${source.kind}:${source.src}`)
@@ -62,6 +143,8 @@ export function VideoPlayer({
 	// A new set of sources starts over from the first one.
 	const sourceIndex = attempt.key === sourcesKey ? attempt.index : 0;
 	const failed = failedKey === sourcesKey;
+	const detail = failureDetail?.key === sourcesKey ? failureDetail : null;
+	const activeNotice = notice?.key === sourcesKey ? notice.kind : null;
 
 	const progressKey = progress
 		? `${progress.playlistId}|${progress.itemType}|${progress.itemId}`
@@ -173,6 +256,51 @@ export function VideoPlayer({
 		return () => video.removeEventListener("ended", handleEnded);
 	}, []);
 
+	// A container can be fine while one of its tracks is not (H.264 with AC3
+	// audio plays silently, HEVC with AAC audio plays without picture): the
+	// browser reports nothing, so look at what it actually decoded.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: sourcesKey stands for the sources array
+	useEffect(() => {
+		const video = videoRef.current as
+			| (HTMLVideoElement & { webkitAudioDecodedByteCount?: number })
+			| null;
+		if (!video) {
+			return;
+		}
+		let playedFrom: number | null = null;
+		let checked = false;
+		const onPlaying = () => {
+			playedFrom ??= video.currentTime;
+		};
+		const onTimeUpdate = () => {
+			if (
+				checked ||
+				playedFrom === null ||
+				video.paused ||
+				video.currentTime - playedFrom < DECODE_CHECK_AFTER_S
+			) {
+				return;
+			}
+			checked = true;
+			const audioBytes = video.webkitAudioDecodedByteCount;
+			if (video.videoWidth === 0 && video.videoHeight === 0) {
+				setNotice({ key: sourcesKey, kind: "no-video" });
+			} else if (
+				typeof audioBytes === "number" &&
+				audioBytes === 0 &&
+				!video.muted
+			) {
+				setNotice({ key: sourcesKey, kind: "no-audio" });
+			}
+		};
+		video.addEventListener("playing", onPlaying);
+		video.addEventListener("timeupdate", onTimeUpdate);
+		return () => {
+			video.removeEventListener("playing", onPlaying);
+			video.removeEventListener("timeupdate", onTimeUpdate);
+		};
+	}, [sourcesKey, sourceIndex]);
+
 	// biome-ignore lint/correctness/useExhaustiveDependencies: sourcesKey stands for the sources array
 	useEffect(() => {
 		const video = videoRef.current;
@@ -184,16 +312,22 @@ export function VideoPlayer({
 		let disposed = false;
 		let teardown = () => {};
 
-		const fail = () => {
+		const fail = (technical?: string) => {
 			if (disposed) {
 				return;
 			}
 			if (sourceIndex + 1 < sources.length) {
 				setAttempt({ key: sourcesKey, index: sourceIndex + 1 });
-			} else {
-				setFailedKey(sourcesKey);
+				return;
 			}
+			setFailedKey(sourcesKey);
+			diagnose(sources, technical).then((result) => {
+				if (!disposed) {
+					setFailureDetail({ key: sourcesKey, ...result });
+				}
+			});
 		};
+		const onMediaError = () => fail(describeMediaError(video));
 
 		const onLoadedMetadata = () => {
 			if (!live && startAt > 5 && startAt < video.duration - 10) {
@@ -204,8 +338,8 @@ export function VideoPlayer({
 
 		const attachNative = () => {
 			video.src = source.src;
-			video.addEventListener("error", fail);
-			teardown = () => video.removeEventListener("error", fail);
+			video.addEventListener("error", onMediaError);
+			teardown = () => video.removeEventListener("error", onMediaError);
 		};
 
 		const attach = async () => {
@@ -238,7 +372,9 @@ export function VideoPlayer({
 						hls.recoverMediaError();
 						return;
 					}
-					fail();
+					fail(
+						`hls.js: ${data.details}${data.response?.code ? ` (HTTP ${data.response.code})` : ""}`,
+					);
 				});
 				hls.loadSource(source.src);
 				hls.attachMedia(video);
@@ -257,7 +393,9 @@ export function VideoPlayer({
 					isLive: true,
 					url: source.src,
 				});
-				player.on(mpegts.Events.ERROR, fail);
+				player.on(mpegts.Events.ERROR, (type: string, detail: string) =>
+					fail(`mpegts.js: ${type} ${detail}`),
+				);
 				player.attachMediaElement(video);
 				player.load();
 				teardown = () => {
@@ -302,14 +440,27 @@ export function VideoPlayer({
 				poster={poster}
 				className="size-full"
 			/>
+			{!failed && activeNotice && (
+				<p className="pointer-events-none absolute inset-x-0 top-0 bg-black/75 px-3 py-2 text-center text-xs text-white/90">
+					{NOTICES[activeNotice]}
+				</p>
+			)}
 			{failed && (
 				<div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/85 p-6 text-center text-sm text-white">
 					<AlertCircleIcon className="size-6" />
 					<p>This stream can't be played in the browser.</p>
-					<p className="text-white/70">
-						Use "Open in another player" instead (some formats, like mkv or
-						HEVC, are not supported by browsers).
+					{detail && (
+						<p className="max-w-prose text-white/85">{detail.reason}</p>
+					)}
+					<p className="max-w-prose text-white/70">
+						Open it in another player (VLC) instead: browsers can't decode every
+						codec, even inside formats they support.
 					</p>
+					{detail?.technical && (
+						<p className="max-w-prose break-words font-mono text-[11px] text-white/50">
+							{detail.technical}
+						</p>
+					)}
 				</div>
 			)}
 		</div>
