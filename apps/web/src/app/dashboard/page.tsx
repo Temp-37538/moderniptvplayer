@@ -5,6 +5,7 @@ import {
 	PlaylistCard,
 	type PlaylistCardData,
 } from "@/components/playlist-card";
+import { ContinueWatchingSkeleton } from "@/components/skeletons";
 import { Button } from "@/components/ui/button";
 import { fetchPlaylists } from "@/server/queries";
 import { PlusIcon } from "lucide-react";
@@ -12,8 +13,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 
-// TODO: Cache Components adoption. Refactor this route so this opt-out can be removed.
-// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
 export const instant = false;
 
 export const metadata: Metadata = createPageMetadata({
@@ -46,12 +45,9 @@ async function Page() {
 	}
 
 	return (
-		<div className="flex h-full flex-col overflow-y-auto p-4">
-			<div className="w-full max-w-4xl">
-				<Suspense fallback={null}>
-					<ContinueWatching />
-				</Suspense>
-				<div className="mb-6 flex items-center justify-between gap-4">
+		<div className="flex h-full flex-col overflow-y-auto p-6">
+			<div className="w-full space-y-8">
+				<div className="flex items-center justify-between gap-4">
 					<div className="space-y-1">
 						<h1 className="text-3xl font-bold tracking-tight">
 							Your playlists
@@ -73,6 +69,9 @@ async function Page() {
 						<PlaylistCard key={playlist.id} {...playlist} />
 					))}
 				</div>
+				<Suspense fallback={<ContinueWatchingSkeleton />}>
+					<ContinueWatching />
+				</Suspense>
 			</div>
 		</div>
 	);

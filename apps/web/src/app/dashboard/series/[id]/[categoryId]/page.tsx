@@ -1,18 +1,16 @@
 import { createPageMetadata, getCategoryMetadataContext } from "@/app/metadata";
-import type { IdCategoryPageProps as PageProps } from "@/components/types";
-import type { Metadata } from "next";
-import Link from "next/link";
-import { notFound } from "next/navigation";
-import { getPlaylistById } from "@/server/xtream";
-import { getCachedShows } from "@/server/cached-content";
-import { Tv } from "lucide-react";
-import Image from "next/image";
 import { EmptyState } from "@/components/empty-state";
 import { PaginationNav } from "@/components/pagination-nav";
+import type { IdCategoryPageProps as PageProps } from "@/components/types";
 import { toSafeImageSrc } from "@/lib/image-url";
+import { getCachedShows } from "@/server/cached-content";
+import { getPlaylistById } from "@/server/xtream";
+import { Tv } from "lucide-react";
+import type { Metadata } from "next";
+import Image from "next/image";
+import Link from "next/link";
+import { notFound } from "next/navigation";
 
-// TODO: Cache Components adoption. Refactor this route so this opt-out can be removed.
-// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
 export const instant = false;
 
 const ITEMS_PER_PAGE = 20;

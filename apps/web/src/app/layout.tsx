@@ -1,12 +1,10 @@
-import Providers from "@/components/providers";
 import { APP_DESCRIPTION, APP_NAME, getMetadataBase } from "@/app/metadata";
+import Providers from "@/components/providers";
 import type { Metadata } from "next";
-import { Inter, Instrument_Serif, Fira_Code } from "next/font/google";
+import { Fira_Code, Instrument_Serif, Inter } from "next/font/google";
 import { cookies } from "next/headers";
 import "../index.css";
 
-// TODO: Cache Components adoption. Refactor this route so this opt-out can be removed.
-// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
 export const instant = false;
 
 const fontSans = Inter({

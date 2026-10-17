@@ -132,7 +132,7 @@ export function MediaDetailSkeleton() {
 		<div className="min-h-full">
 			<div className="w-full px-6 pt-6 pb-10 md:px-10 md:pt-8 md:pb-12">
 				<div className="grid gap-10 md:grid-cols-[19rem_minmax(0,1fr)] md:gap-14">
-					<div className="md:sticky md:top-6 md:self-start">
+					<div className="md:sticky md:top-8 md:self-start space-y-5">
 						<Skeleton className="aspect-2/3 w-full rounded-2xl" />
 						<div className="mt-5 flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
 							<Skeleton className="h-4 w-10" />
@@ -140,6 +140,7 @@ export function MediaDetailSkeleton() {
 							<Skeleton className="h-4 w-10" />
 						</div>
 						<div className="mt-5 flex items-center justify-center gap-2 border-t border-border/50 pt-5">
+							<Skeleton className="h-8 w-8 rounded-md" />
 							<Skeleton className="h-8 w-8 rounded-md" />
 							<Skeleton className="h-8 w-8 rounded-md" />
 							<Skeleton className="h-8 w-8 rounded-md" />
@@ -155,6 +156,13 @@ export function MediaDetailSkeleton() {
 							<Skeleton className="h-4 w-full max-w-xl" />
 							<Skeleton className="h-4 w-full max-w-2xl" />
 						</div>
+						<section className="mt-10 space-y-3">
+							<div className="flex flex-wrap items-baseline justify-between gap-2">
+								<Skeleton className="h-7 w-16" />
+								<Skeleton className="h-4 w-24" />
+							</div>
+							<Skeleton className="aspect-video w-full rounded-2xl" />
+						</section>
 						<div className="mt-8 grid gap-x-8 gap-y-4 border-y border-border/50 py-6 sm:grid-cols-2">
 							<div className="space-y-1.5">
 								<Skeleton className="h-3 w-16" />
@@ -166,7 +174,7 @@ export function MediaDetailSkeleton() {
 							</div>
 						</div>
 						<div className="mt-10 space-y-3">
-							<Skeleton className="h-4 w-16" />
+							<Skeleton className="h-7 w-20" />
 							<Skeleton className="aspect-video w-full rounded-2xl" />
 						</div>
 					</div>
@@ -199,10 +207,10 @@ export function ChannelDetailSkeleton() {
 
 export function ShowDetailSkeleton() {
 	return (
-		<div className="min-h-full overflow-y-auto scrollbar-thin scrollbar-thumb-rounded-lg scrollbar-thumb-border/50 scrollbar-track-border/20">
+		<div className="min-h-full">
 			<div className="w-full px-6 pt-6 pb-10 md:px-10 md:pt-8 md:pb-12">
 				<div className="grid gap-10 md:grid-cols-[19rem_minmax(0,1fr)] md:gap-14">
-					<div className="md:sticky md:top-6 md:self-start">
+					<div className="md:sticky md:top-8 md:self-start">
 						<div className="relative">
 							<Skeleton className="aspect-2/3 w-full rounded-2xl border border-border/40" />
 							<div className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-inset ring-white/10" />
@@ -210,16 +218,11 @@ export function ShowDetailSkeleton() {
 
 						<dl className="mt-5 flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
 							<div className="flex items-center gap-1.5">
-								<Skeleton className="size-3 rounded-full" />
 								<Skeleton className="h-3 w-7" />
 							</div>
 							<div className="flex items-center gap-1.5">
 								<Skeleton className="size-3 rounded-full" />
 								<Skeleton className="h-3 w-9" />
-							</div>
-							<div className="flex items-center gap-1.5">
-								<Skeleton className="size-3 rounded-full" />
-								<Skeleton className="h-3 w-16" />
 							</div>
 						</dl>
 
@@ -227,15 +230,23 @@ export function ShowDetailSkeleton() {
 							<Skeleton className="size-8 rounded-[min(var(--radius-md),10px)]" />
 							<Skeleton className="size-8 rounded-[min(var(--radius-md),10px)]" />
 						</div>
+						<div className="mt-5 flex items-center gap-3 rounded-md border border-border/40 px-3 py-2.5">
+							<Skeleton className="size-4 shrink-0" />
+							<div className="min-w-0 flex-1 space-y-1">
+								<Skeleton className="h-3 w-24" />
+								<Skeleton className="h-4 w-32" />
+							</div>
+						</div>
+						<Skeleton className="h-px w-full" />
 					</div>
 
 					<div className="min-w-0">
 						<header>
-							<Skeleton className="h-3 w-14" />
-							<Skeleton className="mt-3 h-11 w-4/5 md:h-12" />
+							<Skeleton className="h-11 w-4/5 md:h-12" />
+							<Skeleton className="mt-4 h-3 w-24" />
 						</header>
 
-						<div className="mt-6 space-y-2">
+						<div className="mt-6 max-w-prose space-y-2">
 							<Skeleton className="h-4 w-full" />
 							<Skeleton className="h-4 w-full" />
 							<Skeleton className="h-4 w-11/12" />
@@ -287,6 +298,23 @@ export function ShowDetailSkeleton() {
 				</div>
 			</div>
 		</div>
+	);
+}
+
+export function ContinueWatchingSkeleton({ count = 6 }: { count?: number }) {
+	return (
+		<section className="mb-8">
+			<Skeleton className="mb-3 h-6 w-40" />
+			<div className="flex gap-4 overflow-x-auto pb-2 scrollbar-none">
+				{Array.from({ length: count }).map((_, i) => (
+					<div key={i} className="w-36 shrink-0 space-y-2">
+						<Skeleton className="aspect-2/3 w-full rounded-lg" />
+						<Skeleton className="h-4 w-full" />
+						<Skeleton className="h-4 w-2/3" />
+					</div>
+				))}
+			</div>
+		</section>
 	);
 }
 

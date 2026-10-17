@@ -2,14 +2,11 @@ import { createPageMetadata, getPlaylistMetadataContext } from "@/app/metadata";
 import { SavedItemsList } from "@/components/saved-items-list";
 import { getFavoriteItems, getWatchLaterItems } from "@/server/user-items";
 import { getPlaylistById } from "@/server/xtream";
-import { Clapperboard, ChevronRight, Film, Tv } from "lucide-react";
-import type { Metadata } from "next";
-import type { Route } from "next";
+import { ChevronRight, Clapperboard, Film, Tv } from "lucide-react";
+import type { Metadata, Route } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-// TODO: Cache Components adoption. Refactor this route so this opt-out can be removed.
-// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
 export const instant = false;
 
 export async function generateMetadata({

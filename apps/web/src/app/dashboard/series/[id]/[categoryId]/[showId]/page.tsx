@@ -1,18 +1,20 @@
 import { createPageMetadata, getShowMetadataContext } from "@/app/metadata";
 import { ItemActionButtons } from "@/components/item-action-buttons";
 import { SeasonsList } from "@/components/seasons-list";
-import type { Metadata } from "next";
 import type { PageProps } from "@/components/types";
-import { getItemStatus } from "@/server/user-items";
-import { getPlaylistById } from "@/server/xtream";
+import { toSafeImageSrc } from "@/lib/image-url";
+import { formatTimestamp, pickResumeEpisode } from "@/lib/series-resume";
+import { toYoutubeEmbedUrl } from "@/lib/youtube";
 import { getCachedShow } from "@/server/cached-content";
-import { Tv } from "lucide-react";
+import { getItemStatus } from "@/server/user-items";
+import { getEpisodeProgress } from "@/server/watch-progress";
+import { getPlaylistById } from "@/server/xtream";
+import type { StandardXtreamEpisode } from "@iptv/xtream-api/standardized";
+import { PlayIcon, Tv } from "lucide-react";
+import type { Metadata } from "next";
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import { toSafeImageSrc } from "@/lib/image-url";
 
-// TODO: Cache Components adoption. Refactor this route so this opt-out can be removed.
-// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
 export const instant = false;
 
 export async function generateMetadata({
@@ -61,6 +63,41 @@ async function ShowDetailContent({ params }: PageProps) {
 
 	const itemStatus = await getItemStatus(id, showId, "series");
 	const safePosterSrc = toSafeImageSrc(show.poster);
+	const episodeProgress = await getEpisodeProgress(id, showId);
+
+	// Resume target for the "continue watching" button under the poster.
+	const episodesById = new Map<
+		string,
+		{ episode: StandardXtreamEpisode; seasonName: string }
+	>();
+	const playableIds: string[] = [];
+	for (const season of show.seasons ?? []) {
+		for (const episode of season.episodes ?? []) {
+			if (episode.url) {
+				episodesById.set(episode.id, { episode, seasonName: season.name });
+				playableIds.push(episode.id);
+			}
+		}
+	}
+	const resumeTarget = pickResumeEpisode(playableIds, episodeProgress);
+	const resumeEntry = resumeTarget
+		? episodesById.get(resumeTarget.episodeId)
+		: undefined;
+	const resumeLabel = resumeEntry
+		? `${resumeEntry.seasonName} - E${String(resumeEntry.episode.number).padStart(2, "0")}`
+		: null;
+	const resumeText =
+		!resumeTarget || !resumeEntry
+			? ""
+			: resumeTarget.kind === "resume"
+				? `Resume at ${formatTimestamp(episodeProgress[resumeEntry.episode.id]?.positionSec ?? 0)}`
+				: resumeTarget.kind === "next"
+					? "Next episode"
+					: resumeTarget.kind === "rewatch"
+						? "Watch again"
+						: "Play";
+	// The provider's value is untrusted: only a valid YouTube id gets an embed.
+	const trailerUrl = toYoutubeEmbedUrl(show.youtubeId);
 
 	return (
 		<div className="min-h-full overflow-y-auto scrollbar-thin scrollbar-thumb-rounded-lg scrollbar-thumb-border/50 scrollbar-track-border/20">
@@ -117,6 +154,41 @@ async function ShowDetailContent({ params }: PageProps) {
 								isFavorite={itemStatus.isFavorite}
 							/>
 						</div>
+						{resumeEntry && (
+							<a
+								href={`#episode-${resumeEntry.episode.id}`}
+								className="mt-5 block w-full overflow-hidden rounded-md border border-border/40 transition-colors hover:bg-muted/40"
+							>
+								<span className="flex items-center gap-3 px-3 py-2.5">
+									<PlayIcon className="size-4 shrink-0 text-primary" />
+									<span className="min-w-0 flex-1">
+										<span className="block text-xs text-muted-foreground">
+											{resumeText}
+										</span>
+										<span className="block truncate text-sm font-medium">
+											{resumeLabel}
+										</span>
+									</span>
+								</span>
+								{resumeTarget?.kind === "resume" && (
+									<span className="block h-px w-full bg-border/60">
+										<span
+											className="block h-full bg-primary"
+											style={{
+												width: `${Math.min(
+													100,
+													((episodeProgress[resumeEntry.episode.id]
+														?.positionSec ?? 0) /
+														(episodeProgress[resumeEntry.episode.id]
+															?.durationSec || 1)) *
+														100,
+												)}%`,
+											}}
+										/>
+									</span>
+								)}
+							</a>
+						)}
 					</div>
 
 					<div className="min-w-0">
@@ -165,10 +237,19 @@ async function ShowDetailContent({ params }: PageProps) {
 						)}
 
 						{show.seasons && show.seasons.length > 0 && (
-							<SeasonsList seasons={show.seasons} />
+							<SeasonsList
+								seasons={show.seasons}
+								playlistId={id}
+								categoryId={categoryId}
+								showId={showId}
+								showName={show.name}
+								showPoster={show.poster}
+								posterSrc={safePosterSrc}
+								progress={episodeProgress}
+							/>
 						)}
 
-						{show.youtubeId && (
+						{trailerUrl && (
 							<section className="mt-14">
 								<h2 className="flex items-center gap-2 font-serif text-2xl tracking-tight">
 									Trailer
@@ -176,7 +257,7 @@ async function ShowDetailContent({ params }: PageProps) {
 								<div className="mt-4 aspect-video w-full max-w-2xl overflow-hidden rounded-xl border border-border/40 shadow-xl shadow-black/40">
 									<iframe
 										className="size-full"
-										src={`https://www.youtube.com/embed/${show.youtubeId}`}
+										src={trailerUrl}
 										title={`${show.name} trailer`}
 										allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
 										allowFullScreen

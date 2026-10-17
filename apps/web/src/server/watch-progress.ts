@@ -1,5 +1,6 @@
 import "server-only";
 import prisma from "@moderniptvplayer/db";
+import type { EpisodeProgressEntry } from "@/lib/series-resume";
 import { requireAuthenticatedUserId } from "./auth-utils";
 
 // Past this share of the duration the title counts as watched.
@@ -110,13 +111,18 @@ export async function getResumeInfo(
 export async function getEpisodeProgress(
 	playlistId: string,
 	showId: string,
-): Promise<Map<string, ResumeInfo>> {
+): Promise<Record<string, EpisodeProgressEntry>> {
 	const userId = await requireAuthenticatedUserId();
 	const rows = await prisma.watchProgress.findMany({
 		where: { playlistId, showId, itemType: "episode", userId },
-		select: { itemId: true, ...resumeSelect },
+		select: { itemId: true, ...resumeSelect, updatedAt: true },
 	});
-	return new Map(rows.map(({ itemId, ...info }) => [itemId, info]));
+	return Object.fromEntries(
+		rows.map(({ itemId, updatedAt, ...info }) => [
+			itemId,
+			{ ...info, updatedAt: updatedAt.getTime() },
+		]),
+	);
 }
 
 /** Unfinished titles, latest first; a show appears once (its latest episode). */

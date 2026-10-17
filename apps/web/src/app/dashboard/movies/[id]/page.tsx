@@ -1,13 +1,11 @@
 import { createPageMetadata, getPlaylistMetadataContext } from "@/app/metadata";
+import { MovieCategorySearch } from "@/components/series-category-search";
 import type { IdPageProps as PageProps } from "@/components/types";
-import type { Metadata } from "next";
 import { getCachedMovieCategories } from "@/server/cached-content";
 import { getPlaylistById } from "@/server/xtream";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { MovieCategorySearch } from "@/components/series-category-search";
 
-// TODO: Cache Components adoption. Refactor this route so this opt-out can be removed.
-// See: https://nextjs.org/docs/app/guides/migrating-to-cache-components
 export const instant = false;
 
 export async function generateMetadata({

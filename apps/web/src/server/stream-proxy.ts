@@ -31,11 +31,28 @@ const RANGE_PATTERN = /^bytes=\d*-\d*$/;
 export const ID_PATTERN = /^[\w-]{1,64}$/;
 export const EXTENSION_PATTERN = /^[a-z0-9]{2,5}$/i;
 
-export function streamError(status: number, message: string) {
+/**
+ * `upstreamStatus` (what the provider answered) and `code` (a network error
+ * code such as ECONNRESET) carry no secret: the player shows them to explain
+ * why a stream does not start.
+ */
+export function streamError(
+	status: number,
+	message: string,
+	details: { upstreamStatus?: number; code?: string } = {},
+) {
 	return NextResponse.json(
-		{ error: message },
+		{ error: message, ...details },
 		{ status, headers: { "Cache-Control": "no-store" } },
 	);
+}
+
+function networkErrorCode(error: unknown) {
+	const code =
+		error instanceof Error ? (error as { code?: unknown }).code : undefined;
+	return typeof code === "string" && /^E[A-Z0-9]+$/.test(code)
+		? code
+		: undefined;
 }
 
 /** Session check shared by every stream route (these are not page routes). */
@@ -121,9 +138,10 @@ function refuseStatus(upstream: SafeStreamResponse) {
 		}
 		return new NextResponse(null, { status: 416, headers });
 	}
+	const details = { upstreamStatus: upstream.status };
 	return upstream.status === 404
-		? streamError(404, "Stream not found.")
-		: streamError(502, "The playlist server refused the stream.");
+		? streamError(404, "Stream not found.", details)
+		: streamError(502, "The playlist server refused the stream.", details);
 }
 
 async function manifestResponse(upstream: SafeStreamResponse, userId: string) {
@@ -169,8 +187,9 @@ function toErrorResponse(error: unknown, host: string) {
 	if (isAbortError(error)) {
 		return new NextResponse(null, { status: 499 });
 	}
-	console.warn("[stream-proxy] request-failed", { host });
-	return streamError(502, "Unable to reach the playlist server.");
+	const code = networkErrorCode(error);
+	console.warn("[stream-proxy] request-failed", { host, code });
+	return streamError(502, "Unable to reach the playlist server.", { code });
 }
 
 function isAbortError(error: unknown) {
