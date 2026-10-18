@@ -55,6 +55,8 @@ type PlayableEpisode = {
 	/** "Season 2 - E04" */
 	label: string;
 	extension: string;
+	/** The provider's own URL (http or https only). */
+	directUrl?: string;
 };
 
 const MOBILE_BREAKPOINT = "(min-width: 640px)";
@@ -133,6 +135,9 @@ export function SeasonsList({
 					id: episode.id,
 					name: `${showName} - ${label}`,
 					label,
+					directUrl: /^https?:\/\//i.test(episode.url ?? "")
+						? episode.url
+						: undefined,
 					extension: (
 						episode.url?.match(/\.([a-z0-9]{2,5})(?:\?.*)?$/i)?.[1] ?? "mp4"
 					).toLowerCase(),
@@ -236,6 +241,10 @@ export function SeasonsList({
 										kind: playing.extension === "m3u8" ? "hls" : "native",
 										src: `/api/stream/vod/${encodeURIComponent(playlistId)}/episode/${encodeURIComponent(playing.id)}?ext=${encodeURIComponent(playing.extension)}`,
 									},
+									// Fallback for providers that refuse the server's IP.
+									...(playing.directUrl
+										? [{ kind: "direct" as const, src: playing.directUrl }]
+										: []),
 								]}
 								onEnded={() => {
 									if (autoNext && nextEpisode) {

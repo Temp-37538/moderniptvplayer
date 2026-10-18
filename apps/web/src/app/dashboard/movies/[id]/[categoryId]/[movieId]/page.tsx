@@ -84,6 +84,7 @@ async function MovieDetailContent({ params }: PageProps) {
 	const extension = (
 		movie.url?.match(/\.([a-z0-9]{2,5})(?:\?.*)?$/i)?.[1] ?? "mp4"
 	).toLowerCase();
+	const directUrl = safeHref(movie.url ?? "");
 	const safePosterSrc = toSafeImageSrc(movie.poster);
 	// The provider's value is untrusted: only a valid YouTube id gets an embed.
 	const trailerUrl = toYoutubeEmbedUrl(movie.youtubeId);
@@ -193,6 +194,10 @@ async function MovieDetailContent({ params }: PageProps) {
 										kind: extension === "m3u8" ? "hls" : "native",
 										src: `/api/stream/vod/${encodeURIComponent(id)}/movie/${encodeURIComponent(movieId)}?ext=${encodeURIComponent(extension)}`,
 									},
+									// Fallback for providers that refuse the server's IP.
+									...(directUrl
+										? [{ kind: "direct" as const, src: directUrl }]
+										: []),
 								]}
 							/>
 						</section>
