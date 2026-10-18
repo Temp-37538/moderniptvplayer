@@ -68,12 +68,7 @@ function requestOnce(
 				method: "GET",
 				// Media is never compressed upstream: a gzip layer would only add
 				// latency to a live stream.
-				headers: {
-					"accept-encoding": "identity",
-					"user-agent": "VLC/3.0.20 LibVLC/3.0.20",
-					accept: "*/*",
-					...options.headers,
-				},
+				headers: { "accept-encoding": "identity", ...options.headers },
 				agent: isHttps ? pool.https : pool.http,
 				lookup: options.allowPrivateHosts ? undefined : strictLookup,
 			},
