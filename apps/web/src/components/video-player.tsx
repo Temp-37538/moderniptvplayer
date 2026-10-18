@@ -5,8 +5,13 @@ import { AlertCircleIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 export type PlayerSource = {
-	/** "native": mp4 and friends. "hls": .m3u8. "mpegts": raw live MPEG-TS. */
-	kind: "native" | "hls" | "mpegts";
+	/**
+	 * "native": mp4 and friends. "hls": .m3u8. "mpegts": raw live MPEG-TS.
+	 * "direct": the provider's own URL, played from the user's connection (for
+	 * providers that refuse the server's IP). Browsers only allow it on a secure
+	 * page when "Insecure content" is allowed for the site.
+	 */
+	kind: "native" | "hls" | "mpegts" | "direct";
 	src: string;
 };
 
@@ -46,7 +51,61 @@ const NOTICES: Record<NoticeKind, string> = {
 		"No sound: this stream's audio codec (often AC3, E-AC3 or DTS) isn't supported by your browser. Open it in another player (VLC) to hear it.",
 };
 
-type FailureDetail = { reason: string; technical?: string };
+type FailureDetail = {
+	reason: string;
+	technical?: string;
+	/** The provider refuses the server and the browser refused the direct URL. */
+	directBlocked?: boolean;
+};
+
+const DIRECT_PREF_PREFIX = "iptv-direct:";
+
+function directPrefKey(src: string) {
+	try {
+		return `${DIRECT_PREF_PREFIX}${new URL(src).host}`;
+	} catch {
+		return null;
+	}
+}
+
+function readDirectPref(src: string) {
+	try {
+		const key = directPrefKey(src);
+		return key !== null && window.localStorage.getItem(key) === "1";
+	} catch {
+		return false;
+	}
+}
+
+function writeDirectPref(src: string, on: boolean) {
+	try {
+		const key = directPrefKey(src);
+		if (key === null) {
+			return;
+		}
+		if (on) {
+			window.localStorage.setItem(key, "1");
+		} else {
+			window.localStorage.removeItem(key);
+		}
+	} catch {
+		// Storage can be unavailable (private mode): the preference is optional.
+	}
+}
+
+/** Direct playback goes first once it has worked for this provider. */
+function orderSources(sources: PlayerSource[]) {
+	const direct = sources.find((source) => source.kind === "direct");
+	if (!direct || !readDirectPref(direct.src)) {
+		return sources;
+	}
+	return [direct, ...sources.filter((source) => source !== direct)];
+}
+
+// The browser understood the stream and cannot decode it: another route to
+// the same bytes will not help.
+const isCodecFailure = (technical?: string) =>
+	Boolean(technical && /NO_SUPPORTED_STREAMS|DECODE/.test(technical));
 
 // Seconds of real playback before judging what the browser decoded.
 const DECODE_CHECK_AFTER_S = 3;
@@ -95,12 +154,17 @@ async function probe(src: string): Promise<string | null> {
 
 async function diagnose(
 	sources: PlayerSource[],
-	technical?: string,
+	technical: string | undefined,
+	directFailed: boolean,
 ): Promise<FailureDetail> {
 	for (const source of sources) {
+		// A direct URL cannot be probed from the page: the browser decides.
+		if (source.kind === "direct") {
+			continue;
+		}
 		const problem = await probe(source.src);
 		if (problem) {
-			return { reason: problem, technical };
+			return { reason: problem, technical, directBlocked: directFailed };
 		}
 	}
 	return {
@@ -153,6 +217,11 @@ export function VideoPlayer({
 	useEffect(() => {
 		progressRef.current = progress;
 	});
+
+	// The order is decided once per set of sources: it depends on a stored
+	// preference that playback itself can change, and the index of the source
+	// being tried must keep pointing at the same one.
+	const orderRef = useRef<{ key: string; list: PlayerSource[] } | null>(null);
 
 	const onEndedRef = useRef(onEnded);
 	useEffect(() => {
@@ -304,7 +373,11 @@ export function VideoPlayer({
 	// biome-ignore lint/correctness/useExhaustiveDependencies: sourcesKey stands for the sources array
 	useEffect(() => {
 		const video = videoRef.current;
-		const source = sources[sourceIndex];
+		if (orderRef.current?.key !== sourcesKey) {
+			orderRef.current = { key: sourcesKey, list: orderSources(sources) };
+		}
+		const ordered = orderRef.current.list;
+		const source = ordered[sourceIndex];
 		if (!video || !source) {
 			return;
 		}
@@ -316,12 +389,18 @@ export function VideoPlayer({
 			if (disposed) {
 				return;
 			}
-			if (sourceIndex + 1 < sources.length) {
+			const codec = isCodecFailure(technical);
+			const directFailed = source.kind === "direct" && !codec;
+			if (directFailed) {
+				// It does not play from here: stop trying it first.
+				writeDirectPref(source.src, false);
+			}
+			if (!codec && sourceIndex + 1 < ordered.length) {
 				setAttempt({ key: sourcesKey, index: sourceIndex + 1 });
 				return;
 			}
 			setFailedKey(sourcesKey);
-			diagnose(sources, technical).then((result) => {
+			diagnose(ordered, technical, directFailed).then((result) => {
 				if (!disposed) {
 					setFailureDetail({ key: sourcesKey, ...result });
 				}
@@ -339,12 +418,21 @@ export function VideoPlayer({
 		const attachNative = () => {
 			video.src = source.src;
 			video.addEventListener("error", onMediaError);
-			teardown = () => video.removeEventListener("error", onMediaError);
+			// Played from the user's connection: remember it for this provider.
+			const onPlaying = () => writeDirectPref(source.src, true);
+			if (source.kind === "direct") {
+				video.addEventListener("playing", onPlaying, { once: true });
+			}
+			teardown = () => {
+				video.removeEventListener("error", onMediaError);
+				video.removeEventListener("playing", onPlaying);
+			};
 		};
 
 		const attach = async () => {
 			if (
 				source.kind === "native" ||
+				source.kind === "direct" ||
 				(source.kind === "hls" &&
 					video.canPlayType("application/vnd.apple.mpegurl"))
 			) {
@@ -451,6 +539,14 @@ export function VideoPlayer({
 					<p>This stream can't be played in the browser.</p>
 					{detail && (
 						<p className="max-w-prose text-white/85">{detail.reason}</p>
+					)}
+					{detail?.directBlocked && (
+						<p className="max-w-prose text-white/85">
+							Your provider refuses this server, so the stream has to be played
+							from your own connection. Your browser blocks that on a secure
+							page: allow "Insecure content" for this site (padlock icon, Site
+							settings), then reload.
+						</p>
 					)}
 					<p className="max-w-prose text-white/70">
 						Open it in another player (VLC) instead: browsers can't decode every
