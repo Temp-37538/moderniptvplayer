@@ -1,9 +1,9 @@
 $ErrorActionPreference = "Stop"
 
 # Pin the upstream libmpv development archive and verify it before use.
-$archiveName = "mpv-dev-x86_64-20261021-git-e471496c56.7z"
-$archiveUrl = "https://github.com/shinchiro/mpv-winbuild-cmake/releases/download/20261021/$archiveName"
-$expectedSha256 = "EFC719EFF3DC5954B4A5EF C800632808BCEC01CC9034940DD14E5EB7FE9EA633".Replace(" ", "")
+$archiveName = "mpv-dev-lgpl-x86_64-20261021-git-a43ab319fd.7z"
+$archiveUrl = "https://github.com/zhongfly/mpv-winbuild/releases/download/2026-10-21-a43ab319fd/$archiveName"
+$expectedSha256 = "BC9DFD2BB7B52228F0F2DCA8437A598AC394CE455B5B177BCB4DC9E3D33F0BF4"
 $tempRoot = if ($env:RUNNER_TEMP) { $env:RUNNER_TEMP } elseif ($env:TEMP) { $env:TEMP } else { [System.IO.Path]::GetTempPath() }
 $workDir = Join-Path $tempRoot "moderniptvplayer-mpv"
 $archivePath = Join-Path $workDir $archiveName
