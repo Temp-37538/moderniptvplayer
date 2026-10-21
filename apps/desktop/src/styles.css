@@ -37,6 +37,7 @@ button:disabled { cursor: wait; opacity: .55; }
 .control-divider { height: 1px; margin: 20px 0; background: #282c37; }
 .button-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
 .button-row button { padding: 9px 4px; }
+.seek-row { margin-top: 8px; }
 .timeline { display: flex; justify-content: space-between; color: #9ca3af; font-size: 11px; font-variant-numeric: tabular-nums; }
 .hint { margin: 18px 0 0; color: #777f90; font-size: 11px; line-height: 1.6; }
 @media (max-width: 820px) {
