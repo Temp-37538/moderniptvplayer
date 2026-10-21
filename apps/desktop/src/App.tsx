@@ -85,10 +85,12 @@ export default function App() {
     const observer = new ResizeObserver(updateBounds);
     observer.observe(stage);
     window.addEventListener("resize", updateBounds);
+    window.addEventListener("scroll", updateBounds, true);
     updateBounds();
     return () => {
       observer.disconnect();
       window.removeEventListener("resize", updateBounds);
+      window.removeEventListener("scroll", updateBounds, true);
     };
   }, [desktop]);
 
