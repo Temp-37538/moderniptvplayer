@@ -20,8 +20,19 @@ A libmpv command wrapper is not, by itself, a video renderer. The Tauri window s
 - Initial Rust libmpv command wrapper with HTTP(S) URL validation and unit tests.
 - Tauri v2 application shell and React/Vite control surface.
 - Tauri invoke handlers for loading a stream, play/pause, volume, stop and status.
+- Separate desktop frontend workspace so its dependencies do not invalidate the existing web application's frozen pnpm lockfile.
 
 The React screen explicitly reports that the native rendering surface is not yet connected. The current code is scaffolding and must not be considered a usable replacement for the web app.
+
+To install and build the standalone frontend manually, run from `apps/desktop`:
+
+```sh
+pnpm install --ignore-workspace --no-frozen-lockfile
+pnpm build
+pnpm tauri dev
+```
+
+Tauri's configured dev/build hooks also install the standalone frontend dependencies. The desktop frontend currently does not have a committed standalone lockfile, so dependency versions may resolve to newer compatible releases until one is generated and committed.
 
 ## Remaining work before this can be called functional
 
@@ -33,7 +44,7 @@ The React screen explicitly reports that the native rendering surface is not yet
 
 ## Validation
 
-The `Desktop native player` GitHub Actions workflow runs Rust formatting, unit tests and Clippy on Linux, and a Windows-target compile check. A Windows-target `cargo check` alone does not prove that the DLL/import library is packaged or that video renders.
+The `Desktop native player` GitHub Actions workflow checks the frontend build, runs Rust formatting/unit tests/Clippy on Linux, and runs a Windows-target compile check for the native crate. A Windows-target `cargo check` alone does not prove that the DLL/import library is packaged or that video renders.
 
 For a local Linux run, install Rust stable, `pkg-config`, and the libmpv development package (Debian/Ubuntu: `sudo apt install pkg-config libmpv-dev`). From `apps/desktop/native-player`, run:
 
