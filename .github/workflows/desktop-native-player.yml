@@ -5,6 +5,7 @@ on:
     paths:
       - "apps/desktop/**"
       - ".github/workflows/desktop-native-player.yml"
+      - "pnpm-workspace.yaml"
   workflow_dispatch:
 
 permissions:
@@ -15,6 +16,26 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  frontend:
+    name: React frontend build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/desktop
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install standalone frontend dependencies
+        run: pnpm install --ignore-workspace --no-frozen-lockfile
+      - name: Type-check and build React frontend
+        run: pnpm build
+
   rust:
     name: Rust checks (Linux)
     runs-on: ubuntu-latest
