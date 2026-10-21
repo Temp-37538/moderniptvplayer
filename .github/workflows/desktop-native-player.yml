@@ -97,7 +97,18 @@ jobs:
         with:
           targets: x86_64-pc-windows-msvc
 
-      # This checks the Rust crate for the Windows ABI. It does not prove that
-      # the native mpv runtime is packaged or that the video renderer works.
-      - name: Check Windows target
-        run: cargo check --target x86_64-pc-windows-msvc
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build frontend for Tauri context generation
+        run: |
+          pnpm --dir ../ install --ignore-workspace --no-frozen-lockfile
+          pnpm --dir ../ build
+
+      # Compile the app shell and its command handlers for Windows. This does
+      # not prove that libmpv DLLs are packaged or that video rendering works.
+      - name: Check Windows Tauri application
+        run: cargo check --manifest-path ../src-tauri/Cargo.toml --target x86_64-pc-windows-msvc
