@@ -8,7 +8,7 @@ mod video_surface {
     use std::ptr::{null, null_mut};
     use windows_sys::Win32::UI::WindowsAndMessaging::{
         CreateWindowExW, SetWindowPos, HWND_TOP, SWP_NOACTIVATE, SWP_NOOWNERZORDER, WS_CHILD,
-        WS_CLIPSIBLINGS, WS_VISIBLE,
+        WS_CLIPCHILDREN, WS_CLIPSIBLINGS, WS_VISIBLE,
     };
 
     pub fn create(parent: isize) -> Result<isize, String> {
@@ -17,7 +17,7 @@ mod video_surface {
         let handle = unsafe {
             CreateWindowExW(
                 0, class_name.as_ptr(), title.as_ptr(),
-                WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS,
+                WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | WS_CLIPCHILDREN,
                 0, 0, 1, 1, parent as _, null_mut(), null_mut(), null(),
             )
         };
