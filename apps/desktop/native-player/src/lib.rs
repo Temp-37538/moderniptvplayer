@@ -51,7 +51,7 @@ impl NativePlayer {
             ));
         }
         let mpv = Mpv::with_initializer(|initializer| {
-            initializer.set_option("wid", hwnd as u32 as i64)?;
+            initializer.set_option("wid", hwnd as i64)?;
             initializer.set_option("vo", "gpu")?;
             initializer.set_option("gpu-context", "win")?;
             Ok(())
