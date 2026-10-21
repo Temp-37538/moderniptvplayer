@@ -1,52 +1,58 @@
 # Desktop application migration
 
-The target is a desktop-only distribution with the existing React experience and a native playback engine. The browser player in `apps/web/src/components/video-player.tsx` uses `<video>`, hls.js, and mpegts.js; codec support is therefore limited by the embedded WebView.
+The target is a desktop-only distribution with a React frontend and native playback. The browser player in `apps/web/src/components/video-player.tsx` uses `<video>`, hls.js and mpegts.js, so codec support is limited by the embedded WebView.
 
 ## Target architecture
 
 - **React** owns player controls and visible playback state.
-- **Tauri/Rust** owns desktop lifecycle and native playback commands.
-- **libmpv** handles stream demuxing, decoding, audio output, and video rendering.
-- The existing authenticated application/backend remains the source of playlist and account data during the migration until its server-side operations have a secure API boundary.
-
-## Security and migration constraints
-
-The current Next.js app is full-stack: pages call Prisma-backed server modules directly, and stream routes depend on authenticated server sessions. It cannot simply be exported as a static Tauri frontend. Account, playlist and stream resolution must retain a trusted server-side boundary; stored playlist credentials must not be copied into UI state or logged by the native player.
-
-A libmpv command wrapper is not, by itself, a video renderer. The Tauri window still needs a platform-specific native rendering surface, lifecycle coordination and packaged libmpv runtime libraries. Do not treat a successful command call as proof that video is visible or that playback works end to end.
+- **Tauri/Rust** owns the desktop lifecycle and native playback commands.
+- **libmpv** handles demuxing, decoding, audio output and video rendering.
+- The existing authenticated Next.js backend remains the source of account, playlist and stream data until those operations have a secure desktop-compatible API boundary.
 
 ## Implemented in this branch
 
-- Initial Rust libmpv command wrapper with HTTP(S) URL validation and unit tests.
-- Tauri v2 application shell and React/Vite control surface.
-- Tauri invoke handlers for loading a stream, play/pause, volume, stop and status.
-- Separate desktop frontend workspace so its dependencies do not invalidate the existing web application's frozen pnpm lockfile.
+- Rust/libmpv command layer with HTTP(S) source validation, volume control, seek, stop and playback properties.
+- Tauri v2 shell and standalone React/Vite frontend.
+- Windows native child-window surface: libmpv receives the HWND through `wid`; React tracks the player-stage rectangle and positions the native surface in physical pixels.
+- React controls wired to Tauri commands, including play/pause, volume, seek-by-10-seconds and periodic playback-position updates.
+- Windows build script pins a libmpv development archive, verifies its SHA-256, generates an MSVC import library and stages runtime DLLs for the installer.
+- CI builds the React frontend, runs Linux Rust formatting/tests/Clippy, checks the Tauri shell on Linux and Windows, and attempts to build a Windows MSI installer.
 
-The React screen explicitly reports that the native rendering surface is not yet connected. The current code is scaffolding and must not be considered a usable replacement for the web app.
+## Current limitations
 
-To install and build the standalone frontend manually, run from `apps/desktop`:
+The Windows rendering integration is a first implementation and still needs a real playback smoke test on Windows. A successful compile or MSI build does not prove that video is visible or that every codec works.
+
+The desktop frontend does **not** yet provide feature parity with the existing IPTV app. Secure desktop authentication/session handling, playlist CRUD/import, channel/movie/series browsing, favorites, watch-later/history, EPG, search and watch-progress integration still need to be ported to supported API endpoints. Do not expose stored provider credentials to React state, local storage or logs.
+
+The current Next.js app is full-stack: pages call Prisma-backed server modules directly and stream routes depend on authenticated server sessions. It cannot simply be exported as a static Tauri frontend. Keep a trusted server-side boundary for account, playlist and stream resolution.
+
+## Development and Windows build
+
+From `apps/desktop`, install the standalone frontend dependencies and build it:
 
 ```sh
 pnpm install --ignore-workspace --no-frozen-lockfile
 pnpm build
+```
+
+On Windows, run PowerShell from an x64 Visual Studio Developer shell (with `dumpbin`, `lib` and 7-Zip available), then run:
+
+```powershell
+./scripts/setup-mpv-windows.ps1
 pnpm tauri dev
 ```
 
-Tauri's configured dev/build hooks also install the standalone frontend dependencies. The desktop frontend currently does not have a committed standalone lockfile, so dependency versions may resolve to newer compatible releases until one is generated and committed.
+To build the MSI installer:
 
-## Remaining work before this can be called functional
+```powershell
+pnpm tauri build --bundles msi
+```
 
-1. Integrate and validate libmpv's native render API with the Tauri window on Windows, including resize, teardown and device/window lifecycle.
-2. Add playback events (loading, buffering, playing, ended, errors) and periodic position updates; avoid polling native properties in a way that blocks the UI.
-3. Implement secure authenticated account/playlist/stream resolution for the desktop target. Never put provider credentials in logs or frontend persistence.
-4. Port the existing React navigation and IPTV features (live TV, VOD, series, favorites, history/resume, search and EPG) to the desktop frontend or a supported API, with parity tests.
-5. Produce a Windows installer that includes compatible libmpv runtime dependencies; verify clean-machine install and playback. Then add Linux/macOS targets if desired.
+The setup script downloads the pinned upstream libmpv development archive and checks its SHA-256 before using it. The standalone frontend currently does not have a committed pnpm lockfile, so compatible dependency versions may resolve to newer releases until a lockfile is generated and committed.
 
 ## Validation
 
-The `Desktop native player` GitHub Actions workflow checks the frontend build, runs Rust formatting/unit tests/Clippy on Linux, and runs a Windows-target compile check for the native crate. A Windows-target `cargo check` alone does not prove that the DLL/import library is packaged or that video renders.
-
-For a local Linux run, install Rust stable, `pkg-config`, and the libmpv development package (Debian/Ubuntu: `sudo apt install pkg-config libmpv-dev`). From `apps/desktop/native-player`, run:
+From `apps/desktop/native-player` on Linux, install Rust stable, `pkg-config` and `libmpv-dev` (Debian/Ubuntu: `sudo apt install pkg-config libmpv-dev`), then run:
 
 ```sh
 cargo fmt --all -- --check
@@ -54,6 +60,8 @@ cargo test --all-targets
 cargo clippy --all-targets -- -D warnings
 ```
 
+The root CI dependency-audit job still reports pre-existing vulnerable dependencies, including Better Auth and transitive packages. That is separate from the desktop build failure and must be handled in a dedicated dependency-security change rather than hidden or downgraded.
+
 ## Status
 
-This is an in-progress migration branch, not a finished desktop release. Do not merge or advertise it as functional until the native rendering, authentication/data flow, feature parity, packaging and end-to-end tests above are complete.
+This PR is an in-progress migration, not a completed desktop release. Keep it in draft until the Windows MSI build and playback smoke test succeed, desktop authentication/data flow is implemented, and the existing IPTV feature set has parity tests.
