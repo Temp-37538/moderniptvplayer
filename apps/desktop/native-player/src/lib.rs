@@ -37,7 +37,9 @@ impl NativePlayer {
     /// before this player can display video in its window.
     pub fn new() -> Result<Self, PlayerError> {
         let mpv = Mpv::new().map_err(|error| PlayerError::Mpv(error.to_string()))?;
-        Ok(Self { mpv })
+        let player = Self { mpv };
+        player.set_volume(80.0)?;
+        Ok(player)
     }
 
     /// Creates a Windows player embedded in the supplied native child window.
