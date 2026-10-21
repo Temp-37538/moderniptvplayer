@@ -24,3 +24,22 @@ The native renderer also needs a real platform-specific rendering surface; invok
 5. Package and test Windows first, then add Linux/macOS targets and their libmpv dependencies.
 
 This directory is the initial desktop migration foundation; it does not yet replace the web player or provide a packaged desktop application.
+
+## Validation
+
+The native-player crate is checked by the `Desktop native player` GitHub Actions workflow:
+
+- Linux installs `libmpv-dev`, then runs `cargo fmt --check`, `cargo test`, and Clippy with warnings denied.
+- Windows runs `cargo check --target x86_64-pc-windows-msvc` to check Rust compilation for the Windows ABI. This does not link or package the native mpv runtime.
+
+For a local Linux run, install Rust stable, `pkg-config`, and the libmpv development package (on Debian/Ubuntu: `sudo apt install pkg-config libmpv-dev`). Then run these commands from `apps/desktop/native-player`:
+
+```sh
+cargo fmt --all -- --check
+cargo test --all-targets
+cargo clippy --all-targets -- -D warnings
+```
+
+## Current milestone status
+
+This PR is still an implementation foundation, not a finished desktop release. There is not yet a Tauri application shell, native video surface, React-to-player adapter, desktop authentication/session strategy, or packaged Windows installer. Those pieces must be implemented and tested before the existing IPTV application can be considered migrated.
