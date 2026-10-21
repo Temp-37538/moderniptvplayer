@@ -6,7 +6,7 @@
   "build": {
     "beforeDevCommand": "pnpm --dir .. install --ignore-workspace --no-frozen-lockfile && pnpm --dir .. dev",
     "devUrl": "http://127.0.0.1:1420",
-    "beforeBuildCommand": "pnpm --dir .. install --ignore-workspace --no-frozen-lockfile && pnpm --dir .. build",
+    "beforeBuildCommand": "pnpm install --ignore-workspace --no-frozen-lockfile && pnpm build",
     "frontendDist": "../dist"
   },
   "app": {
