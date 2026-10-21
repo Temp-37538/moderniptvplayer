@@ -44,13 +44,16 @@ impl NativePlayer {
     /// The HWND must remain alive for the lifetime of this player.
     pub fn new_with_window(hwnd: isize) -> Result<Self, PlayerError> {
         if hwnd == 0 {
-            return Err(PlayerError::Mpv("The native video window handle is invalid.".into()));
+            return Err(PlayerError::Mpv(
+                "The native video window handle is invalid.".into(),
+            ));
         }
         let mpv = Mpv::with_initializer(|initializer| {
             initializer.set_option("wid", hwnd as i64)?;
             initializer.set_option("vo", "win")?;
             Ok(())
-        }).map_err(|error| PlayerError::Mpv(error.to_string()))?;
+        })
+        .map_err(|error| PlayerError::Mpv(error.to_string()))?;
         Ok(Self { mpv })
     }
 
