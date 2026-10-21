@@ -1,38 +1,41 @@
 # Desktop application migration
 
-The target is a desktop-only distribution with the existing React experience and a native playback engine. The browser player in `apps/web/src/components/video-player.tsx` uses `<video>`, hls.js, and mpegts.js; its codec support is therefore limited by the embedded WebView.
+The target is a desktop-only distribution with the existing React experience and a native playback engine. The browser player in `apps/web/src/components/video-player.tsx` uses `<video>`, hls.js, and mpegts.js; codec support is therefore limited by the embedded WebView.
 
 ## Target architecture
 
-- **React** owns the player controls and playback state shown in the UI.
-- **Tauri/Rust** owns native playback commands and lifecycle.
+- **React** owns player controls and visible playback state.
+- **Tauri/Rust** owns desktop lifecycle and native playback commands.
 - **libmpv** handles stream demuxing, decoding, audio output, and video rendering.
-- The existing authenticated application/backend remains the source of playlist and account data during the first migration phase.
+- The existing authenticated application/backend remains the source of playlist and account data during the migration until its server-side operations have a secure API boundary.
 
-## Migration constraints
+## Security and migration constraints
 
-The current Next.js app is full-stack: pages call Prisma-backed server modules directly, and stream routes depend on the authenticated server session. It cannot simply be exported as a static Tauri frontend. The desktop target must keep a server-side boundary for account/data operations or first move those operations behind an API. Playlist credentials must not be copied into frontend state or logged by the native player.
+The current Next.js app is full-stack: pages call Prisma-backed server modules directly, and stream routes depend on authenticated server sessions. It cannot simply be exported as a static Tauri frontend. Account, playlist and stream resolution must retain a trusted server-side boundary; stored playlist credentials must not be copied into UI state or logged by the native player.
 
-The native renderer also needs a real platform-specific rendering surface; invoking libmpv commands alone does not embed video into a React element. Rendering integration is intentionally a separate step from the playback command layer.
+A libmpv command wrapper is not, by itself, a video renderer. The Tauri window still needs a platform-specific native rendering surface, lifecycle coordination and packaged libmpv runtime libraries. Do not treat a successful command call as proof that video is visible or that playback works end to end.
 
-## Phases
+## Implemented in this branch
 
-1. Establish the native playback command layer and its input validation.
-2. Add the Tauri shell and connect React controls to typed Tauri commands/events.
-3. Embed libmpv rendering in the desktop window and report playback properties to React.
-4. Adapt stream URL resolution and authenticated playback without exposing stored playlist credentials.
-5. Package and test Windows first, then add Linux/macOS targets and their libmpv dependencies.
+- Initial Rust libmpv command wrapper with HTTP(S) URL validation and unit tests.
+- Tauri v2 application shell and React/Vite control surface.
+- Tauri invoke handlers for loading a stream, play/pause, volume, stop and status.
 
-This directory is the initial desktop migration foundation; it does not yet replace the web player or provide a packaged desktop application.
+The React screen explicitly reports that the native rendering surface is not yet connected. The current code is scaffolding and must not be considered a usable replacement for the web app.
+
+## Remaining work before this can be called functional
+
+1. Integrate and validate libmpv's native render API with the Tauri window on Windows, including resize, teardown and device/window lifecycle.
+2. Add playback events (loading, buffering, playing, ended, errors) and periodic position updates; avoid polling native properties in a way that blocks the UI.
+3. Implement secure authenticated account/playlist/stream resolution for the desktop target. Never put provider credentials in logs or frontend persistence.
+4. Port the existing React navigation and IPTV features (live TV, VOD, series, favorites, history/resume, search and EPG) to the desktop frontend or a supported API, with parity tests.
+5. Produce a Windows installer that includes compatible libmpv runtime dependencies; verify clean-machine install and playback. Then add Linux/macOS targets if desired.
 
 ## Validation
 
-The native-player crate is checked by the `Desktop native player` GitHub Actions workflow:
+The `Desktop native player` GitHub Actions workflow runs Rust formatting, unit tests and Clippy on Linux, and a Windows-target compile check. A Windows-target `cargo check` alone does not prove that the DLL/import library is packaged or that video renders.
 
-- Linux installs `libmpv-dev`, then runs `cargo fmt --check`, `cargo test`, and Clippy with warnings denied.
-- Windows runs `cargo check --target x86_64-pc-windows-msvc` to check Rust compilation for the Windows ABI. This does not link or package the native mpv runtime.
-
-For a local Linux run, install Rust stable, `pkg-config`, and the libmpv development package (on Debian/Ubuntu: `sudo apt install pkg-config libmpv-dev`). Then run these commands from `apps/desktop/native-player`:
+For a local Linux run, install Rust stable, `pkg-config`, and the libmpv development package (Debian/Ubuntu: `sudo apt install pkg-config libmpv-dev`). From `apps/desktop/native-player`, run:
 
 ```sh
 cargo fmt --all -- --check
@@ -40,6 +43,6 @@ cargo test --all-targets
 cargo clippy --all-targets -- -D warnings
 ```
 
-## Current milestone status
+## Status
 
-This PR is still an implementation foundation, not a finished desktop release. There is not yet a Tauri application shell, native video surface, React-to-player adapter, desktop authentication/session strategy, or packaged Windows installer. Those pieces must be implemented and tested before the existing IPTV application can be considered migrated.
+This is an in-progress migration branch, not a finished desktop release. Do not merge or advertise it as functional until the native rendering, authentication/data flow, feature parity, packaging and end-to-end tests above are complete.
