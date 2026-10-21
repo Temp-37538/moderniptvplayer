@@ -26,9 +26,15 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["nsis", "msi"],
+    "targets": [
+      "nsis",
+      "msi"
+    ],
     "category": "Video",
     "shortDescription": "Native IPTV desktop player",
-    "longDescription": "Desktop IPTV player using a native playback engine."
+    "longDescription": "Desktop IPTV player using a native playback engine.",
+    "icon": [
+      "icons/icon.ico"
+    ]
   }
 }
