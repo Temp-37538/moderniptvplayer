@@ -1,0 +1,34 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Modern IPTV Player",
+  "version": "0.1.0",
+  "identifier": "app.moderniptvplayer.desktop",
+  "build": {
+    "beforeDevCommand": "pnpm --dir .. dev",
+    "devUrl": "http://127.0.0.1:1420",
+    "beforeBuildCommand": "pnpm --dir .. build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Modern IPTV Player",
+        "width": 1280,
+        "height": 800,
+        "minWidth": 900,
+        "minHeight": 600,
+        "resizable": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; img-src 'self' asset: data: https:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src ipc: http://ipc.localhost https: http:"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis", "msi"],
+    "category": "Video",
+    "shortDescription": "Native IPTV desktop player",
+    "longDescription": "Desktop IPTV player using a native playback engine."
+  }
+}
