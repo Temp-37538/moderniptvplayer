@@ -4,7 +4,8 @@ $ErrorActionPreference = "Stop"
 $archiveName = "mpv-dev-x86_64-20261021-git-e471496c56.7z"
 $archiveUrl = "https://github.com/shinchiro/mpv-winbuild-cmake/releases/download/20261021/$archiveName"
 $expectedSha256 = "EFC719EFF3DC5954B4A5EF C800632808BCEC01CC9034940DD14E5EB7FE9EA633".Replace(" ", "")
-$workDir = Join-Path $env:RUNNER_TEMP "moderniptvplayer-mpv"
+$tempRoot = if ($env:RUNNER_TEMP) { $env:RUNNER_TEMP } elseif ($env:TEMP) { $env:TEMP } else { [System.IO.Path]::GetTempPath() }
+$workDir = Join-Path $tempRoot "moderniptvplayer-mpv"
 $archivePath = Join-Path $workDir $archiveName
 $extractDir = Join-Path $workDir "extracted"
 New-Item -ItemType Directory -Force -Path $workDir, $extractDir | Out-Null
@@ -83,5 +84,9 @@ if (-not (Test-Path (Join-Path $runtimeDir "libmpv-2.dll"))) {
   throw "libmpv-2.dll was not staged for bundling."
 }
 
-"LIB=$linkDir;$env:LIB" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+if ($env:GITHUB_ENV) {
+  "LIB=$linkDir;$env:LIB" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+} else {
+  $env:LIB = "$linkDir;$env:LIB"
+}
 Write-Host "Prepared libmpv runtime and MSVC import library."
