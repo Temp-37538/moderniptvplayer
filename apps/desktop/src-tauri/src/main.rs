@@ -116,11 +116,29 @@ fn player_set_video_bounds(x: f64, y: f64, width: f64, height: f64, state: State
     }
 }
 
+#[cfg(target_os = "windows")]
+fn configure_mpv_runtime(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
+    use std::os::windows::ffi::OsStrExt;
+    use windows_sys::Win32::System::LibraryLoader::SetDllDirectoryW;
+
+    let resource_dir = app.path().resource_dir()?;
+    let wide_path: Vec<u16> = resource_dir.as_os_str().encode_wide().chain(Some(0)).collect();
+    let success = unsafe { SetDllDirectoryW(wide_path.as_ptr()) };
+    if success == 0 {
+        return Err(std::io::Error::last_os_error().into());
+    }
+    Ok(())
+}
+
 fn main() {
     tauri::Builder::default()
         .setup(|app| {
             #[cfg(target_os = "windows")]
             let (player, video_surface) = {
+                // libmpv and its dependent DLLs are installed in Tauri's
+                // resource directory; set the DLL search path before creating
+                // the player because the import is delay-loaded.
+                configure_mpv_runtime(app)?;
                 let window = app.get_webview_window("main")
                     .ok_or_else(|| std::io::Error::other("Main desktop window was not found."))?;
                 let parent = window.hwnd()?;
