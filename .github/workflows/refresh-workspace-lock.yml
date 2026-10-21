@@ -1,0 +1,40 @@
+name: Refresh workspace lockfile (temporary)
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "apps/desktop/package.json"
+      - "pnpm-workspace.yaml"
+      - ".github/workflows/refresh-workspace-lock.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  refresh-lock:
+    if: github.head_ref == 'feat/desktop-native-player' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/desktop-native-player
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Regenerate workspace lockfile
+        run: pnpm install --lockfile-only --no-frozen-lockfile
+      - name: Commit lockfile only when it changed
+        run: |
+          if git diff --quiet -- pnpm-lock.yaml; then
+            echo "Lockfile is already up to date."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pnpm-lock.yaml
+          git commit -m "chore(desktop): update pnpm lockfile"
+          git push origin HEAD:feat/desktop-native-player
