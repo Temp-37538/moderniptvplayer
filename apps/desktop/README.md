@@ -15,7 +15,7 @@ The target is a desktop-only distribution with a React frontend and native playb
 - Tauri v2 shell and standalone React/Vite frontend.
 - Windows native child-window surface: libmpv receives the HWND through `wid`; React tracks the player-stage rectangle and positions the native surface in physical pixels.
 - React controls wired to Tauri commands, including play/pause, volume, seek-by-10-seconds and periodic playback-position updates.
-- Windows build script pins an LGPL libmpv development archive, verifies its SHA-256, generates an MSVC import library and stages runtime DLLs for the installer.
+- Windows build script pins an LGPL libmpv development archive, verifies its SHA-256, generates an MSVC import library and stages runtime DLLs in Tauri's resource directory. The Windows executable delay-loads libmpv and configures that directory before first use so its DLL dependencies can be resolved.
 - CI builds the React frontend, runs Linux Rust formatting/tests/Clippy, checks the Tauri shell on Linux and Windows, and attempts to build a Windows MSI installer.
 
 ## Current limitations
