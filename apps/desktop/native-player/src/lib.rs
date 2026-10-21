@@ -40,6 +40,20 @@ impl NativePlayer {
         Ok(Self { mpv })
     }
 
+    /// Creates a Windows player embedded in the supplied native child window.
+    /// The HWND must remain alive for the lifetime of this player.
+    pub fn new_with_window(hwnd: isize) -> Result<Self, PlayerError> {
+        if hwnd == 0 {
+            return Err(PlayerError::Mpv("The native video window handle is invalid.".into()));
+        }
+        let mpv = Mpv::with_initializer(|initializer| {
+            initializer.set_option("wid", hwnd as i64)?;
+            initializer.set_option("vo", "win")?;
+            Ok(())
+        }).map_err(|error| PlayerError::Mpv(error.to_string()))?;
+        Ok(Self { mpv })
+    }
+
     /// Loads an absolute HTTP(S) stream URL without logging its contents.
     pub fn load(&self, source: &str) -> Result<(), PlayerError> {
         validate_source(source)?;
