@@ -19,6 +19,7 @@ jobs:
   frontend:
     name: React frontend build
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     defaults:
       run:
         working-directory: apps/desktop
@@ -39,6 +40,7 @@ jobs:
   rust:
     name: Rust and Tauri checks (Linux)
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: apps/desktop/native-player
@@ -78,6 +80,7 @@ jobs:
   windows:
     name: Windows Tauri build and installer
     runs-on: windows-latest
+    timeout-minutes: 30
     defaults:
       run:
         working-directory: apps/desktop/native-player
