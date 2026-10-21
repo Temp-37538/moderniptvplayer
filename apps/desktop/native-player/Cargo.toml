@@ -1,0 +1,10 @@
+[package]
+name = "moderniptvplayer-native-player"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "Native libmpv playback command layer for Modern IPTV Player"
+
+[dependencies]
+libmpv2 = "6"
+url = "2"
