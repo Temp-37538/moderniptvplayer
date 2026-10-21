@@ -49,3 +49,24 @@ jobs:
 
       - name: Run Clippy
         run: cargo clippy --all-targets -- -D warnings
+
+  windows:
+    name: Windows target compile check
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: apps/desktop/native-player
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      # cargo check validates Rust code for the Windows ABI without requiring
+      # the native mpv import library at link time. The packaged app still
+      # needs the matching libmpv DLL/import library at release-build time.
+      - name: Check Windows target
+        run: cargo check --target x86_64-pc-windows-msvc
