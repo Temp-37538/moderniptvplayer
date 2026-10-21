@@ -32,6 +32,12 @@ fn player_set_volume(volume: f64, state: State<'_, PlayerState>) -> Result<(), S
 }
 
 #[tauri::command]
+fn player_seek(position_seconds: f64, state: State<'_, PlayerState>) -> Result<(), String> {
+    state.0.lock().map_err(|_| "Player lock is unavailable".to_string())?
+        .seek_absolute(position_seconds).map_err(|error| error.to_string())
+}
+
+#[tauri::command]
 fn player_stop(state: State<'_, PlayerState>) -> Result<(), String> {
     state.0.lock().map_err(|_| "Player lock is unavailable".to_string())?
         .stop().map_err(|error| error.to_string())
@@ -54,6 +60,7 @@ fn main() {
             player_load,
             player_set_paused,
             player_set_volume,
+            player_seek,
             player_stop,
             player_status
         ])
