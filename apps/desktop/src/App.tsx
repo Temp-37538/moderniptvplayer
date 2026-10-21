@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { invoke, isTauri } from "@tauri-apps/api/core";
 
 type PlayerStatus = {
@@ -30,7 +30,7 @@ export default function App() {
     try {
       const result = await invoke(command, args);
       if (command === "player_status") setStatus(result as PlayerStatus);
-      setMessage("Commande exécutée.");
+      if (command !== "player_status") setMessage("Commande exécutée.");
     } catch (error) {
       setMessage(typeof error === "string" ? error : "La commande du lecteur a échoué.");
     } finally {
@@ -45,6 +45,29 @@ export default function App() {
     }
     await run("player_load", { source: source.trim() });
   }
+
+  useEffect(() => {
+    if (!desktop) return;
+    let active = true;
+    const refresh = async () => {
+      try {
+        const next = await invoke<PlayerStatus>("player_status");
+        if (active) setStatus(next);
+      } catch {
+        // The player may not have a loaded source yet; the next refresh retries.
+      }
+    };
+    void refresh();
+    const timer = window.setInterval(() => void refresh(), 1000);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
+  }, [desktop]);
+
+  const duration = status?.durationSeconds;
+  const position = status?.positionSeconds;
+  const canSeek = duration !== null && duration !== undefined && duration > 0;
 
   return (
     <main className="app-shell">
@@ -63,7 +86,7 @@ export default function App() {
         <div className="player-stage">
           <div className="stage-symbol">M</div>
           <h1>Lecteur natif</h1>
-          <p>La surface vidéo libmpv intégrée doit être initialisée par le backend natif.</p>
+          <p>Le moteur libmpv est relié aux commandes de lecture. L’affichage vidéo natif reste à intégrer avant de pouvoir regarder un flux dans cette fenêtre.</p>
           <div className="status-line"><span className="status-dot" />{message}</div>
         </div>
         <aside className="control-panel">
@@ -85,6 +108,10 @@ export default function App() {
             <button disabled={busy} onClick={() => void run("player_set_paused", { paused: true })}>Pause</button>
             <button disabled={busy} onClick={() => void run("player_stop")}>Arrêter</button>
           </div>
+          <div className="button-row seek-row">
+            <button disabled={busy || !canSeek} onClick={() => void run("player_seek", { positionSeconds: Math.max(0, (position ?? 0) - 10) })}>−10 s</button>
+            <button disabled={busy || !canSeek} onClick={() => void run("player_seek", { positionSeconds: Math.min(duration ?? 0, (position ?? 0) + 10) })}>+10 s</button>
+          </div>
           <label htmlFor="volume">Volume <span>{volume}%</span></label>
           <input id="volume" type="range" min="0" max="100" value={volume}
             onChange={(event) => {
@@ -93,11 +120,11 @@ export default function App() {
               void run("player_set_volume", { volume: next });
             }} />
           <div className="timeline">
-            <span>{formatTime(status?.positionSeconds ?? null)}</span>
-            <span>{formatTime(status?.durationSeconds ?? null)}</span>
+            <span>{formatTime(position ?? null)}</span>
+            <span>{formatTime(duration ?? null)}</span>
           </div>
           <button className="secondary-button" disabled={busy} onClick={() => void run("player_status")}>Actualiser l’état</button>
-          <p className="hint">Cette étape fournit le shell et le pont de commandes. La vidéo ne sera réellement visible qu’après intégration et validation du moteur de rendu natif.</p>
+          <p className="hint">Les commandes de lecture, le volume, la recherche par saut et la position sont reliés à libmpv. L’intégration de la surface vidéo et le chargement des playlists du compte restent à terminer.</p>
         </aside>
       </section>
     </main>
