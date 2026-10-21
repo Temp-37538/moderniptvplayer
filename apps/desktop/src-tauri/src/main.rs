@@ -121,7 +121,6 @@ fn main() {
         .setup(|app| {
             #[cfg(target_os = "windows")]
             let (player, video_surface) = {
-                use tauri::window::WindowExtWindows;
                 let window = app.get_webview_window("main")
                     .ok_or_else(|| std::io::Error::other("Main desktop window was not found."))?;
                 let parent = window.hwnd()?;
