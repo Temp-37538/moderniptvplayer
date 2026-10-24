@@ -1,0 +1,12 @@
+fixtures/
+target/
+node_modules/
+dist/
+Cargo.lock
+app-icon.png
+src-tauri/gen/
+src-tauri/icons/
+# libmpv binaries are downloaded, never committed (LGPL build, see README)
+src-tauri/lib/*
+!src-tauri/lib/README.txt
+*.dll
