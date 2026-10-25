@@ -1,0 +1,6 @@
+{
+  "identifier": "default",
+  "description": "The main window: events from the player. The commands are the app's own and narrow (see src/main.rs).",
+  "windows": ["main"],
+  "permissions": ["core:default"]
+}
