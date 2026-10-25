@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>ModernIPTV Desktop (spike)</title>
+		<script type="module" src="/src/main.ts"></script>
+	</head>
+	<body>
+		<header class="bar">
+			<strong>ModernIPTV Desktop</strong>
+			<span class="tag">spike</span>
+			<span id="status" class="status">not started</span>
+			<span class="spacer"></span>
+			<button id="init-embed" type="button">Start (embedded video)</button>
+			<button id="init-window" type="button">Start (separate mpv window)</button>
+		</header>
+
+		<main class="layout">
+			<section class="player">
+				<!-- Transparent on purpose: in embedded mode mpv draws behind it. -->
+				<div id="video-hole" class="hole">
+					<p id="hole-hint">Press a Start button, paste a stream URL, then Load.</p>
+				</div>
+				<div class="controls">
+					<button id="play" type="button">Pause</button>
+					<button id="back" type="button">-10 s</button>
+					<button id="fwd" type="button">+10 s</button>
+					<input id="seek" type="range" min="0" max="1000" value="0" aria-label="Position" />
+					<span id="time">0:00 / 0:00</span>
+					<label class="vol">Volume <input id="volume" type="range" min="0" max="130" value="100" /></label>
+				</div>
+				<div class="tracks">
+					<label>Audio <select id="audio"></select></label>
+					<label>Subtitles <select id="subs"></select></label>
+				</div>
+			</section>
+
+			<aside class="side">
+				<label>Stream URL
+					<input id="url" type="text" placeholder="http://host/movie/user/pass/123.mkv" autocomplete="off" spellcheck="false" />
+				</label>
+				<label>Start at (seconds)
+					<input id="start" type="number" min="0" value="0" />
+				</label>
+				<div class="row">
+					<button id="load" type="button">Load</button>
+					<button id="stop" type="button">Stop</button>
+				</div>
+				<h3>What mpv sees</h3>
+				<pre id="info">-</pre>
+				<div class="row">
+					<button id="report" type="button">Copy report</button>
+					<span class="note">URLs are reduced to their host.</span>
+				</div>
+				<h3>Log</h3>
+				<pre id="log"></pre>
+			</aside>
+		</main>
+	</body>
+</html>
