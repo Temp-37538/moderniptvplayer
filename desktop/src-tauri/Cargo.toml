@@ -1,0 +1,15 @@
+[package]
+name = "moderniptv-desktop-spike"
+version = "0.0.1"
+edition = "2021"
+description = "Spike: the IPTV player's video played by libmpv inside a Tauri window"
+publish = false
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+mpv-engine = { path = "../mpv-engine" }

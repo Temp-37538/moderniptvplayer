@@ -1,0 +1,145 @@
+name: Desktop spike
+
+# Builds the Windows app of the desktop spike and tests the libmpv engine layer,
+# so that nothing has to be installed locally: download the artifact of a run.
+on:
+  push:
+    branches: ["desktop/**"]
+    paths: ["desktop/**", ".github/workflows/desktop.yml"]
+  pull_request:
+    paths: ["desktop/**", ".github/workflows/desktop.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  engine-linux:
+    name: Engine tests (Linux, real libmpv)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: desktop
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install libmpv and ffmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libmpv2 ffmpeg
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: desktop
+      - name: Make the test media
+        run: bash scripts/make-fixtures.sh fixtures
+      - name: Engine tests
+        working-directory: desktop/mpv-engine
+        env:
+          MPV_FIXTURES: ../fixtures
+        run: cargo test -- --test-threads=1
+      # The Windows job plays the same files with libmpv for Windows.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fixtures
+          path: desktop/fixtures
+          retention-days: 1
+
+  windows:
+    name: Windows (build the app, test the engine on libmpv for Windows)
+    needs: engine-linux
+    runs-on: windows-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+        working-directory: desktop
+    env:
+      GH_TOKEN: ${{ github.token }}
+      # Static C runtime: the .exe needs no Visual C++ redistributable.
+      RUSTFLAGS: -C target-feature=+crt-static
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: desktop
+
+      - name: Fetch libmpv (LGPL build)
+        run: |
+          set -euo pipefail
+          repo=zhongfly/mpv-winbuild
+          tag=$(gh api "repos/$repo/releases/latest" --jq .tag_name)
+          assets=$(gh api "repos/$repo/releases/latest" --jq '.assets[].name')
+          name=$(printf '%s\n' "$assets" | grep -E '^mpv-dev-lgpl-x86_64-[0-9]{8}' | head -n 1 || true)
+          if [ -z "$name" ]; then
+            echo "::error title=libmpv::No mpv-dev-lgpl-x86_64 asset in $repo release $tag. Assets: $(printf '%s ' $assets)"
+            exit 1
+          fi
+          echo "libmpv from $repo $tag: $name"
+          gh release download "$tag" --repo "$repo" --pattern "$name" --dir "$RUNNER_TEMP"
+          sevenzip=$(command -v 7z || echo "/c/Program Files/7-Zip/7z.exe")
+          mkdir -p src-tauri/lib
+          "$sevenzip" e "$RUNNER_TEMP/$name" libmpv-2.dll -r -osrc-tauri/lib -y > /dev/null
+          if [ ! -f src-tauri/lib/libmpv-2.dll ]; then
+            echo "::error title=libmpv::libmpv-2.dll not found in $name: $("$sevenzip" l "$RUNNER_TEMP/$name" | tail -n 30 | tr '\n' ' ')"
+            exit 1
+          fi
+          ls -la src-tauri/lib
+
+      - name: Install npm packages and generate the icons
+        run: |
+          npm install
+          npm run setup
+
+      - name: Build the app
+        run: |
+          set -o pipefail
+          if ! npx tauri build --no-bundle 2>&1 | tee build.log; then
+            echo "::error title=tauri build failed::$(tail -n 40 build.log | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')"
+            exit 1
+          fi
+
+      - name: Package
+        run: |
+          out=ModernIPTV-Desktop-spike
+          mkdir -p "$out/lib"
+          cp target/release/moderniptv-desktop-spike.exe "$out/"
+          cp src-tauri/lib/libmpv-2.dll "$out/lib/"
+          cat > "$out/LIRE-MOI.txt" <<'TXT'
+          1. Double-clique moderniptv-desktop-spike.exe
+          2. Clique "Start (separate mpv window)", colle une URL de flux, "Load".
+          3. Puis "Start (embedded video)" pour tester la video dans la fenetre.
+          4. "Copy report" et colle le resultat dans la conversation (les URL sont reduites a leur hote).
+          Garde le dossier "lib" a cote de l'exe.
+          TXT
+          ls -la "$out" "$out/lib"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: moderniptv-desktop-windows
+          path: desktop/ModernIPTV-Desktop-spike
+          if-no-files-found: error
+          retention-days: 14
+
+      # Last on purpose: the app is already uploaded whatever this says.
+      - uses: actions/download-artifact@v4
+        with:
+          name: fixtures
+          path: desktop/fixtures
+      - name: Engine tests on libmpv for Windows
+        working-directory: desktop/mpv-engine
+        env:
+          MPV_LIB: ${{ github.workspace }}\desktop\src-tauri\lib\libmpv-2.dll
+          MPV_FIXTURES: ../fixtures
+        run: |
+          set -o pipefail
+          if ! cargo test -- --test-threads=1 2>&1 | tee test.log; then
+            echo "::error title=engine tests failed on Windows::$(grep -E '^test |panicked|assertion|left:|right:|FAILED|failed' test.log | head -n 40 | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')"
+            exit 1
+          fi

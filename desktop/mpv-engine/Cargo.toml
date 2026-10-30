@@ -1,0 +1,13 @@
+[package]
+name = "mpv-engine"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.80"
+description = "Thin, safe layer over libmpv's client API, loaded at run time"
+publish = false
+
+[dependencies]
+libloading = "0.8"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
