@@ -1,4 +1,4 @@
 {
 	"development": "http://localhost:3001",
-	"production": null
+	"production": "https://moderniptvplayer-web.vercel.app"
 }
