@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "ModernIPTV Desktop Spike",
+  "productName": "ModernIPTV Desktop",
   "version": "0.0.1",
   "identifier": "dev.moderniptvplayer.desktop-spike",
   "build": {
@@ -10,21 +10,12 @@
     "frontendDist": "../dist"
   },
   "app": {
-    "windows": [
-      {
-        "label": "main",
-        "title": "ModernIPTV Desktop (spike)",
-        "width": 1280,
-        "height": 780,
-        "minWidth": 960,
-        "minHeight": 600,
-        "transparent": true
-      }
-    ],
+    "windows": [],
     "security": {
       "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; connect-src ipc: http://ipc.localhost",
       "devCsp": null
-    }
+    },
+    "withGlobalTauri": true
   },
   "bundle": {
     "active": false,
@@ -35,6 +26,8 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "resources": ["lib/*"]
+    "resources": [
+      "lib/*"
+    ]
   }
 }

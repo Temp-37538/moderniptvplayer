@@ -17,7 +17,7 @@ use std::thread::JoinHandle;
 use mpv_engine::{redact_urls, EndReason, Event, Library, Player, PlayerOptions, PropValue, SeekMode, Track, TrackKind};
 use serde::Serialize;
 use serde_json::{json, Value};
-use tauri::{AppHandle, Emitter, Manager, State, WebviewWindow, WindowEvent};
+use tauri::{AppHandle, Emitter, Manager, State, WebviewUrl, WebviewWindow, WebviewWindowBuilder, WindowEvent};
 
 struct Session {
     player: Arc<Player>,
@@ -317,9 +317,113 @@ fn mpv_report(state: State<AppState>) -> Result<String, String> {
     Ok(out)
 }
 
+// ------------------------------------------------------------------ site --
+
+// Computed by build.rs from site.json (validated there).
+const SITE_DEVELOPMENT: &str = env!("SITE_DEVELOPMENT");
+const SITE_PRODUCTION: &str = env!("SITE_PRODUCTION");
+const SITE_COMMANDS: &str = env!("SITE_COMMANDS");
+
+fn allowed_origins() -> Vec<&'static str> {
+    [SITE_DEVELOPMENT, SITE_PRODUCTION].into_iter().filter(|origin| !origin.is_empty()).collect()
+}
+
+/// The website to open: the development address in debug builds, the
+/// production one otherwise. `MODERNIPTV_BENCH=1` opens the local test page
+/// instead, and so does an address that is not set in site.json.
+fn site_url() -> Option<tauri::Url> {
+    if std::env::var_os("MODERNIPTV_BENCH").is_some() {
+        return None;
+    }
+    let address = if cfg!(debug_assertions) { SITE_DEVELOPMENT } else { SITE_PRODUCTION };
+    if address.is_empty() {
+        None
+    } else {
+        address.parse().ok()
+    }
+}
+
+/// `window.iptvDesktop`: the only thing the website sees of the shell.
+///
+/// It exists only on the origins of site.json and only lists the playback
+/// commands. The real barrier is the ACL (capabilities/site.generated.json):
+/// this script just gives the page a small, stable contract.
+fn bridge_script() -> String {
+    let origins = serde_json::to_string(&allowed_origins()).unwrap_or_else(|_| "[]".into());
+    let commands: Vec<&str> = SITE_COMMANDS.split(',').collect();
+    let commands = serde_json::to_string(&commands).unwrap_or_else(|_| "[]".into());
+    format!(
+        r#"(function () {{
+  var origins = {origins};
+  var commands = {commands};
+  if (origins.indexOf(window.location.origin) === -1) {{
+    return;
+  }}
+  var bridge = {{
+    version: 1,
+    invoke: function (command, args) {{
+      if (commands.indexOf(command) === -1) {{
+        return Promise.reject(new Error("command not available: " + command));
+      }}
+      return window.__TAURI__.core.invoke(command, args || {{}});
+    }},
+    onMpvEvent: function (listener) {{
+      var stopped = false;
+      var unlisten = null;
+      window.__TAURI__.event.listen("mpv-event", function (event) {{
+        if (!stopped) {{
+          listener(event.payload);
+        }}
+      }}).then(function (stop) {{
+        if (stopped) {{
+          stop();
+        }} else {{
+          unlisten = stop;
+        }}
+      }});
+      return function () {{
+        stopped = true;
+        if (unlisten) {{
+          unlisten();
+          unlisten = null;
+        }}
+      }};
+    }}
+  }};
+  Object.defineProperty(window, "iptvDesktop", {{ value: Object.freeze(bridge), configurable: false }});
+}})();"#
+    )
+}
+
+fn create_main_window(app: &AppHandle) -> tauri::Result<()> {
+    let site = site_url();
+    let target = match &site {
+        Some(url) => WebviewUrl::External(url.clone()),
+        None => WebviewUrl::default(),
+    };
+    let mut builder = WebviewWindowBuilder::new(app, "main", target)
+        .title(if site.is_some() { "ModernIPTV" } else { "ModernIPTV Desktop (spike)" })
+        .inner_size(1280.0, 780.0)
+        .min_inner_size(960.0, 600.0)
+        // mpv draws behind the page: the page must be able to be see-through.
+        .transparent(true);
+    if site.is_some() {
+        builder = builder
+            .initialization_script(bridge_script())
+            // Redirects (sign-in providers) are fine; anything that is not a web address is not.
+            .on_navigation(|url| matches!(url.scheme(), "http" | "https"));
+    }
+    builder.build()?;
+    Ok(())
+}
+
 fn main() {
     tauri::Builder::default()
         .manage(AppState::default())
+        .setup(|app| {
+            create_main_window(app.handle())?;
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             mpv_init, mpv_load, mpv_pause, mpv_seek, mpv_stop, mpv_volume, mpv_audio_track, mpv_sub_track, mpv_video_margins, mpv_info, mpv_report
         ])
