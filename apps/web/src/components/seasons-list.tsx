@@ -1,6 +1,7 @@
 "use client";
 
 import { CopyStreamButton } from "@/components/copy-stream-button";
+import { DesktopPlayer } from "@/components/desktop-player";
 import { ExternalStreamLink } from "@/components/external-stream-link";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -12,6 +13,8 @@ import {
 	SheetTitle,
 } from "@/components/ui/sheet";
 import { VideoPlayer } from "@/components/video-player";
+import { useDesktopBridge } from "@/lib/desktop/bridge";
+import type { ProgressDetails } from "@/lib/player/types";
 import type { EpisodeProgressEntry } from "@/lib/series-resume";
 import { CheckIcon, ChevronDown, Clock, PlayIcon, XIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -80,6 +83,7 @@ export function SeasonsList({
 	progress,
 }: SeasonsListProps) {
 	const router = useRouter();
+	const bridge = useDesktopBridge();
 	const [playingId, setPlayingId] = useState<string | null>(null);
 	const [openSeasons, setOpenSeasons] = useState<Set<string>>(
 		() => new Set(seasons.map((season) => season.id)),
@@ -150,6 +154,26 @@ export function SeasonsList({
 	const playing = playingIndex === -1 ? null : (playable[playingIndex] ?? null);
 	const nextEpisode = playing ? playable[playingIndex + 1] : undefined;
 
+	// In the desktop app an episode plays full window in mpv, without the Sheet:
+	// a modal dialog would keep the focus and the clicks away from the player.
+	const desktopUrl = bridge ? playing?.directUrl : undefined;
+	const progressDetails: ProgressDetails | undefined = playing
+		? {
+				playlistId,
+				itemId: playing.id,
+				itemType: "episode",
+				itemName: playing.name,
+				itemUrl: `/dashboard/series/${playlistId}/${categoryId}/${showId}#episode-${playing.id}`,
+				itemImage: showPoster ?? null,
+				showId,
+			}
+		: undefined;
+	const playNext = () => {
+		if (autoNext && nextEpisode) {
+			setPlayingId(nextEpisode.id);
+		}
+	};
+
 	// (resume CTA moved to the series page, under the poster)
 
 	function startAt(episodeId: string) {
@@ -183,7 +207,7 @@ export function SeasonsList({
 	return (
 		<div className="mt-12 space-y-6 sm:space-y-12">
 			<Sheet
-				open={playing !== null}
+				open={playing !== null && !desktopUrl}
 				onOpenChange={(open) => {
 					if (!open) {
 						closePlayer();
@@ -227,15 +251,7 @@ export function SeasonsList({
 								autoPlay
 								poster={posterSrc}
 								startAt={startAt(playing.id)}
-								progress={{
-									playlistId,
-									itemId: playing.id,
-									itemType: "episode",
-									itemName: playing.name,
-									itemUrl: `/dashboard/series/${playlistId}/${categoryId}/${showId}#episode-${playing.id}`,
-									itemImage: showPoster ?? null,
-									showId,
-								}}
+								progress={progressDetails}
 								sources={[
 									{
 										kind: playing.extension === "m3u8" ? "hls" : "native",
@@ -246,11 +262,7 @@ export function SeasonsList({
 										? [{ kind: "direct" as const, src: playing.directUrl }]
 										: []),
 								]}
-								onEnded={() => {
-									if (autoNext && nextEpisode) {
-										setPlayingId(nextEpisode.id);
-									}
-								}}
+								onEnded={playNext}
 							/>
 							{nextEpisode && (
 								<p className="text-xs text-muted-foreground">
@@ -261,6 +273,38 @@ export function SeasonsList({
 					)}
 				</SheetContent>
 			</Sheet>
+			{bridge && playing && desktopUrl ? (
+				<DesktopPlayer
+					key={playing.id}
+					bridge={bridge}
+					url={desktopUrl}
+					title={playing.name}
+					startAt={startAt(playing.id)}
+					progress={progressDetails}
+					autoPlay
+					hideCard
+					onClose={closePlayer}
+					onEnded={playNext}
+					topBarExtra={
+						<>
+							{nextEpisode && (
+								<span className="hidden text-xs text-white/60 sm:inline">
+									Up next: {nextEpisode.label}
+								</span>
+							)}
+							<label className="flex cursor-pointer items-center gap-2 text-xs text-white/80">
+								<input
+									type="checkbox"
+									checked={autoNext}
+									onChange={(event) => setAutoNext(event.target.checked)}
+									className="accent-white"
+								/>
+								Auto next
+							</label>
+						</>
+					}
+				/>
+			) : null}
 			{seasons.map((season) => {
 				const isOpen = openSeasons.has(season.id);
 
