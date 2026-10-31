@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { AlertCircleIcon, PauseIcon, PlayIcon, XIcon } from "lucide-react";
 import Image from "next/image";
 import {
+	type ReactNode,
 	useCallback,
 	useEffect,
 	useRef,
@@ -69,6 +70,12 @@ type DesktopPlayerProps = {
 	/** Called once the media has played to its end (after progress is saved). */
 	onEnded?: () => void;
 	className?: string;
+	/** Only the full-window player, without the card that opens it. */
+	hideCard?: boolean;
+	/** Called when the player is closed (Esc, the close button). */
+	onClose?: () => void;
+	/** Shown in the title bar, before the close button. */
+	topBarExtra?: ReactNode;
 };
 
 /**
@@ -87,47 +94,59 @@ export function DesktopPlayer({
 	progress,
 	onEnded,
 	className,
+	hideCard = false,
+	onClose,
+	topBarExtra,
 }: DesktopPlayerProps) {
 	const [open, setOpen] = useState(autoPlay);
-	const close = useCallback(() => setOpen(false), []);
+	const onCloseRef = useRef(onClose);
+	useEffect(() => {
+		onCloseRef.current = onClose;
+	});
+	const close = useCallback(() => {
+		setOpen(false);
+		onCloseRef.current?.();
+	}, []);
 	const resumeAt = !live && startAt > 5 ? startAt : 0;
 
 	return (
 		<>
-			<div
-				className={cn(
-					"relative aspect-video w-full overflow-hidden rounded-xl border border-border/50 bg-black",
-					className,
-				)}
-			>
-				{poster ? (
-					<Image
-						src={poster}
-						alt=""
-						fill
-						unoptimized
-						sizes="100vw"
-						className="object-cover opacity-60"
-					/>
-				) : null}
-				<div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-white">
-					<button
-						type="button"
-						onClick={() => setOpen(true)}
-						aria-label={live ? "Watch live" : "Play"}
-						className="flex size-16 items-center justify-center rounded-full bg-white/15 transition-colors hover:bg-white/25 focus-visible:outline-2 focus-visible:outline-white/70"
-					>
-						<PlayIcon className="size-8" />
-					</button>
-					<p className="text-sm text-white/80">
-						{live
-							? "Watch live"
-							: resumeAt > 0
-								? `Resume from ${formatClock(resumeAt)}`
-								: "Play"}
-					</p>
+			{hideCard ? null : (
+				<div
+					className={cn(
+						"relative aspect-video w-full overflow-hidden rounded-xl border border-border/50 bg-black",
+						className,
+					)}
+				>
+					{poster ? (
+						<Image
+							src={poster}
+							alt=""
+							fill
+							unoptimized
+							sizes="100vw"
+							className="object-cover opacity-60"
+						/>
+					) : null}
+					<div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-white">
+						<button
+							type="button"
+							onClick={() => setOpen(true)}
+							aria-label={live ? "Watch live" : "Play"}
+							className="flex size-16 items-center justify-center rounded-full bg-white/15 transition-colors hover:bg-white/25 focus-visible:outline-2 focus-visible:outline-white/70"
+						>
+							<PlayIcon className="size-8" />
+						</button>
+						<p className="text-sm text-white/80">
+							{live
+								? "Watch live"
+								: resumeAt > 0
+									? `Resume from ${formatClock(resumeAt)}`
+									: "Play"}
+						</p>
+					</div>
 				</div>
-			</div>
+			)}
 			{open ? (
 				<DesktopOverlay
 					bridge={bridge}
@@ -138,6 +157,7 @@ export function DesktopPlayer({
 					progress={progress}
 					onEnded={onEnded}
 					onClose={close}
+					topBarExtra={topBarExtra}
 				/>
 			) : null}
 		</>
@@ -153,6 +173,7 @@ type DesktopOverlayProps = {
 	progress?: ProgressDetails;
 	onEnded?: () => void;
 	onClose: () => void;
+	topBarExtra?: ReactNode;
 };
 
 function DesktopOverlay({
@@ -164,6 +185,7 @@ function DesktopOverlay({
 	progress,
 	onEnded,
 	onClose,
+	topBarExtra,
 }: DesktopOverlayProps) {
 	const [engine, setEngine] = useState<MpvEngine | null>(null);
 	// Bumped to start over with a new player: "try again" and "watch again" do
@@ -332,6 +354,7 @@ function DesktopOverlay({
 			<style>{SEE_THROUGH_CSS}</style>
 			<div className="flex h-12 shrink-0 items-center gap-3 bg-black px-4">
 				<p className="min-w-0 flex-1 truncate text-sm font-medium">{title}</p>
+				{topBarExtra}
 				<button
 					type="button"
 					onClick={onClose}
