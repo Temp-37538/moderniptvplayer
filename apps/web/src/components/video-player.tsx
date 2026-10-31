@@ -1,32 +1,14 @@
 "use client";
 
+import { DesktopPlayer } from "@/components/desktop-player";
+import { useDesktopBridge } from "@/lib/desktop/bridge";
+import { ProgressSaver } from "@/lib/player/progress";
+import type { PlayerSource, ProgressDetails } from "@/lib/player/types";
 import { cn } from "@/lib/utils";
 import { AlertCircleIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
-export type PlayerSource = {
-	/**
-	 * "native": mp4 and friends. "hls": .m3u8. "mpegts": raw live MPEG-TS.
-	 * "direct": the provider's own URL, played from the user's connection (for
-	 * providers that refuse the server's IP). Browsers only allow it on a secure
-	 * page when "Insecure content" is allowed for the site.
-	 */
-	kind: "native" | "hls" | "mpegts" | "direct";
-	src: string;
-};
-
-/** What is stored to resume a film or an episode later. */
-export type ProgressDetails = {
-	playlistId: string;
-	itemId: string;
-	itemType: "movie" | "episode";
-	itemName: string;
-	/** In-app page to come back to. */
-	itemUrl: string;
-	/** The provider's poster URL (it is proxied when displayed). */
-	itemImage?: string | null;
-	showId?: string | null;
-};
+export type { PlayerSource, ProgressDetails } from "@/lib/player/types";
 
 type VideoPlayerProps = {
 	/** Tried in order: the next one is used when one cannot be played. */
@@ -40,7 +22,16 @@ type VideoPlayerProps = {
 	/** Called once the media has played to its end (after progress is saved). */
 	onEnded?: () => void;
 	className?: string;
+	/**
+	 * Desktop app only: the provider's own address, played by mpv. Defaults to
+	 * the "direct" source; live channels have no such source, so they pass it.
+	 */
+	desktopUrl?: string;
+	/** Desktop app only: shown above the player. */
+	title?: string;
 };
+
+type WebVideoPlayerProps = Omit<VideoPlayerProps, "desktopUrl" | "title">;
 
 type NoticeKind = "no-video" | "no-audio";
 
@@ -175,12 +166,9 @@ async function diagnose(
 	};
 }
 
-const SAVE_INTERVAL_MS = 15_000;
-// Opening a title for a few seconds must not clutter "continue watching".
-const MIN_SAVED_POSITION = 10;
 const MAX_HLS_MEDIA_RECOVERIES = 2;
 
-export function VideoPlayer({
+function WebVideoPlayer({
 	sources,
 	poster,
 	startAt = 0,
@@ -189,7 +177,8 @@ export function VideoPlayer({
 	progress,
 	onEnded,
 	className,
-}: VideoPlayerProps) {
+}: WebVideoPlayerProps) {
+	const inDesktop = useDesktopBridge() !== null;
 	const videoRef = useRef<HTMLVideoElement>(null);
 	const [attempt, setAttempt] = useState({ key: "", index: 0 });
 	const [failedKey, setFailedKey] = useState("");
@@ -236,59 +225,16 @@ export function VideoPlayer({
 			return;
 		}
 
-		let lastSentAt = 0;
-		let lastSentPosition = -1;
-
-		const save = (force: boolean) => {
-			const details = progressRef.current;
-			const duration = video.duration;
-			const position = video.currentTime;
-			if (
-				!details ||
-				!Number.isFinite(duration) ||
-				duration <= 0 ||
-				position < MIN_SAVED_POSITION
-			) {
-				return;
-			}
-			// Reaching the end must always be recorded, however close the previous
-			// save was: it is what marks the title as watched.
-			const finished = video.ended || position >= duration - 1;
-			if (finished) {
-				if (lastSentPosition >= duration - 1) {
-					return;
-				}
-			} else if (
-				(!force && Date.now() - lastSentAt < SAVE_INTERVAL_MS) ||
-				Math.abs(position - lastSentPosition) < 3
-			) {
-				return;
-			}
-			lastSentAt = Date.now();
-			lastSentPosition = finished ? duration : position;
-
-			const image = details.itemImage;
-			// keepalive lets the request outlive the page (tab closed).
-			fetch("/api/watch-progress", {
-				method: "POST",
-				keepalive: true,
-				headers: { "content-type": "application/json" },
-				body: JSON.stringify({
-					playlistId: details.playlistId,
-					itemId: details.itemId,
-					itemType: details.itemType,
-					itemName: details.itemName,
-					itemUrl: details.itemUrl,
-					itemImage:
-						image && /^https?:\/\//i.test(image) && image.length <= 2048
-							? image
-							: null,
-					showId: details.showId ?? null,
-					positionSec: finished ? duration : position,
-					durationSec: duration,
-				}),
-			}).catch(() => {});
-		};
+		const saver = new ProgressSaver(() => progressRef.current);
+		const save = (force: boolean) =>
+			saver.save(
+				{
+					position: video.currentTime,
+					duration: video.duration,
+					ended: video.ended,
+				},
+				force,
+			);
 
 		const onTimeUpdate = () => save(false);
 		const onSettled = () => save(true);
@@ -540,7 +486,7 @@ export function VideoPlayer({
 					{detail && (
 						<p className="max-w-prose text-white/85">{detail.reason}</p>
 					)}
-					{detail?.directBlocked && (
+					{detail?.directBlocked && !inDesktop && (
 						<p className="max-w-prose text-white/85">
 							Your provider refuses this server, so the stream has to be played
 							from your own connection. Your browser blocks that on a secure
@@ -561,4 +507,34 @@ export function VideoPlayer({
 			)}
 		</div>
 	);
+}
+
+/**
+ * The desktop app plays with mpv whenever it has the provider's own address:
+ * mpv reads http, decodes every codec and reaches providers that refuse the
+ * server's IP, so neither the proxy nor the browser's "Insecure content"
+ * setting is involved. A browser, and the app for anything without such an
+ * address, use the web player.
+ */
+export function VideoPlayer({ desktopUrl, title, ...props }: VideoPlayerProps) {
+	const bridge = useDesktopBridge();
+	const url =
+		desktopUrl ?? props.sources.find((source) => source.kind === "direct")?.src;
+	if (bridge && url && /^https?:\/\//i.test(url)) {
+		return (
+			<DesktopPlayer
+				bridge={bridge}
+				url={url}
+				title={title}
+				poster={props.poster}
+				startAt={props.startAt}
+				live={props.live}
+				autoPlay={props.autoPlay}
+				progress={props.progress}
+				onEnded={props.onEnded}
+				className={props.className}
+			/>
+		);
+	}
+	return <WebVideoPlayer {...props} />;
 }
