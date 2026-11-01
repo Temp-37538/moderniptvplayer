@@ -26,12 +26,14 @@ const APP_COMMANDS: &[&str] = &[
     "mpv_audio_track",
     "mpv_sub_track",
     "mpv_video_margins",
+    "window_fullscreen",
     "mpv_info",
     "mpv_report",
 ];
 
-/// What the website may call: playback and nothing else. No diagnostics and,
-/// above all, no raw mpv commands (mpv can run programs).
+/// What the website may call: playback, and the window's full screen (the
+/// player's full screen button). No diagnostics and, above all, no raw mpv
+/// commands (mpv can run programs).
 const SITE_COMMANDS: &[&str] = &[
     "mpv_init",
     "mpv_load",
@@ -42,6 +44,7 @@ const SITE_COMMANDS: &[&str] = &[
     "mpv_audio_track",
     "mpv_sub_track",
     "mpv_video_margins",
+    "window_fullscreen",
 ];
 
 fn permission(command: &str) -> String {
