@@ -101,6 +101,9 @@ async function ChannelDetailContent({ params }: PageProps) {
 				{/* HLS first; some providers only serve raw MPEG-TS. */}
 				<VideoPlayer
 					live
+					title={channel.name}
+					// The desktop app plays the provider's own address with mpv.
+					desktopUrl={/^https?:\/\//i.test(streamUrl) ? streamUrl : undefined}
 					sources={[
 						{
 							kind: "hls",
