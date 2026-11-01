@@ -154,8 +154,9 @@ export function SeasonsList({
 	const playing = playingIndex === -1 ? null : (playable[playingIndex] ?? null);
 	const nextEpisode = playing ? playable[playingIndex + 1] : undefined;
 
-	// In the desktop app an episode plays full window in mpv, without the Sheet:
-	// a modal dialog would keep the focus and the clicks away from the player.
+	// In the desktop app an episode plays in mpv, in a card above the seasons,
+	// without the Sheet: a modal dialog would keep the focus and the clicks away
+	// from the player.
 	const desktopUrl = bridge ? playing?.directUrl : undefined;
 	const progressDetails: ProgressDetails | undefined = playing
 		? {
@@ -282,7 +283,7 @@ export function SeasonsList({
 					startAt={startAt(playing.id)}
 					progress={progressDetails}
 					autoPlay
-					hideCard
+					className="mx-auto max-w-4xl"
 					onClose={closePlayer}
 					onEnded={playNext}
 					topBarExtra={
