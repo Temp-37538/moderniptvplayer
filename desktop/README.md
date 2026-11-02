@@ -37,8 +37,10 @@ Le site a des droits natifs, donc la barrière est stricte :
   externe) n'a accès à rien : ses appels sont refusés par l'ACL de Tauri.
 - **Seules les commandes de lecture sont accordées** au site : `mpv_init`,
   `mpv_load`, `mpv_pause`, `mpv_seek`, `mpv_stop`, `mpv_volume`,
-  `mpv_audio_track`, `mpv_sub_track`, `mpv_video_margins`, plus l'écoute des
-  événements du lecteur. Pas de diagnostics (`mpv_info`, `mpv_report`), pas
+  `mpv_audio_track`, `mpv_sub_track`, `mpv_video_margins`, plus
+  `window_fullscreen` (le bouton plein écran du lecteur : la fenêtre passe en
+  plein écran, rien d'autre) et l'écoute des événements du lecteur. Pas de
+  diagnostics (`mpv_info`, `mpv_report`), pas
   d'accès au système de fichiers, pas de shell. **Il n'y a pas de canal de
   commandes mpv brutes** (mpv peut lancer des programmes).
 - Toutes les commandes sont déclarées dans un manifeste d'appli (`build.rs`) :
@@ -56,9 +58,11 @@ Le site a des droits natifs, donc la barrière est stricte :
 
 Vérifié sous Linux (écran virtuel, vrai libmpv, faux site local) : la
 passerelle n'existe que sur l'origine autorisée, `mpv_info` et `mpv_report`
-sont refusés au site même en appelant Tauri directement, et une autre origine
-n'a aucun accès. **Non vérifié sous Windows** : l'affichage de la vidéo sous un
-site distant transparent, la connexion par un fournisseur OAuth (certains
+sont refusés au site même en appelant Tauri directement, `window_fullscreen`
+est accepté sur l'origine du site et refusé ailleurs, et une autre origine
+n'a aucun accès. **Non vérifié sous Windows** : l'effet réel de
+`window_fullscreen` sur la fenêtre (pas de gestionnaire de fenêtres sous
+l'écran virtuel), l'affichage de la vidéo sous un site distant transparent, la connexion par un fournisseur OAuth (certains
 refusent les vues web intégrées, la connexion par e-mail n'a pas ce problème),
 les liens `target="_blank"`.
 

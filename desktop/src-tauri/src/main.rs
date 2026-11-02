@@ -234,6 +234,14 @@ fn mpv_video_margins(state: State<AppState>, left: f64, right: f64, top: f64, bo
     player(&state)?.set_video_margins(left, right, top, bottom).map_err(|e| e.to_string())
 }
 
+/// Real full screen for the whole window (no title bar, no taskbar), asked by
+/// the website's full screen button. The embedded mpv window follows the main
+/// window's size, like it does when the window is resized by hand.
+#[tauri::command]
+fn window_fullscreen(window: WebviewWindow, fullscreen: bool) -> Result<(), String> {
+    window.set_fullscreen(fullscreen).map_err(|e| e.to_string())
+}
+
 #[derive(Serialize)]
 struct Info {
     mode: &'static str,
@@ -425,7 +433,7 @@ fn main() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            mpv_init, mpv_load, mpv_pause, mpv_seek, mpv_stop, mpv_volume, mpv_audio_track, mpv_sub_track, mpv_video_margins, mpv_info, mpv_report
+            mpv_init, mpv_load, mpv_pause, mpv_seek, mpv_stop, mpv_volume, mpv_audio_track, mpv_sub_track, mpv_video_margins, window_fullscreen, mpv_info, mpv_report
         ])
         .on_window_event(|window, event| {
             if let WindowEvent::CloseRequested { .. } | WindowEvent::Destroyed = event {

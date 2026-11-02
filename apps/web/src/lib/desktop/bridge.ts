@@ -52,6 +52,12 @@ export type DesktopCommands = {
 		top: number;
 		bottom: number;
 	};
+	/**
+	 * Puts the app window in real full screen (no title bar, no taskbar).
+	 * Added after version 1 of the shell: an older app rejects it as "command
+	 * not available", and the site then keeps the picture inside the window.
+	 */
+	window_fullscreen: { fullscreen: boolean };
 };
 
 export type DesktopBridge = {

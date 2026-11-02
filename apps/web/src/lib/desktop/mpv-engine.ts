@@ -9,9 +9,20 @@ import type {
 	PlayerSnapshot,
 	PlayerTrack,
 } from "@/lib/player/engine";
+import {
+	chooseSubtitle,
+	readSubtitlePreference,
+	readVolume,
+	sliderToMpvVolume,
+	writeSubtitlePreference,
+	writeVolume,
+} from "@/lib/player/preferences";
 
 // time-pos changes on every frame: React only needs it a few times a second.
 const POSITION_NOTIFY_MS = 250;
+// Scrolling the page moves the picture's rectangle on every frame: mpv is told
+// about it a bit less often.
+const MARGINS_INTERVAL_MS = 40;
 
 const INITIAL: PlayerSnapshot = {
 	status: "starting",
@@ -63,7 +74,7 @@ function describeFailure(error: unknown): string {
  */
 export class MpvEngine implements PlayerEngine {
 	private readonly bridge: DesktopBridge;
-	private snapshot: PlayerSnapshot = INITIAL;
+	private snapshot: PlayerSnapshot;
 	private readonly listeners = new Set<() => void>();
 	private readonly endedListeners = new Set<() => void>();
 	private unlisten: (() => void) | null = null;
@@ -75,9 +86,14 @@ export class MpvEngine implements PlayerEngine {
 	private lastNotifiedAt = 0;
 	private margins: Margins | null = null;
 	private appliedMargins = "";
+	private marginsTimer: ReturnType<typeof setTimeout> | null = null;
+	private marginsSentAt = 0;
+	private subtitleTracks: MpvTrack[] = [];
 
 	constructor(bridge: DesktopBridge) {
 		this.bridge = bridge;
+		// Every content opens a new mpv session: the volume is the one you left.
+		this.snapshot = { ...INITIAL, volume: readVolume() };
 	}
 
 	subscribe = (listener: () => void) => {
@@ -117,6 +133,10 @@ export class MpvEngine implements PlayerEngine {
 			audioTracks: [],
 			subtitleTracks: [],
 		});
+		this.subtitleTracks = [];
+		await this.send("mpv_volume", {
+			percent: sliderToMpvVolume(this.snapshot.volume),
+		});
 		await this.applyMargins();
 		await this.send(
 			"mpv_load",
@@ -149,10 +169,12 @@ export class MpvEngine implements PlayerEngine {
 		void this.send("mpv_seek", { seconds, relative: true });
 	}
 
+	/** `percent`: the slider, linear in amplitude (mpv's own scale is not). */
 	setVolume(percent: number) {
 		const volume = Math.min(100, Math.max(0, percent));
 		this.update({ volume });
-		void this.send("mpv_volume", { percent: volume });
+		writeVolume(volume);
+		void this.send("mpv_volume", { percent: sliderToMpvVolume(volume) });
 	}
 
 	selectAudio(id: number | null) {
@@ -172,6 +194,10 @@ export class MpvEngine implements PlayerEngine {
 				selected: track.id === id,
 			})),
 		});
+		// What is chosen here is what the next contents start with.
+		writeSubtitlePreference(
+			this.subtitleTracks.find((track) => track.id === id) ?? null,
+		);
 		void this.send("mpv_sub_track", { id });
 	}
 
@@ -190,7 +216,17 @@ export class MpvEngine implements PlayerEngine {
 			top: fraction(rect.top / viewportHeight),
 			bottom: fraction((viewportHeight - rect.bottom) / viewportHeight),
 		};
-		void this.applyMargins();
+		// The first rectangle goes out at once (mpv needs it before it opens
+		// the media); a page that scrolls or resizes sends many of them.
+		const wait = this.marginsSentAt + MARGINS_INTERVAL_MS - Date.now();
+		if (this.marginsSentAt === 0 || wait <= 0) {
+			void this.applyMargins();
+		} else if (this.marginsTimer === null) {
+			this.marginsTimer = setTimeout(() => {
+				this.marginsTimer = null;
+				void this.applyMargins();
+			}, wait);
+		}
 	}
 
 	dispose() {
@@ -198,6 +234,10 @@ export class MpvEngine implements PlayerEngine {
 			return;
 		}
 		this.disposed = true;
+		if (this.marginsTimer !== null) {
+			clearTimeout(this.marginsTimer);
+			this.marginsTimer = null;
+		}
 		this.unlisten?.();
 		this.unlisten = null;
 		// Stops the playback and closes the connection to the provider: accounts
@@ -243,6 +283,7 @@ export class MpvEngine implements PlayerEngine {
 			return;
 		}
 		this.appliedMargins = key;
+		this.marginsSentAt = Date.now();
 		await this.send("mpv_video_margins", this.margins);
 	}
 
@@ -294,12 +335,16 @@ export class MpvEngine implements PlayerEngine {
 		if (event.type === "property") {
 			this.handleProperty(event.name, event.value);
 		} else if (event.type === "file-loaded") {
+			this.subtitleTracks = event.tracks.filter(
+				(track) => track.kind === "sub",
+			);
 			this.update({
 				status: "playing",
 				error: null,
 				audioTracks: toTracks(event.tracks, "audio"),
 				subtitleTracks: toTracks(event.tracks, "sub"),
 			});
+			this.applySubtitlePreference();
 		} else if (event.type === "end-file") {
 			if (event.reason === "eof") {
 				this.update({ status: "ended" });
@@ -316,6 +361,29 @@ export class MpvEngine implements PlayerEngine {
 			}
 			// "stop", "quit" and "redirect" are ours or mpv's own housekeeping.
 		}
+	}
+
+	/**
+	 * mpv picks subtitles by itself (a default or forced track). The ones
+	 * shown are those of the previous content: same language, or none.
+	 */
+	private applySubtitlePreference() {
+		const wanted = chooseSubtitle(
+			this.subtitleTracks,
+			readSubtitlePreference(),
+		);
+		const current =
+			this.subtitleTracks.find((track) => track.selected)?.id ?? null;
+		if (wanted === current) {
+			return;
+		}
+		this.update({
+			subtitleTracks: this.snapshot.subtitleTracks.map((track) => ({
+				...track,
+				selected: track.id === wanted,
+			})),
+		});
+		void this.send("mpv_sub_track", { id: wanted });
 	}
 
 	private handleProperty(

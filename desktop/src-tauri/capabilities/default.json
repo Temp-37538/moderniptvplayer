@@ -15,6 +15,7 @@
     "allow-mpv-audio-track",
     "allow-mpv-sub-track",
     "allow-mpv-video-margins",
+    "allow-window-fullscreen",
     "allow-mpv-info",
     "allow-mpv-report"
   ]
