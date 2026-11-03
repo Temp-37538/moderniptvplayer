@@ -9,13 +9,15 @@ import {
 	startsInFullscreen,
 } from "@/lib/desktop/fullscreen";
 import { MpvEngine } from "@/lib/desktop/mpv-engine";
-import { startSeeThrough } from "@/lib/desktop/see-through";
+import { hidePage } from "@/lib/desktop/see-through";
 import type { PlayerSnapshot } from "@/lib/player/engine";
 import { ProgressSaver } from "@/lib/player/progress";
 import type { ProgressDetails } from "@/lib/player/types";
 import { cn } from "@/lib/utils";
 import {
 	AlertCircleIcon,
+	AudioLinesIcon,
+	CaptionsIcon,
 	MaximizeIcon,
 	MinimizeIcon,
 	PauseIcon,
@@ -29,6 +31,7 @@ import {
 	type ReactNode,
 	useCallback,
 	useEffect,
+	useLayoutEffect,
 	useRef,
 	useState,
 	useSyncExternalStore,
@@ -38,6 +41,7 @@ import { createPortal } from "react-dom";
 const IDLE: PlayerSnapshot = {
 	status: "starting",
 	error: null,
+	pictureReady: false,
 	paused: false,
 	position: 0,
 	duration: 0,
@@ -48,6 +52,10 @@ const IDLE: PlayerSnapshot = {
 
 // Controls disappear after this long without a mouse move while playing.
 const HIDE_CONTROLS_MS = 3000;
+// A click on the picture pauses, unless a second one follows (full screen).
+const DOUBLE_CLICK_MS = 250;
+// What surrounds the player's frame: the page is hidden behind it.
+const BACKDROP = "rgb(10, 10, 10)";
 
 const noSubscribe = () => () => {};
 
@@ -61,10 +69,10 @@ function formatClock(totalSeconds: number) {
 }
 
 const barButton =
-	"inline-flex h-8 items-center justify-center rounded-md bg-white/10 px-3 text-sm font-medium text-white transition-colors hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-white/70";
+	"inline-flex h-8 shrink-0 items-center justify-center rounded-md bg-white/10 px-3 text-sm font-medium text-white transition-colors hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-white/70";
 
 const barSelect =
-	"h-8 max-w-40 rounded-md border border-white/20 bg-neutral-900 px-2 text-sm text-white [color-scheme:dark]";
+	"h-8 w-full min-w-0 rounded-md border border-white/20 bg-neutral-900 px-2 text-sm text-white [color-scheme:dark]";
 
 type DesktopPlayerProps = {
 	bridge: DesktopBridge;
@@ -80,7 +88,10 @@ type DesktopPlayerProps = {
 	progress?: ProgressDetails;
 	/** Called once the media has played to its end (after progress is saved). */
 	onEnded?: () => void;
+	/** Classes of the card (the play button on the page). */
 	className?: string;
+	/** False: no card on the page, the player is only opened from outside. */
+	card?: boolean;
 	/** Called when the player is closed (the close button, Esc). */
 	onClose?: () => void;
 	/** Shown in the title bar, before the close button. */
@@ -88,9 +99,11 @@ type DesktopPlayerProps = {
 };
 
 /**
- * The player of the desktop app. It is a card on the page: a play button, then
- * the picture drawn by mpv in the card itself, with the site's own controls on
- * top of it. The full screen button makes it fill the whole window (and the
+ * The player of the desktop app. On the page it is a card with a play button.
+ * Playing opens a modal in the middle of the window, with the picture drawn by
+ * mpv in it and the site's own controls on top. The page is hidden behind the
+ * modal: mpv is behind the page, so nothing of the page may be under the
+ * picture. The full screen button makes the player fill the window (and the
  * screen, when the app can).
  */
 export function DesktopPlayer({
@@ -104,6 +117,7 @@ export function DesktopPlayer({
 	progress,
 	onEnded,
 	className,
+	card = true,
 	onClose,
 	topBarExtra,
 }: DesktopPlayerProps) {
@@ -112,7 +126,6 @@ export function DesktopPlayer({
 	const [expanded, setExpanded] = useState(
 		() => autoPlay && startsInFullscreen(),
 	);
-	const frameRef = useRef<HTMLDivElement>(null);
 	const onCloseRef = useRef(onClose);
 	const closedOnPurpose = useRef(false);
 	const expandedRef = useRef(expanded);
@@ -151,37 +164,15 @@ export function DesktopPlayer({
 		};
 	}, [bridge, open, expanded]);
 
-	// Opened from a long page (an episode further down): bring the card in view.
-	useEffect(() => {
-		if (autoPlay && !expandedRef.current) {
-			frameRef.current?.scrollIntoView({ block: "nearest" });
-		}
-	}, [autoPlay]);
-
 	return (
-		<div
-			ref={frameRef}
-			className={cn(
-				"relative aspect-video w-full overflow-hidden rounded-xl border border-border/50 bg-black",
-				className,
-			)}
-		>
-			{open ? (
-				<DesktopSession
-					bridge={bridge}
-					url={url}
-					title={title ?? progress?.itemName ?? "Now playing"}
-					startAt={startAt}
-					live={live}
-					progress={progress}
-					onEnded={onEnded}
-					onClose={close}
-					topBarExtra={topBarExtra}
-					expanded={expanded}
-					setExpanded={setExpanded}
-				/>
-			) : (
-				<>
+		<>
+			{card ? (
+				<div
+					className={cn(
+						"relative aspect-video w-full overflow-hidden rounded-xl border border-border/50 bg-black",
+						className,
+					)}
+				>
 					{poster ? (
 						<Image
 							src={poster}
@@ -209,9 +200,24 @@ export function DesktopPlayer({
 									: "Play"}
 						</p>
 					</div>
-				</>
-			)}
-		</div>
+				</div>
+			) : null}
+			{open ? (
+				<DesktopSession
+					bridge={bridge}
+					url={url}
+					title={title ?? progress?.itemName ?? "Now playing"}
+					startAt={startAt}
+					live={live}
+					progress={progress}
+					onEnded={onEnded}
+					onClose={close}
+					topBarExtra={topBarExtra}
+					expanded={expanded}
+					setExpanded={setExpanded}
+				/>
+			) : null}
+		</>
 	);
 }
 
@@ -403,7 +409,7 @@ function DesktopSession({
 		return () => window.removeEventListener("keydown", onKeyDown);
 	}, [engine, live, expanded, setExpanded, onClose]);
 
-	const stage = (
+	return createPortal(
 		<Stage
 			engine={engine}
 			snapshot={snapshot}
@@ -418,11 +424,9 @@ function DesktopSession({
 			onSeekBy={seekBy}
 			onRetry={() => restart(startRef.current)}
 			onRestart={() => restart(0)}
-		/>
+		/>,
+		document.body,
 	);
-	// In full screen the stage leaves the card for the whole window; the
-	// playback (this component) stays where it is.
-	return expanded ? createPortal(stage, document.body) : stage;
 }
 
 /** Shows the controls while the mouse moves, hides them while it is still. */
@@ -491,9 +495,9 @@ type StageProps = {
 };
 
 /**
- * What the person sees: a transparent area where mpv's picture shows, and the
- * controls over it. In the card it fills the card; in full screen it fills
- * the window.
+ * What the person sees: a frame in the middle of the window (or the whole
+ * window, in full screen) with a transparent area where mpv's picture shows
+ * and the controls over it. Around the frame, a solid backdrop.
  */
 function Stage({
 	engine,
@@ -511,25 +515,31 @@ function Stage({
 	onRestart,
 }: StageProps) {
 	const holeRef = useRef<HTMLDivElement>(null);
-	const { status } = snapshot;
+	const clickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const { status, pictureReady } = snapshot;
 	const ended = status === "ended";
 	const { visible, wake, hold } = useAutoHide(
 		status === "playing" && !snapshot.paused,
 	);
 
-	// Tells mpv where the picture goes (the hole) and makes the page see
-	// through there. It follows the hole when the page scrolls or resizes.
+	// Before the first paint: the page must already be out of the way, or it
+	// would show for a moment in the transparent area.
+	useLayoutEffect(() => hidePage(), []);
+
+	// Tells mpv where the picture goes (the transparent area). It only moves
+	// when the window is resized or the player goes in or out of full screen.
 	useEffect(() => {
 		const hole = holeRef.current;
 		if (!engine || !hole) {
 			return;
 		}
-		const seeThrough = startSeeThrough(hole, expanded);
 		let frame = 0;
 		const apply = () => {
-			const rect = hole.getBoundingClientRect();
-			seeThrough.update(rect);
-			engine.setVideoRect(rect, window.innerWidth, window.innerHeight);
+			engine.setVideoRect(
+				hole.getBoundingClientRect(),
+				window.innerWidth,
+				window.innerHeight,
+			);
 		};
 		const sync = () => {
 			cancelAnimationFrame(frame);
@@ -538,121 +548,166 @@ function Stage({
 		const observer = new ResizeObserver(sync);
 		observer.observe(hole);
 		window.addEventListener("resize", sync);
-		// Any scrolling container, not only the window.
-		document.addEventListener("scroll", sync, { capture: true, passive: true });
 		// Measured right away, so mpv has its margins before it opens the media.
 		apply();
 		return () => {
 			cancelAnimationFrame(frame);
 			observer.disconnect();
 			window.removeEventListener("resize", sync);
-			document.removeEventListener("scroll", sync, { capture: true });
-			seeThrough.stop();
 		};
-	}, [engine, expanded]);
+	}, [engine]);
+
+	const clearClick = useCallback(() => {
+		if (clickTimer.current !== null) {
+			clearTimeout(clickTimer.current);
+			clickTimer.current = null;
+		}
+	}, []);
+	useEffect(() => clearClick, [clearClick]);
+	// A single click pauses, but only once it is sure no second click follows:
+	// the double click goes full screen and must not pause on the way.
+	const onPictureClick = () => {
+		if (ended) {
+			return;
+		}
+		clearClick();
+		clickTimer.current = setTimeout(() => {
+			clickTimer.current = null;
+			onTogglePlay();
+		}, DOUBLE_CLICK_MS);
+	};
+	const onPictureDoubleClick = () => {
+		clearClick();
+		onToggleExpanded();
+	};
 
 	const showBars = visible;
+	const waiting =
+		status === "starting" ||
+		status === "loading" ||
+		(status === "playing" && !pictureReady);
 	return (
 		<div
-			data-desktop-player={expanded ? "" : undefined}
+			data-desktop-player=""
 			className={cn(
-				"text-white",
-				expanded ? "pointer-events-auto fixed inset-0" : "absolute inset-0",
+				"pointer-events-auto fixed inset-0 text-white",
 				!showBars && "cursor-none",
 			)}
-			style={expanded ? { zIndex: 2147483000 } : undefined}
+			style={{ zIndex: 2147483000 }}
 			onPointerMove={wake}
 			onPointerDown={wake}
 		>
-			{/* Black until mpv's window shows something: nothing is behind the
-			    page before that. */}
-			{/* biome-ignore lint/a11y/useKeyWithClickEvents: the keyboard has Space and F */}
-			{/* biome-ignore lint/a11y/noStaticElementInteractions: the picture area is a mouse shortcut, the buttons below are the accessible controls */}
-			<div
-				ref={holeRef}
-				className={cn(
-					"absolute inset-0",
-					status === "playing" ? "bg-transparent" : "bg-black",
-				)}
-				// A click on the picture after the end must not start the film over.
-				onClick={ended ? undefined : onTogglePlay}
-				onDoubleClick={onToggleExpanded}
-			/>
-
-			{status === "starting" || status === "loading" ? (
-				<p className="pointer-events-none absolute inset-x-0 top-1/2 mx-auto w-fit -translate-y-1/2 rounded-md bg-black/60 px-3 py-1.5 text-sm text-white/90">
-					Loading…
-				</p>
-			) : null}
-
-			{status === "error" ? (
-				<div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black p-6 text-center text-sm">
-					<AlertCircleIcon className="size-6" />
-					<p>This stream can't be played.</p>
-					{snapshot.error ? (
-						<p className="max-w-prose break-words text-white/70">
-							{snapshot.error}
-						</p>
-					) : null}
-					<div className="flex gap-2">
-						<button type="button" onClick={onRetry} className={barButton}>
-							Try again
-						</button>
-						<button type="button" onClick={onClose} className={barButton}>
-							Close
-						</button>
-					</div>
-				</div>
-			) : null}
-
-			{ended ? (
-				<div className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-3 rounded-xl bg-black/70 px-6 py-4 text-center text-sm">
-					<p>{live ? "The stream has ended." : "Finished."}</p>
-					<div className="flex gap-2">
-						<button type="button" onClick={onRestart} className={barButton}>
-							{live ? "Reconnect" : "Watch again"}
-						</button>
-						<button type="button" onClick={onClose} className={barButton}>
-							Close
-						</button>
-					</div>
-				</div>
-			) : null}
-
+			{/* The frame: in the middle of the window, or all of it. Its shadow is
+			    the solid backdrop around it; the frame itself stays see-through. */}
 			<div
 				className={cn(
-					"absolute inset-x-0 top-0 flex items-center gap-3 bg-linear-to-b from-black/80 to-transparent px-4 pb-6 pt-3 transition-opacity duration-200",
-					showBars ? "opacity-100" : "pointer-events-none opacity-0",
+					"absolute overflow-hidden",
+					expanded
+						? "inset-0"
+						: "left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2",
 				)}
-				onPointerEnter={() => hold(true)}
-				onPointerLeave={() => hold(false)}
+				style={
+					expanded
+						? undefined
+						: {
+								width: "min(92vw, calc(88vh * 16 / 9))",
+								aspectRatio: "16 / 9",
+								borderRadius: 12,
+								boxShadow: `0 0 0 100vmax ${BACKDROP}`,
+							}
+				}
 			>
-				<p className="min-w-0 flex-1 truncate text-sm font-medium">{title}</p>
-				{topBarExtra}
-				<button
-					type="button"
-					onClick={onClose}
-					aria-label="Close the player"
-					className={cn(barButton, "w-8 px-0")}
-				>
-					<XIcon className="size-4" />
-				</button>
-			</div>
-
-			{status === "error" ? null : (
-				<Controls
-					engine={engine}
-					snapshot={snapshot}
-					live={live}
-					expanded={expanded}
-					visible={showBars}
-					hold={hold}
-					onTogglePlay={onTogglePlay}
-					onSeekTo={onSeekTo}
-					onSeekBy={onSeekBy}
-					onToggleExpanded={onToggleExpanded}
+				{/* Black until mpv has a picture: before that nothing is behind the
+				    page. */}
+				{/* biome-ignore lint/a11y/useKeyWithClickEvents: the keyboard has Space and F */}
+				{/* biome-ignore lint/a11y/noStaticElementInteractions: the picture area is a mouse shortcut, the buttons are the accessible controls */}
+				<div
+					ref={holeRef}
+					className={cn(
+						"absolute inset-0",
+						status === "playing" && pictureReady
+							? "bg-transparent"
+							: "bg-black",
+					)}
+					onClick={onPictureClick}
+					onDoubleClick={onPictureDoubleClick}
 				/>
-			)}
+
+				{waiting ? (
+					<p className="pointer-events-none absolute inset-x-0 top-1/2 mx-auto w-fit -translate-y-1/2 rounded-md bg-black/60 px-3 py-1.5 text-sm text-white/90">
+						Loading…
+					</p>
+				) : null}
+
+				{status === "error" ? (
+					<div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black p-6 text-center text-sm">
+						<AlertCircleIcon className="size-6" />
+						<p>This stream can't be played.</p>
+						{snapshot.error ? (
+							<p className="max-w-prose break-words text-white/70">
+								{snapshot.error}
+							</p>
+						) : null}
+						<div className="flex gap-2">
+							<button type="button" onClick={onRetry} className={barButton}>
+								Try again
+							</button>
+							<button type="button" onClick={onClose} className={barButton}>
+								Close
+							</button>
+						</div>
+					</div>
+				) : null}
+
+				{ended ? (
+					<div className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-3 rounded-xl bg-black/70 px-6 py-4 text-center text-sm">
+						<p>{live ? "The stream has ended." : "Finished."}</p>
+						<div className="flex gap-2">
+							<button type="button" onClick={onRestart} className={barButton}>
+								{live ? "Reconnect" : "Watch again"}
+							</button>
+							<button type="button" onClick={onClose} className={barButton}>
+								Close
+							</button>
+						</div>
+					</div>
+				) : null}
+
+				<div
+					className={cn(
+						"absolute inset-x-0 top-0 flex items-center gap-3 bg-linear-to-b from-black/80 to-transparent px-4 pb-6 pt-3 transition-opacity duration-200",
+						showBars ? "opacity-100" : "pointer-events-none opacity-0",
+					)}
+					onPointerEnter={() => hold(true)}
+					onPointerLeave={() => hold(false)}
+				>
+					<p className="min-w-0 flex-1 truncate text-sm font-medium">{title}</p>
+					{topBarExtra}
+					<button
+						type="button"
+						onClick={onClose}
+						aria-label="Close the player"
+						className={cn(barButton, "w-8 px-0")}
+					>
+						<XIcon className="size-4" />
+					</button>
+				</div>
+
+				{status === "error" ? null : (
+					<Controls
+						engine={engine}
+						snapshot={snapshot}
+						live={live}
+						expanded={expanded}
+						visible={showBars}
+						hold={hold}
+						onTogglePlay={onTogglePlay}
+						onSeekTo={onSeekTo}
+						onSeekBy={onSeekBy}
+						onToggleExpanded={onToggleExpanded}
+					/>
+				)}
+			</div>
 		</div>
 	);
 }
@@ -670,6 +725,10 @@ type ControlsProps = {
 	onToggleExpanded: () => void;
 };
 
+/**
+ * Two rows that do not pile up: the position bar over the full width, then
+ * the buttons on the left and the track choices and full screen on the right.
+ */
 function Controls({
 	engine,
 	snapshot,
@@ -699,7 +758,7 @@ function Controls({
 	return (
 		<div
 			className={cn(
-				"absolute inset-x-0 bottom-0 flex flex-wrap items-center gap-x-3 gap-y-2 bg-linear-to-t from-black/80 to-transparent px-4 pb-3 pt-8 transition-opacity duration-200",
+				"absolute inset-x-0 bottom-0 flex flex-col gap-1 bg-linear-to-t from-black/85 via-black/50 to-transparent px-4 pb-3 pt-10 transition-opacity duration-200",
 				visible ? "opacity-100" : "pointer-events-none opacity-0",
 			)}
 			onPointerEnter={() => hold(true)}
@@ -717,125 +776,137 @@ function Controls({
 				}
 			}}
 		>
-			<button
-				type="button"
-				disabled={!engine}
-				onClick={onTogglePlay}
-				aria-label={ended ? "Watch again" : snapshot.paused ? "Play" : "Pause"}
-				className={cn(barButton, "w-9 px-0")}
-			>
-				{ended ? (
-					<RotateCcwIcon className="size-4" />
-				) : snapshot.paused ? (
-					<PlayIcon className="size-4" />
-				) : (
-					<PauseIcon className="size-4" />
-				)}
-			</button>
-			{live ? (
-				<span className="text-sm font-medium text-white/80">Live</span>
-			) : (
-				<>
-					<button
-						type="button"
-						disabled={!engine}
-						onClick={() => onSeekBy(-10)}
-						className={barButton}
-					>
-						-10 s
-					</button>
-					<button
-						type="button"
-						disabled={!engine || ended}
-						onClick={() => onSeekBy(10)}
-						className={barButton}
-					>
-						+10 s
-					</button>
-					<input
-						type="range"
-						aria-label="Position"
-						min={0}
-						max={Math.max(duration, 1)}
-						step={1}
-						value={shown}
-						disabled={!engine || duration <= 0}
-						onChange={(event) => setScrub(Number(event.target.value))}
-						onPointerUp={commitScrub}
-						onKeyUp={commitScrub}
-						onBlur={commitScrub}
-						className="h-8 min-w-32 flex-1 accent-white"
-					/>
-					<span className="text-sm tabular-nums text-white/80">
-						{formatClock(shown)} / {formatClock(duration)}
-					</span>
-				</>
-			)}
-			<label className="flex items-center gap-2 text-sm text-white/80">
-				<Volume2Icon className="size-4" aria-hidden />
+			{live ? null : (
 				<input
 					type="range"
-					aria-label="Volume"
+					aria-label="Position"
 					min={0}
-					max={100}
+					max={Math.max(duration, 1)}
 					step={1}
-					value={snapshot.volume}
-					disabled={!engine}
-					onChange={(event) => engine?.setVolume(Number(event.target.value))}
-					className="h-8 w-24 accent-white"
+					value={shown}
+					disabled={!engine || duration <= 0}
+					onChange={(event) => setScrub(Number(event.target.value))}
+					onPointerUp={commitScrub}
+					onKeyUp={commitScrub}
+					onBlur={commitScrub}
+					className="h-5 w-full accent-white"
 				/>
-			</label>
-			{snapshot.audioTracks.length > 1 ? (
-				<label className="flex items-center gap-2 text-sm text-white/80">
-					Audio
-					<select
-						value={audio?.id ?? ""}
-						onChange={(event) =>
-							engine?.selectAudio(Number(event.target.value))
-						}
-						className={barSelect}
-					>
-						{snapshot.audioTracks.map((track) => (
-							<option key={track.id} value={track.id}>
-								{track.label}
-							</option>
-						))}
-					</select>
-				</label>
-			) : null}
-			{snapshot.subtitleTracks.length > 0 ? (
-				<label className="flex items-center gap-2 text-sm text-white/80">
-					Subtitles
-					<select
-						value={subtitles?.id ?? ""}
-						onChange={(event) =>
-							engine?.selectSubtitle(
-								event.target.value === "" ? null : Number(event.target.value),
-							)
-						}
-						className={barSelect}
-					>
-						<option value="">Off</option>
-						{snapshot.subtitleTracks.map((track) => (
-							<option key={track.id} value={track.id}>
-								{track.label}
-							</option>
-						))}
-					</select>
-				</label>
-			) : null}
-			<button
-				type="button"
-				onClick={onToggleExpanded}
-				aria-label={expanded ? "Exit full screen" : "Full screen"}
-				className={cn(barButton, "ml-auto w-9 px-0")}
-			>
-				{expanded ? (
-					<MinimizeIcon className="size-4" />
+			)}
+			<div className="flex flex-wrap items-center gap-x-2 gap-y-2">
+				<button
+					type="button"
+					disabled={!engine}
+					onClick={onTogglePlay}
+					aria-label={
+						ended ? "Watch again" : snapshot.paused ? "Play" : "Pause"
+					}
+					className={cn(barButton, "w-9 px-0")}
+				>
+					{ended ? (
+						<RotateCcwIcon className="size-4" />
+					) : snapshot.paused ? (
+						<PlayIcon className="size-4" />
+					) : (
+						<PauseIcon className="size-4" />
+					)}
+				</button>
+				{live ? (
+					<span className="px-1 text-sm font-medium text-white/80">Live</span>
 				) : (
-					<MaximizeIcon className="size-4" />
+					<>
+						<button
+							type="button"
+							disabled={!engine}
+							onClick={() => onSeekBy(-10)}
+							className={cn(barButton, "px-2")}
+						>
+							-10 s
+						</button>
+						<button
+							type="button"
+							disabled={!engine || ended}
+							onClick={() => onSeekBy(10)}
+							className={cn(barButton, "px-2")}
+						>
+							+10 s
+						</button>
+						<span className="px-1 text-sm tabular-nums text-white/80">
+							{formatClock(shown)} / {formatClock(duration)}
+						</span>
+					</>
 				)}
-			</button>
+				<label className="flex items-center gap-1.5 text-white/80">
+					<Volume2Icon className="size-4" aria-hidden />
+					<input
+						type="range"
+						aria-label="Volume"
+						min={0}
+						max={100}
+						step={1}
+						value={snapshot.volume}
+						disabled={!engine}
+						onChange={(event) => engine?.setVolume(Number(event.target.value))}
+						className="h-8 w-20 accent-white"
+					/>
+				</label>
+				<div className="ml-auto flex items-center gap-2">
+					{snapshot.audioTracks.length > 1 ? (
+						<label className="flex w-36 items-center gap-1.5 text-white/80">
+							<AudioLinesIcon className="size-4 shrink-0" aria-hidden />
+							<select
+								aria-label="Audio"
+								value={audio?.id ?? ""}
+								onChange={(event) =>
+									engine?.selectAudio(Number(event.target.value))
+								}
+								className={barSelect}
+							>
+								{snapshot.audioTracks.map((track) => (
+									<option key={track.id} value={track.id}>
+										{track.label}
+									</option>
+								))}
+							</select>
+						</label>
+					) : null}
+					{snapshot.subtitleTracks.length > 0 ? (
+						<label className="flex w-36 items-center gap-1.5 text-white/80">
+							<CaptionsIcon className="size-4 shrink-0" aria-hidden />
+							<select
+								aria-label="Subtitles"
+								value={subtitles?.id ?? ""}
+								onChange={(event) =>
+									engine?.selectSubtitle(
+										event.target.value === ""
+											? null
+											: Number(event.target.value),
+									)
+								}
+								className={barSelect}
+							>
+								<option value="">Off</option>
+								{snapshot.subtitleTracks.map((track) => (
+									<option key={track.id} value={track.id}>
+										{track.label}
+									</option>
+								))}
+							</select>
+						</label>
+					) : null}
+					<button
+						type="button"
+						onClick={onToggleExpanded}
+						aria-label={expanded ? "Exit full screen" : "Full screen"}
+						className={cn(barButton, "w-9 px-0")}
+					>
+						{expanded ? (
+							<MinimizeIcon className="size-4" />
+						) : (
+							<MaximizeIcon className="size-4" />
+						)}
+					</button>
+				</div>
+			</div>
 		</div>
 	);
 }
