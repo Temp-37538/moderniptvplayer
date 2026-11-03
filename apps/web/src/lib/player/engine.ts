@@ -19,6 +19,11 @@ export type PlayerTrack = {
 export type PlayerSnapshot = {
 	status: PlayerStatus;
 	error: string | null;
+	/**
+	 * mpv has shown its first picture. Until then it has no window to draw in,
+	 * and nothing is behind the page.
+	 */
+	pictureReady: boolean;
 	paused: boolean;
 	/** Seconds. Refreshed a few times per second, not on every frame. */
 	position: number;
