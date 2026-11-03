@@ -20,13 +20,14 @@ import {
 
 // time-pos changes on every frame: React only needs it a few times a second.
 const POSITION_NOTIFY_MS = 250;
-// Scrolling the page moves the picture's rectangle on every frame: mpv is told
-// about it a bit less often.
+// Resizing the window moves the picture's rectangle on every frame: mpv is
+// told about it a bit less often.
 const MARGINS_INTERVAL_MS = 40;
 
 const INITIAL: PlayerSnapshot = {
 	status: "starting",
 	error: null,
+	pictureReady: false,
 	paused: false,
 	position: 0,
 	duration: 0,
@@ -129,6 +130,7 @@ export class MpvEngine implements PlayerEngine {
 		this.update({
 			status: "loading",
 			error: null,
+			pictureReady: false,
 			paused: false,
 			audioTracks: [],
 			subtitleTracks: [],
@@ -217,7 +219,7 @@ export class MpvEngine implements PlayerEngine {
 			bottom: fraction((viewportHeight - rect.bottom) / viewportHeight),
 		};
 		// The first rectangle goes out at once (mpv needs it before it opens
-		// the media); a page that scrolls or resizes sends many of them.
+		// the media); a window that is being resized sends many of them.
 		const wait = this.marginsSentAt + MARGINS_INTERVAL_MS - Date.now();
 		if (this.marginsSentAt === 0 || wait <= 0) {
 			void this.applyMargins();
@@ -345,6 +347,13 @@ export class MpvEngine implements PlayerEngine {
 				subtitleTracks: toTracks(event.tracks, "sub"),
 			});
 			this.applySubtitlePreference();
+		} else if (event.type === "start-file") {
+			this.update({ pictureReady: false });
+		} else if (event.type === "playback-restart") {
+			// The first picture (or the one after a seek): mpv's window is up.
+			if (!this.snapshot.pictureReady) {
+				this.update({ pictureReady: true });
+			}
 		} else if (event.type === "end-file") {
 			if (event.reason === "eof") {
 				this.update({ status: "ended" });
