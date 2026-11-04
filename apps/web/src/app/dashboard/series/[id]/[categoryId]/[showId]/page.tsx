@@ -1,5 +1,6 @@
 import { createPageMetadata, getShowMetadataContext } from "@/app/metadata";
 import { ItemActionButtons } from "@/components/item-action-buttons";
+import { ResumeEpisodeButton } from "@/components/resume-episode-button";
 import { SeasonsList } from "@/components/seasons-list";
 import type { PageProps } from "@/components/types";
 import { toSafeImageSrc } from "@/lib/image-url";
@@ -155,9 +156,9 @@ async function ShowDetailContent({ params }: PageProps) {
 							/>
 						</div>
 						{resumeEntry && (
-							<a
-								href={`#episode-${resumeEntry.episode.id}`}
-								className="mt-5 block w-full overflow-hidden rounded-md border border-border/40 transition-colors hover:bg-muted/40"
+							<ResumeEpisodeButton
+								episodeId={resumeEntry.episode.id}
+								className="mt-5 block w-full overflow-hidden rounded-md border border-border/40 text-left transition-colors hover:bg-muted/40"
 							>
 								<span className="flex items-center gap-3 px-3 py-2.5">
 									<PlayIcon className="size-4 shrink-0 text-primary" />
@@ -187,7 +188,7 @@ async function ShowDetailContent({ params }: PageProps) {
 										/>
 									</span>
 								)}
-							</a>
+							</ResumeEpisodeButton>
 						)}
 					</div>
 

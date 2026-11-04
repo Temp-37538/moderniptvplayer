@@ -28,6 +28,29 @@ obligatoire (`http` seulement pour `localhost`), l'adresse du site sans chemin,
 sans identifiants. C'est aussi `build.rs` qui en déduit les droits donnés au
 site : changer `site.json` suffit, rien d'autre à synchroniser.
 
+## Essayer une branche sans la merger
+
+Le site que l'appli ouvre en release est celui de la production : une
+modification du site n'y arrive qu'après le merge. Pour l'essayer avant :
+
+1. Prends l'exe de la PR (artefact `moderniptv-desktop-windows` du run
+   "Desktop spike" de la PR, sans merge).
+2. Sur ta machine, mets la branche et lance le site comme d'habitude :
+   `git fetch`, `git checkout <branche>`, `pnpm dev` (port 3001).
+3. Lance l'exe avec `--dev` :
+
+   ```powershell
+   .\moderniptv-desktop-spike.exe --dev
+   ```
+
+   Un raccourci dont la cible se termine par ` --dev` fait la même chose, et
+   `MODERNIPTV_SITE=dev` aussi. Le titre de la fenêtre dit "development site".
+
+`--dev` ne fait que choisir, dans un build release, l'adresse `development`
+de `site.json` au lieu de `production`. Ces deux adresses ont déjà leurs droits
+: aucune autre adresse n'est acceptée, donc rien de plus n'est ouvert au site.
+Un exe plus ancien que cette option l'ignore et ouvre la production.
+
 ## Sécurité
 
 Le site a des droits natifs, donc la barrière est stricte :

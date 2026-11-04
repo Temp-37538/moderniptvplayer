@@ -119,6 +119,8 @@ fn to_payload(player: &Player, event: Event) -> Option<Value> {
         Event::Seek => json!({ "type": "seek" }),
         Event::PlaybackRestart => json!({ "type": "playback-restart" }),
         Event::FileLoaded => {
+            // mpv has just picked a subtitle track by itself: place its subtitles.
+            let _ = player.refresh_subtitle_position();
             let tracks: Vec<Value> = player.tracks().unwrap_or_default().iter().map(track_json).collect();
             json!({ "type": "file-loaded", "tracks": tracks })
         }
@@ -336,14 +338,27 @@ fn allowed_origins() -> Vec<&'static str> {
     [SITE_DEVELOPMENT, SITE_PRODUCTION].into_iter().filter(|origin| !origin.is_empty()).collect()
 }
 
-/// The website to open: the development address in debug builds, the
-/// production one otherwise. `MODERNIPTV_BENCH=1` opens the local test page
-/// instead, and so does an address that is not set in site.json.
+/// True when the development address is wanted in a release build: `--dev` on
+/// the command line, or `MODERNIPTV_SITE=dev`. A build downloaded from CI can
+/// then be tried against the site running on this machine (`pnpm dev` on any
+/// branch), without merging anything. It only picks between the two addresses
+/// of site.json, which already have their rights: no other address is accepted.
+fn development_requested() -> bool {
+    std::env::args().skip(1).any(|arg| arg == "--dev") || std::env::var("MODERNIPTV_SITE").is_ok_and(|value| value == "dev")
+}
+
+fn uses_development_site() -> bool {
+    cfg!(debug_assertions) || development_requested()
+}
+
+/// The website to open: the development address in debug builds or with
+/// `--dev`, the production one otherwise. `MODERNIPTV_BENCH=1` opens the local
+/// test page instead, and so does an address that is not set in site.json.
 fn site_url() -> Option<tauri::Url> {
     if std::env::var_os("MODERNIPTV_BENCH").is_some() {
         return None;
     }
-    let address = if cfg!(debug_assertions) { SITE_DEVELOPMENT } else { SITE_PRODUCTION };
+    let address = if uses_development_site() { SITE_DEVELOPMENT } else { SITE_PRODUCTION };
     if address.is_empty() {
         None
     } else {
@@ -410,7 +425,11 @@ fn create_main_window(app: &AppHandle) -> tauri::Result<()> {
         None => WebviewUrl::default(),
     };
     let mut builder = WebviewWindowBuilder::new(app, "main", target)
-        .title(if site.is_some() { "ModernIPTV" } else { "ModernIPTV Desktop (spike)" })
+        .title(match (&site, uses_development_site()) {
+            (Some(_), true) => "ModernIPTV (development site)",
+            (Some(_), false) => "ModernIPTV",
+            (None, _) => "ModernIPTV Desktop (spike)",
+        })
         .inner_size(1280.0, 780.0)
         .min_inner_size(960.0, 600.0)
         // mpv draws behind the page: the page must be able to be see-through.

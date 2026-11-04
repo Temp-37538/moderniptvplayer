@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/sheet";
 import { VideoPlayer } from "@/components/video-player";
 import { useDesktopBridge } from "@/lib/desktop/bridge";
+import { PLAY_EPISODE_EVENT } from "@/lib/play-episode";
 import type { ProgressDetails } from "@/lib/player/types";
 import type { EpisodeProgressEntry } from "@/lib/series-resume";
 import { CheckIcon, ChevronDown, Clock, PlayIcon, XIcon } from "lucide-react";
@@ -129,6 +130,18 @@ export function SeasonsList({
 		return () => window.removeEventListener("hashchange", openFromHash);
 	}, []);
 
+	// The resume button, which is outside this list, asks for an episode to play.
+	useEffect(() => {
+		const onPlayEpisode = (event: Event) => {
+			const id = (event as CustomEvent<string>).detail;
+			if (typeof id === "string") {
+				setPlayingId(id);
+			}
+		};
+		window.addEventListener(PLAY_EPISODE_EVENT, onPlayEpisode);
+		return () => window.removeEventListener(PLAY_EPISODE_EVENT, onPlayEpisode);
+	}, []);
+
 	// Watching order: season after season, only what has a stream.
 	const playable: PlayableEpisode[] = seasons.flatMap((season) =>
 		(season.episodes ?? [])
@@ -154,9 +167,9 @@ export function SeasonsList({
 	const playing = playingIndex === -1 ? null : (playable[playingIndex] ?? null);
 	const nextEpisode = playing ? playable[playingIndex + 1] : undefined;
 
-	// In the desktop app an episode plays in mpv, in a card above the seasons,
-	// without the Sheet: a modal dialog would keep the focus and the clicks away
-	// from the player.
+	// In the desktop app an episode plays in mpv, in the player's own modal,
+	// without the Sheet: a second dialog would keep the focus and the clicks
+	// away from it.
 	const desktopUrl = bridge ? playing?.directUrl : undefined;
 	const progressDetails: ProgressDetails | undefined = playing
 		? {
@@ -184,6 +197,15 @@ export function SeasonsList({
 
 	function closePlayer() {
 		setPlayingId(null);
+		// "Continue watching" links here with #episode-<id>. Leaving the hash in
+		// the address would make the same link do nothing the next time.
+		if (window.location.hash.startsWith("#episode-")) {
+			window.history.replaceState(
+				null,
+				"",
+				window.location.pathname + window.location.search,
+			);
+		}
 		// The player saved where you stopped as it closed: reload the page data
 		// so the resume button and the episode marks are up to date.
 		setTimeout(() => router.refresh(), 1000);
@@ -283,7 +305,7 @@ export function SeasonsList({
 					startAt={startAt(playing.id)}
 					progress={progressDetails}
 					autoPlay
-					className="mx-auto max-w-4xl"
+					card={false}
 					onClose={closePlayer}
 					onEnded={playNext}
 					topBarExtra={
