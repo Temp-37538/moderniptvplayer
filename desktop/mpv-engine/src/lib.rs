@@ -475,6 +475,24 @@ const LOG_LINES_KEPT: usize = 80;
 pub struct Player {
     mpv: Mpv,
     logs: Mutex<VecDeque<String>>,
+    /// Fraction of the window kept free under the picture (see `set_video_margins`).
+    bottom_margin: Mutex<f64>,
+}
+
+/// Where mpv puts the text subtitles, in percent of the window height (100 is
+/// the bottom of the window). mpv puts them in the black borders, and with the
+/// picture kept inside a rectangle of the window those borders include the
+/// margins: the subtitles would end up under the margin, out of sight. Raising
+/// them by the bottom margin puts them at the bottom of the rectangle: in the
+/// black bar under the picture when there is one, over the picture otherwise.
+///
+/// Styled (ASS) and bitmap subtitles are not placed in the borders by mpv, and
+/// `sub-pos` would move them over the picture: they keep the default.
+fn subtitle_position(bottom_margin: f64, codec: Option<&str>) -> f64 {
+    match codec {
+        None | Some("ass") | Some("ssa") | Some("hdmv_pgs_subtitle") | Some("dvd_subtitle") | Some("dvb_subtitle") | Some("xsub") => 100.0,
+        Some(_) => 100.0 * (1.0 - bottom_margin.clamp(0.0, 0.95)),
+    }
 }
 
 impl Player {
@@ -523,7 +541,7 @@ impl Player {
         ] {
             mpv.observe(id, name, format)?;
         }
-        Ok(Player { mpv, logs: Mutex::new(VecDeque::new()) })
+        Ok(Player { mpv, logs: Mutex::new(VecDeque::new()), bottom_margin: Mutex::new(0.0) })
     }
 
     pub fn library(&self) -> &Arc<Library> {
@@ -593,7 +611,23 @@ impl Player {
     }
 
     pub fn select_subtitle(&self, id: Option<i64>) -> Result<()> {
-        self.mpv.set_property("sid", &id.map_or("no".into(), |i| i.to_string()))
+        self.mpv.set_property("sid", &id.map_or("no".into(), |i| i.to_string()))?;
+        let track = id.and_then(|id| self.tracks().ok()?.into_iter().find(|t| t.kind == TrackKind::Sub && t.id == id));
+        self.apply_subtitle_position(track.as_ref())
+    }
+
+    /// Puts the subtitles of the selected track where they belong (see
+    /// `subtitle_position`). To call when a file has loaded: mpv has then chosen
+    /// a track by itself.
+    pub fn refresh_subtitle_position(&self) -> Result<()> {
+        let track = self.tracks()?.into_iter().find(|t| t.kind == TrackKind::Sub && t.selected);
+        self.apply_subtitle_position(track.as_ref())
+    }
+
+    fn apply_subtitle_position(&self, track: Option<&Track>) -> Result<()> {
+        let bottom = *self.bottom_margin.lock().unwrap_or_else(|e| e.into_inner());
+        let position = subtitle_position(bottom, track.and_then(|t| t.codec.as_deref()));
+        self.mpv.set_property("sub-pos", &format!("{position:.3}"))
     }
 
     /// Read-only access to a property, for diagnostics (`hwdec-current`,
@@ -611,7 +645,8 @@ impl Player {
         for (side, value) in [("left", left), ("right", right), ("top", top), ("bottom", bottom)] {
             self.mpv.set_property(&format!("video-margin-ratio-{side}"), &format!("{:.5}", clamp(value)))?;
         }
-        Ok(())
+        *self.bottom_margin.lock().unwrap_or_else(|e| e.into_inner()) = clamp(bottom);
+        self.refresh_subtitle_position()
     }
 
     /// Currently selected track id of a kind (`aid`, `sid`, `vid`).
@@ -715,5 +750,32 @@ mod tests {
         assert_eq!(redact_urls("http://host.example"), "http://host.example");
         assert_eq!(redact_urls("HTTP://Host.Example/Secret/Path"), "HTTP://Host.Example/<redacted>");
         assert_eq!(redact_urls(""), "");
+    }
+}
+
+#[cfg(test)]
+mod subtitle_position_tests {
+    use super::subtitle_position;
+
+    #[test]
+    fn text_subtitles_are_raised_by_the_bottom_margin() {
+        assert_eq!(subtitle_position(0.0, Some("subrip")), 100.0);
+        assert!((subtitle_position(0.25, Some("subrip")) - 75.0).abs() < 1e-9);
+        assert!((subtitle_position(0.06, Some("webvtt")) - 94.0).abs() < 1e-9);
+        assert!((subtitle_position(0.1, Some("mov_text")) - 90.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn styled_and_bitmap_subtitles_keep_the_default() {
+        for codec in ["ass", "ssa", "hdmv_pgs_subtitle", "dvd_subtitle", "dvb_subtitle", "xsub"] {
+            assert_eq!(subtitle_position(0.25, Some(codec)), 100.0, "{codec}");
+        }
+        assert_eq!(subtitle_position(0.25, None), 100.0);
+    }
+
+    #[test]
+    fn a_wild_margin_cannot_push_subtitles_off_the_window() {
+        assert!(subtitle_position(5.0, Some("subrip")) >= 0.0);
+        assert!(subtitle_position(-1.0, Some("subrip")) <= 100.0);
     }
 }
