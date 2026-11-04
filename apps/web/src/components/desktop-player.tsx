@@ -55,7 +55,7 @@ const HIDE_CONTROLS_MS = 3000;
 // A click on the picture pauses, unless a second one follows (full screen).
 const DOUBLE_CLICK_MS = 250;
 // What surrounds the player's frame: the page is hidden behind it.
-const BACKDROP = "rgb(10, 10, 10)";
+const BACKDROP = "rgb(0, 0, 0)";
 
 const noSubscribe = () => () => {};
 
@@ -495,9 +495,9 @@ type StageProps = {
 };
 
 /**
- * What the person sees: a frame in the middle of the window (or the whole
+ * What the person sees: a frame across the middle of the window (or the whole
  * window, in full screen) with a transparent area where mpv's picture shows
- * and the controls over it. Around the frame, a solid backdrop.
+ * and the controls over it. Above and under the frame, a solid backdrop.
  */
 function Stage({
 	engine,
@@ -602,17 +602,15 @@ function Stage({
 			<div
 				className={cn(
 					"absolute overflow-hidden",
-					expanded
-						? "inset-0"
-						: "left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2",
+					expanded ? "inset-0" : "inset-x-0 top-1/2 -translate-y-1/2",
 				)}
 				style={
 					expanded
 						? undefined
 						: {
-								width: "min(92vw, calc(88vh * 16 / 9))",
-								aspectRatio: "16 / 9",
-								borderRadius: 12,
+								// As wide as the window, 88 % of its height (never
+								// taller than 16:9 at that width).
+								height: "min(88vh, 56.25vw)",
 								boxShadow: `0 0 0 100vmax ${BACKDROP}`,
 							}
 				}
