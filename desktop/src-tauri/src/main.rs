@@ -410,7 +410,7 @@ fn bridge_script() -> String {
           unlisten();
           unlisten = null;
         }}
-      }}
+      }};
     }}
   }};
   Object.defineProperty(window, "iptvDesktop", {{ value: Object.freeze(bridge), configurable: false }});
