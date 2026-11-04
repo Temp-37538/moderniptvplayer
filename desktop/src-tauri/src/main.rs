@@ -119,6 +119,8 @@ fn to_payload(player: &Player, event: Event) -> Option<Value> {
         Event::Seek => json!({ "type": "seek" }),
         Event::PlaybackRestart => json!({ "type": "playback-restart" }),
         Event::FileLoaded => {
+            // mpv has just picked a subtitle track by itself: place its subtitles.
+            let _ = player.refresh_subtitle_position();
             let tracks: Vec<Value> = player.tracks().unwrap_or_default().iter().map(track_json).collect();
             json!({ "type": "file-loaded", "tracks": tracks })
         }
@@ -170,10 +172,6 @@ fn mpv_init(app: AppHandle, window: WebviewWindow, state: State<AppState>, embed
     shutdown(&state);
     let lib = open_library(&app)?;
     let mut options = PlayerOptions::default();
-    // mpv puts subtitles in the black borders of the video when there are some.
-    // With the picture kept inside a rectangle of the page by margins, those
-    // borders are the margins: the subtitles would end up under the page.
-    options.extra.push(("sub-use-margins".into(), "no".into()));
     if embed {
         options.extra.push(("wid".into(), window_handle(&window)?));
     } else {
@@ -412,7 +410,7 @@ fn bridge_script() -> String {
           unlisten();
           unlisten = null;
         }}
-      }};
+      }}
     }}
   }};
   Object.defineProperty(window, "iptvDesktop", {{ value: Object.freeze(bridge), configurable: false }});
