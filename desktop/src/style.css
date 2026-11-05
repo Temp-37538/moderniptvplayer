@@ -48,13 +48,6 @@ select {
 	background: #0e0e11;
 	border-bottom: 1px solid #26262c;
 }
-.tag {
-	font-size: 11px;
-	padding: 1px 6px;
-	border-radius: 999px;
-	background: #5b3a00;
-	color: #ffcf8a;
-}
 .status {
 	color: #9a9aa5;
 }

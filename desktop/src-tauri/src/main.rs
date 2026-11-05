@@ -1,7 +1,7 @@
 // No console window in release builds on Windows.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-//! The spike's backend. The page talks to libmpv only through the narrow
+//! The desktop shell's backend. The page talks to libmpv only through the narrow
 //! commands below: there is no raw mpv command channel (mpv can run programs).
 //!
 //! Embedded mode hands the main window's handle to mpv (`wid`): mpv draws in
@@ -86,7 +86,7 @@ fn window_handle(window: &WebviewWindow) -> Result<String, String> {
 
 #[cfg(not(windows))]
 fn window_handle(_: &WebviewWindow) -> Result<String, String> {
-    Err("embedded video is only implemented for Windows in this spike: use the separate window mode".into())
+    Err("embedded video is only implemented for Windows: use the separate window mode".into())
 }
 
 // ---------------------------------------------------------------- events --
@@ -176,7 +176,7 @@ fn mpv_init(app: AppHandle, window: WebviewWindow, state: State<AppState>, embed
         options.extra.push(("wid".into(), window_handle(&window)?));
     } else {
         options.extra.push(("force-window".into(), "no".into()));
-        options.extra.push(("title".into(), "ModernIPTV spike: video".into()));
+        options.extra.push(("title".into(), "ModernIPTV".into()));
     }
     let player = Arc::new(Player::new(lib, &options).map_err(|e| e.to_string())?);
     let (major, minor) = player.library().api_version();
@@ -291,7 +291,7 @@ fn mpv_report(state: State<AppState>) -> Result<String, String> {
     let (major, minor) = player.library().api_version();
     let show = |v: &Option<String>| v.clone().unwrap_or_else(|| "-".into());
     let mut out = String::new();
-    out.push_str("ModernIPTV Desktop spike report\n");
+    out.push_str("ModernIPTV report\n");
     out.push_str(&format!("os: {} {}\n", std::env::consts::OS, std::env::consts::ARCH));
     out.push_str(&format!("mode: {}\n", info.mode));
     out.push_str(&format!("libmpv: {} (client API {major}.{minor})\n", player.version().unwrap_or_default()));
@@ -428,7 +428,7 @@ fn create_main_window(app: &AppHandle) -> tauri::Result<()> {
         .title(match (&site, uses_development_site()) {
             (Some(_), true) => "ModernIPTV (development site)",
             (Some(_), false) => "ModernIPTV",
-            (None, _) => "ModernIPTV Desktop (spike)",
+            (None, _) => "ModernIPTV",
         })
         .inner_size(1280.0, 780.0)
         .min_inner_size(960.0, 600.0)

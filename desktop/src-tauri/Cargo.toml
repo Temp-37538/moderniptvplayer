@@ -1,9 +1,14 @@
 [package]
-name = "moderniptv-desktop-spike"
+name = "moderniptv-desktop"
 version = "0.0.1"
 edition = "2021"
-description = "Spike: the IPTV player's video played by libmpv inside a Tauri window"
+description = "Windows shell: libmpv plays the IPTV video inside a Tauri window"
 publish = false
+default-run = "ModernIPTV"
+
+[[bin]]
+name = "ModernIPTV"
+path = "src/main.rs"
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }

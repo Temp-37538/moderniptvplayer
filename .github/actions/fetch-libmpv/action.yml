@@ -1,0 +1,35 @@
+name: Fetch pinned libmpv
+description: Download the pinned LGPL libmpv build and verify its SHA256
+
+runs:
+  using: composite
+  steps:
+    - name: Fetch libmpv (LGPL build, pinned)
+      # Pinned build: same libmpv on every run. To update, change the tag,
+      # the asset and the SHA256 together (the digest GitHub shows on the asset).
+      shell: bash
+      working-directory: desktop
+      env:
+        LIBMPV_REPO: zhongfly/mpv-winbuild
+        LIBMPV_TAG: 2026-11-03-46787be250
+        LIBMPV_ASSET: mpv-dev-lgpl-x86_64-20261103-git-46787be250.7z
+        LIBMPV_SHA256: ce2563d352aac81c2e6e9b2b63e846ec847f4bdabdec74fb14c5b29049c161d7
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        set -euo pipefail
+        echo "libmpv from $LIBMPV_REPO $LIBMPV_TAG: $LIBMPV_ASSET"
+        gh release download "$LIBMPV_TAG" --repo "$LIBMPV_REPO" --pattern "$LIBMPV_ASSET" --dir "$RUNNER_TEMP"
+        # Hash from stdin: RUNNER_TEMP is a Windows path with backslashes.
+        actual=$(sha256sum < "$RUNNER_TEMP/$LIBMPV_ASSET" | cut -d' ' -f1)
+        if [ "$actual" != "$LIBMPV_SHA256" ]; then
+          echo "::error title=libmpv::SHA256 mismatch for $LIBMPV_ASSET: expected $LIBMPV_SHA256, got $actual"
+          exit 1
+        fi
+        sevenzip=$(command -v 7z || echo "/c/Program Files/7-Zip/7z.exe")
+        mkdir -p src-tauri/lib
+        "$sevenzip" e "$RUNNER_TEMP/$LIBMPV_ASSET" libmpv-2.dll -r -osrc-tauri/lib -y > /dev/null
+        if [ ! -f src-tauri/lib/libmpv-2.dll ]; then
+          echo "::error title=libmpv::libmpv-2.dll not found in $LIBMPV_ASSET: $("$sevenzip" l "$RUNNER_TEMP/$LIBMPV_ASSET" | tail -n 30 | tr '\n' ' ')"
+          exit 1
+        fi
+        ls -la src-tauri/lib

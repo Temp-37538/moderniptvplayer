@@ -1,13 +1,13 @@
-name: Desktop spike
+name: Desktop
 
-# Builds the Windows app of the desktop spike and tests the libmpv engine layer,
-# so that nothing has to be installed locally: download the artifact of a run.
+# Builds the Windows NSIS installer and tests the libmpv engine layer.
+# Download the installer artifact of a run; nothing else has to be installed locally.
 on:
   push:
     branches: ["desktop/**"]
-    paths: ["desktop/**", ".github/workflows/desktop.yml"]
+    paths: ["desktop/**", ".github/workflows/desktop.yml", ".github/actions/fetch-libmpv/**"]
   pull_request:
-    paths: ["desktop/**", ".github/workflows/desktop.yml"]
+    paths: ["desktop/**", ".github/workflows/desktop.yml", ".github/actions/fetch-libmpv/**"]
   workflow_dispatch:
 
 permissions:
@@ -49,7 +49,7 @@ jobs:
           retention-days: 1
 
   windows:
-    name: Windows (build the app, test the engine on libmpv for Windows)
+    name: Windows (build the installer, test the engine on libmpv for Windows)
     needs: engine-linux
     runs-on: windows-latest
     timeout-minutes: 45
@@ -70,65 +70,37 @@ jobs:
         with:
           workspaces: desktop
 
-      - name: Fetch libmpv (LGPL build, pinned)
-        # Pinned build: same libmpv on every run. To update, change the tag,
-        # the asset and the SHA256 together (the digest GitHub shows on the asset).
-        env:
-          LIBMPV_REPO: zhongfly/mpv-winbuild
-          LIBMPV_TAG: 2026-11-03-46787be250
-          LIBMPV_ASSET: mpv-dev-lgpl-x86_64-20261103-git-46787be250.7z
-          LIBMPV_SHA256: ce2563d352aac81c2e6e9b2b63e846ec847f4bdabdec74fb14c5b29049c161d7
-        run: |
-          set -euo pipefail
-          echo "libmpv from $LIBMPV_REPO $LIBMPV_TAG: $LIBMPV_ASSET"
-          gh release download "$LIBMPV_TAG" --repo "$LIBMPV_REPO" --pattern "$LIBMPV_ASSET" --dir "$RUNNER_TEMP"
-          # Hash from stdin: RUNNER_TEMP is a Windows path with backslashes.
-          actual=$(sha256sum < "$RUNNER_TEMP/$LIBMPV_ASSET" | cut -d' ' -f1)
-          if [ "$actual" != "$LIBMPV_SHA256" ]; then
-            echo "::error title=libmpv::SHA256 mismatch for $LIBMPV_ASSET: expected $LIBMPV_SHA256, got $actual"
-            exit 1
-          fi
-          sevenzip=$(command -v 7z || echo "/c/Program Files/7-Zip/7z.exe")
-          mkdir -p src-tauri/lib
-          "$sevenzip" e "$RUNNER_TEMP/$LIBMPV_ASSET" libmpv-2.dll -r -osrc-tauri/lib -y > /dev/null
-          if [ ! -f src-tauri/lib/libmpv-2.dll ]; then
-            echo "::error title=libmpv::libmpv-2.dll not found in $LIBMPV_ASSET: $("$sevenzip" l "$RUNNER_TEMP/$LIBMPV_ASSET" | tail -n 30 | tr '\n' ' ')"
-            exit 1
-          fi
-          ls -la src-tauri/lib
+      - uses: ./.github/actions/fetch-libmpv
 
       - name: Install npm packages and generate the icons
         run: |
           npm install
           npm run setup
 
-      - name: Build the app
+      - name: Build the installer
         run: |
           set -o pipefail
-          if ! npx tauri build --no-bundle 2>&1 | tee build.log; then
+          if ! npx tauri build --bundles nsis 2>&1 | tee build.log; then
             echo "::error title=tauri build failed::$(tail -n 40 build.log | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')"
             exit 1
           fi
 
-      - name: Package
+      - name: Check the installer exists
         run: |
-          out=ModernIPTV-Desktop-spike
-          mkdir -p "$out/lib"
-          cp target/release/moderniptv-desktop-spike.exe "$out/"
-          cp src-tauri/lib/libmpv-2.dll "$out/lib/"
-          cat > "$out/LIRE-MOI.txt" <<'TXT'
-          1. Double-clique moderniptv-desktop-spike.exe
-          2. Clique "Start (separate mpv window)", colle une URL de flux, "Load".
-          3. Puis "Start (embedded video)" pour tester la video dans la fenetre.
-          4. "Copy report" et colle le resultat dans la conversation (les URL sont reduites a leur hote).
-          Garde le dossier "lib" a cote de l'exe.
-          TXT
-          ls -la "$out" "$out/lib"
+          set -euo pipefail
+          shopt -s nullglob
+          installers=(target/release/bundle/nsis/*-setup.exe)
+          if [ ${#installers[@]} -ne 1 ]; then
+            echo "::error title=nsis::Expected one NSIS installer under target/release/bundle/nsis, found ${#installers[@]}"
+            find target -name '*.exe' -print || true
+            exit 1
+          fi
+          ls -la "${installers[0]}"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: moderniptv-desktop-windows
-          path: desktop/ModernIPTV-Desktop-spike
+          name: moderniptv-windows
+          path: desktop/target/release/bundle/nsis/*-setup.exe
           if-no-files-found: error
           retention-days: 14
 
