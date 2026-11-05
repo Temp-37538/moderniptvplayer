@@ -5,22 +5,25 @@ ModernIPTV (celui de Vercel, ou `localhost` en développement) ; mpv lit tout
 (HEVC, AC3, E-AC3, DTS, 4K, live) avec l'IP de l'utilisateur, ce que le
 navigateur ne sait pas faire.
 
-Cette coque ne change rien au site. Le lecteur du site continue d'utiliser le
-lecteur web tant qu'il ne parle pas à la passerelle `window.iptvDesktop`
-(voir plus bas), ce qui viendra dans une PR côté `apps/web`.
+Le site (`apps/web`) utilise déjà la passerelle `window.iptvDesktop`
+(voir plus bas). Quand elle est présente et qu'une adresse http ou https
+du fournisseur est connue, le lecteur passe par mpv. Dans un navigateur,
+la passerelle n'existe pas et le lecteur web reste utilisé.
 
 ## Quel site la fenêtre ouvre
 
 `src-tauri/site.json` est la seule source :
 
 ```json
-{ "development": "http://localhost:3001", "production": null }
+{ "development": "http://localhost:3001", "production": "https://moderniptvplayer-web.vercel.app" }
 ```
 
 - Build de développement (`npm run tauri dev`) : `development`. Lance d'abord le
   site (`pnpm dev` à la racine du dépôt, port 3001).
-- Build de release : `production`. **Tant qu'elle vaut `null`, la fenêtre ouvre
-  la page de test locale** (le prototype d'origine, voir plus bas).
+- Build de release : `production`. La valeur actuelle ouvre
+  `https://moderniptvplayer-web.vercel.app`. Si `production` vaut `null`,
+  est absente ou est vide, `build.rs` transmet une adresse vide et `main.rs`
+  ouvre la page de test locale (le prototype d'origine, voir plus bas).
 - `MODERNIPTV_BENCH=1` force la page de test locale, quel que soit le build.
 
 Les adresses sont vérifiées à la compilation (`build.rs`) : `https`
@@ -131,7 +134,9 @@ la page garde un rectangle transparent et envoie ses marges à
    "Développement Desktop en C++".
 4. **Node.js 20 ou plus**.
 5. **libmpv-2.dll** (non commité), le même build épinglé que la CI
-   ([zhongfly/mpv-winbuild `2026-11-03-46787be250`](https://github.com/zhongfly/mpv-winbuild/releases/tag/2026-11-03-46787be250)) :
+   ([zhongfly/mpv-winbuild `2026-11-03-46787be250`](https://github.com/zhongfly/mpv-winbuild/releases/tag/2026-11-03-46787be250),
+   repris par la release miroir
+   [`libmpv-2026-11-03-46787be250`](https://github.com/Temp-37538/moderniptvplayer/releases/tag/libmpv-2026-11-03-46787be250)) :
    - archive `mpv-dev-lgpl-x86_64-20261103-git-46787be250.7z` (variante LGPL, pas `v3`) ;
    - SHA256 `ce2563d352aac81c2e6e9b2b63e846ec847f4bdabdec74fb14c5b29049c161d7` ;
    - avec 7-Zip, copie `libmpv-2.dll` dans `desktop\src-tauri\lib\`.
@@ -142,8 +147,10 @@ la page garde un rectangle transparent et envoie ses marges à
    Si Windows refuse de charger la DLL (message qui parle de `vulkan-1.dll`),
    c'est un problème connu de certains builds récents : mets à jour le pilote
    de ta carte graphique (il fournit le chargeur Vulkan). Pour changer de
-   build, remplace ensemble le tag, l'archive et le SHA256 (l'action CI et
-   ce fichier).
+   build : télécharge la nouvelle archive LGPL chez zhongfly/mpv-winbuild,
+   vérifie son SHA256, publie une release miroir dans ce dépôt (prerelease,
+   `--latest=false`, tag qui ne commence pas par `v`), puis change ensemble
+   le tag, l'archive et le SHA256 dans l'action CI et dans ce fichier.
 
 ## Lancer
 
@@ -187,6 +194,21 @@ cargo test -- --ignored                     # test lourd : 4K HEVC en logiciel
 ```
 
 Sous Windows, les tests de la couche moteur ne sont pas nécessaires.
+
+## Publier une version
+
+La version de l'appli est le champ `version` de `[package]` dans
+`src-tauri/Cargo.toml`. `tauri.conf.json` ne la répète pas : si ce champ
+est absent, Tauri v2 prend la version de `Cargo.toml`.
+
+1. Change cette version, puis fais arriver le commit sur `main`.
+2. Pousse le tag `v` suivi de cette version (`v0.0.1` pour `0.0.1`) sur un
+   commit de `main`. Le workflow refuse le tag si le commit n'est pas un
+   ancêtre de `origin/main`, ou si le tag ne correspond pas à `Cargo.toml`.
+3. Le workflow `.github/workflows/desktop-release.yml` construit
+   l'installateur NSIS et ouvre la release. Les notes contiennent le nom
+   du fichier et son SHA256. Un fichier `<installeur>.sha256` est aussi
+   joint.
 
 ## Licence de libmpv
 

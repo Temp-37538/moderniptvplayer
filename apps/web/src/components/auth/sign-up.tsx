@@ -433,11 +433,7 @@ export function SignUp({
 								)}
 
 								<div className="flex flex-col gap-3">
-									<Button
-										type="submit"
-										disabled={isPending}
-										className="w-full"
-									>
+									<Button type="submit" disabled={isPending} className="w-full">
 										{signUpEmailPending && <Spinner />}
 
 										{localization.auth.signUp}
