@@ -42,7 +42,7 @@ export default async function AuthPage({
 					</div>
 				</div>
 			</div>
-			<div className="bg-muted w-full z-0 md:z-10 h-full absolute md:relative lg:block overflow-hidden">
+			<div className="hidden md:block bg-muted w-full z-0 md:z-10 h-full absolute md:relative overflow-hidden">
 				<HeroOverlayV2 />
 				<div className="absolute inset-0 z-5 bg-linear-to-t from-black/60 via-transparent to-black/20 pointer-events-none" />
 				<Image
