@@ -1,4 +1,4 @@
-# ModernIPTV Desktop
+# ModernIPTV
 
 Appli de bureau pour Windows : **Tauri 2 + libmpv**. La fenêtre ouvre le site
 ModernIPTV (celui de Vercel, ou `localhost` en développement) ; mpv lit tout
@@ -33,14 +33,17 @@ site : changer `site.json` suffit, rien d'autre à synchroniser.
 Le site que l'appli ouvre en release est celui de la production : une
 modification du site n'y arrive qu'après le merge. Pour l'essayer avant :
 
-1. Prends l'exe de la PR (artefact `moderniptv-desktop-windows` du run
-   "Desktop spike" de la PR, sans merge).
+1. Prends l'installateur de la PR (artefact `moderniptv-windows` du run
+   "Desktop" de la PR, sans merge) et lance-le. L'installation est pour
+   l'utilisateur courant, dans `%LOCALAPPDATA%\ModernIPTV`, sans droits
+   administrateur. Le runtime C++ est lié en statique. WebView2 reste le
+   mode par défaut de Tauri.
 2. Sur ta machine, mets la branche et lance le site comme d'habitude :
    `git fetch`, `git checkout <branche>`, `pnpm dev` (port 3001).
-3. Lance l'exe avec `--dev` :
+3. Lance l'appli installée avec `--dev` :
 
    ```powershell
-   .\moderniptv-desktop-spike.exe --dev
+   & "$env:LOCALAPPDATA\ModernIPTV\ModernIPTV.exe" --dev
    ```
 
    Un raccourci dont la cible se termine par ` --dev` fait la même chose, et
@@ -127,18 +130,20 @@ la page garde un rectangle transparent et envoie ses marges à
 3. **Outils de build C++** : Visual Studio Build Tools 2022, charge de travail
    "Développement Desktop en C++".
 4. **Node.js 20 ou plus**.
-5. **libmpv-2.dll** (non commité) :
-   - ouvre <https://github.com/zhongfly/mpv-winbuild/releases> (dernière version) ;
-   - télécharge l'archive `mpv-dev-lgpl-x86_64-<date>-git-<hash>.7z` (la variante
-     LGPL, sans `v3` sauf si ton processeur est récent). Je n'ai pas pu lister les
-     fichiers de la page depuis mon environnement : si le nom diffère, prends
-     l'archive "mpv-dev" `x86_64` ;
+5. **libmpv-2.dll** (non commité), le même build épinglé que la CI
+   ([zhongfly/mpv-winbuild `2026-11-03-46787be250`](https://github.com/zhongfly/mpv-winbuild/releases/tag/2026-11-03-46787be250)) :
+   - archive `mpv-dev-lgpl-x86_64-20261103-git-46787be250.7z` (variante LGPL, pas `v3`) ;
+   - SHA256 `ce2563d352aac81c2e6e9b2b63e846ec847f4bdabdec74fb14c5b29049c161d7` ;
    - avec 7-Zip, copie `libmpv-2.dll` dans `desktop\src-tauri\lib\`.
+
+   L'installateur NSIS embarque cette DLL : une appli installée n'a rien d'autre
+   à copier à côté de l'exe. Ce téléchargement sert au développement local.
 
    Si Windows refuse de charger la DLL (message qui parle de `vulkan-1.dll`),
    c'est un problème connu de certains builds récents : mets à jour le pilote
-   de ta carte graphique (il fournit le chargeur Vulkan) ou essaie une autre
-   version de l'archive.
+   de ta carte graphique (il fournit le chargeur Vulkan). Pour changer de
+   build, remplace ensemble le tag, l'archive et le SHA256 (l'action CI et
+   ce fichier).
 
 ## Lancer
 
@@ -185,6 +190,8 @@ Sous Windows, les tests de la couche moteur ne sont pas nécessaires.
 
 ## Licence de libmpv
 
-Livre une compilation **LGPL** de `libmpv-2.dll` à côté de l'exécutable (liaison
-dynamique, jamais statique), avec la mention de la licence. Les builds
-"GPL" de mpv ne conviennent pas à une distribution.
+Livre une compilation **LGPL** de `libmpv-2.dll` dans `lib`, à côté de
+l'exécutable (liaison dynamique, jamais statique), avec la mention de la
+licence. L'installateur NSIS la place dans ce dossier, celui que l'appli
+cherche au démarrage (`resource_dir()/lib`). Les builds "GPL" de mpv ne
+conviennent pas à une distribution.

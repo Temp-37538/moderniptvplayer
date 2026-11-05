@@ -1,0 +1,76 @@
+name: Desktop release
+
+# Publishes the Windows NSIS installer when a v* tag is pushed.
+# The tag must be v plus the version in desktop/src-tauri/tauri.conf.json
+# (v0.0.1 for version 0.0.1). A mismatch fails before the build.
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    name: Publish the Windows installer
+    runs-on: windows-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+        working-directory: desktop
+    env:
+      GH_TOKEN: ${{ github.token }}
+      # Static C runtime: the .exe needs no Visual C++ redistributable.
+      RUSTFLAGS: -C target-feature=+crt-static
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Check the tag matches tauri.conf.json
+        run: |
+          set -euo pipefail
+          version=$(node -p "require('./src-tauri/tauri.conf.json').version")
+          tag="${GITHUB_REF_NAME}"
+          if [ "$tag" != "v${version}" ]; then
+            echo "::error title=version mismatch::Tag ${tag} does not match tauri.conf.json version ${version} (expected v${version}). Refusing to publish an installer whose version differs from the tag."
+            exit 1
+          fi
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: desktop
+
+      - uses: ./.github/actions/fetch-libmpv
+
+      - name: Install npm packages and generate the icons
+        run: |
+          npm install
+          npm run setup
+
+      - name: Build the installer
+        run: |
+          set -o pipefail
+          if ! npx tauri build --bundles nsis 2>&1 | tee build.log; then
+            echo "::error title=tauri build failed::$(tail -n 40 build.log | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')"
+            exit 1
+          fi
+
+      - name: Publish the GitHub release
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          installers=(target/release/bundle/nsis/*-setup.exe)
+          if [ ${#installers[@]} -ne 1 ]; then
+            echo "::error title=nsis::Expected one NSIS installer under target/release/bundle/nsis, found ${#installers[@]}"
+            find target -name '*.exe' -print || true
+            exit 1
+          fi
+          installer="${installers[0]}"
+          version=$(node -p "require('./src-tauri/tauri.conf.json').version")
+          gh release create "$GITHUB_REF_NAME" "$installer" \
+            --title "ModernIPTV v${version}" \
+            --notes "Windows per-user NSIS installer for ModernIPTV ${version}. No administrator rights required. libmpv-2.dll is included."
