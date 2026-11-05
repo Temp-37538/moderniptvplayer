@@ -1,8 +1,9 @@
 name: Desktop release
 
 # Publishes the Windows NSIS installer when a v* tag is pushed.
-# The tag must be v plus the version in desktop/src-tauri/tauri.conf.json
-# (v0.0.1 for version 0.0.1). A mismatch fails before the build.
+# The tag must be v plus the [package] version in desktop/src-tauri/Cargo.toml
+# (v0.0.1 for version 0.0.1). Tauri v2 reads that version because
+# tauri.conf.json does not set one. A mismatch fails before the build.
 # The tagged commit must already be on main (an ancestor of origin/main).
 on:
   push:
@@ -42,19 +43,23 @@ jobs:
             exit 1
           fi
 
+      - name: Check the tag matches Cargo.toml
+        run: |
+          set -euo pipefail
+          version=$(sed -n '/^\[package\]/,/^\[/s/^version[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' src-tauri/Cargo.toml)
+          if [ -z "$version" ]; then
+            echo "::error title=version::Could not read the [package] version from src-tauri/Cargo.toml."
+            exit 1
+          fi
+          tag="${GITHUB_REF_NAME}"
+          if [ "$tag" != "v${version}" ]; then
+            echo "::error title=version mismatch::Tag ${tag} does not match Cargo.toml version ${version} (expected v${version}). Refusing to publish an installer whose version differs from the tag."
+            exit 1
+          fi
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-
-      - name: Check the tag matches tauri.conf.json
-        run: |
-          set -euo pipefail
-          version=$(node -p "require('./src-tauri/tauri.conf.json').version")
-          tag="${GITHUB_REF_NAME}"
-          if [ "$tag" != "v${version}" ]; then
-            echo "::error title=version mismatch::Tag ${tag} does not match tauri.conf.json version ${version} (expected v${version}). Refusing to publish an installer whose version differs from the tag."
-            exit 1
-          fi
 
       - uses: Swatinem/rust-cache@v2
         with:
@@ -91,7 +96,11 @@ jobs:
           hash=$(sha256sum < "$installer" | cut -d' ' -f1)
           checksum="${RUNNER_TEMP}/${name}.sha256"
           printf '%s  %s\n' "$hash" "$name" > "$checksum"
-          version=$(node -p "require('./src-tauri/tauri.conf.json').version")
+          version=$(sed -n '/^\[package\]/,/^\[/s/^version[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' src-tauri/Cargo.toml)
+          if [ -z "$version" ]; then
+            echo "::error title=version::Could not read the [package] version from src-tauri/Cargo.toml."
+            exit 1
+          fi
           notes=$(cat <<EOF
 Windows per-user NSIS installer for ModernIPTV ${version}. No administrator rights required. libmpv-2.dll is included.
 
