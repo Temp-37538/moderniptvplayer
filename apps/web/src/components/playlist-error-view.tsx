@@ -118,10 +118,7 @@ export function PlaylistErrorView({ error, retry }: PlaylistErrorViewProps) {
 				<Button variant="outline" onClick={() => retry()}>
 					Try again
 				</Button>
-				<Button
-					variant="ghost"
-					onClick={() => setRefetchKey((key) => key + 1)}
-				>
+				<Button variant="ghost" onClick={() => setRefetchKey((key) => key + 1)}>
 					Check status
 				</Button>
 			</div>

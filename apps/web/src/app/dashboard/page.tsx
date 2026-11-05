@@ -54,9 +54,7 @@ async function PlaylistSubscriptionStatus({
 		return (
 			<span
 				className={
-					isExpired
-						? "font-semibold text-red-600 dark:text-red-400"
-						: undefined
+					isExpired ? "font-semibold text-red-600 dark:text-red-400" : undefined
 				}
 			>
 				{text}
