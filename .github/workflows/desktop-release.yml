@@ -101,13 +101,10 @@ jobs:
             echo "::error title=version::Could not read the [package] version from src-tauri/Cargo.toml."
             exit 1
           fi
-          notes=$(cat <<EOF
-Windows per-user NSIS installer for ModernIPTV ${version}. No administrator rights required. libmpv-2.dll is included.
-
-${name}
-SHA256: ${hash}
-EOF
-)
+          notes=$(printf '%s\n\n%s\nSHA256: %s\n' \
+            "Windows per-user NSIS installer for ModernIPTV ${version}. No administrator rights required. libmpv-2.dll is included." \
+            "$name" \
+            "$hash")
           gh release create "$GITHUB_REF_NAME" "$installer" "$checksum" \
             --title "ModernIPTV v${version}" \
             --notes "$notes"
