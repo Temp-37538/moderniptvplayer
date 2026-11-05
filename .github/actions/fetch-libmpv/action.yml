@@ -5,13 +5,19 @@ runs:
   using: composite
   steps:
     - name: Fetch libmpv (LGPL build, pinned)
-      # Pinned build: same libmpv on every run. To update, change the tag,
-      # the asset and the SHA256 together (the digest GitHub shows on the asset).
+      # Pinned LGPL build, downloaded from a mirror release of this repository
+      # (prerelease, not Latest, tag does not start with v).
+      # To change the build:
+      # 1. Download the new archive from zhongfly/mpv-winbuild.
+      # 2. Verify its SHA256 before uploading it.
+      # 3. Create a new mirror release in this repository
+      #    (gh release create, --prerelease, --latest=false).
+      # 4. Change LIBMPV_TAG, LIBMPV_ASSET and LIBMPV_SHA256 together.
       shell: bash
       working-directory: desktop
       env:
-        LIBMPV_REPO: zhongfly/mpv-winbuild
-        LIBMPV_TAG: 2026-11-03-46787be250
+        LIBMPV_REPO: ${{ github.repository }}
+        LIBMPV_TAG: libmpv-2026-11-03-46787be250
         LIBMPV_ASSET: mpv-dev-lgpl-x86_64-20261103-git-46787be250.7z
         LIBMPV_SHA256: ce2563d352aac81c2e6e9b2b63e846ec847f4bdabdec74fb14c5b29049c161d7
         GH_TOKEN: ${{ github.token }}
