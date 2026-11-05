@@ -7,7 +7,9 @@ import {
 } from "@/components/playlist-card";
 import { ContinueWatchingSkeleton } from "@/components/skeletons";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { fetchPlaylists } from "@/server/queries";
+import { getPlaylistStatus, type PlaylistStatus } from "@/server/xtream";
 import { PlusIcon } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -22,6 +24,52 @@ export const metadata: Metadata = createPageMetadata({
 	path: "/dashboard",
 	noIndex: true,
 });
+
+const subscriptionDateFormatter = new Intl.DateTimeFormat("en", {
+	dateStyle: "medium",
+});
+
+function formatSubscriptionStatus(status: PlaylistStatus) {
+	const label = status.status || "Unknown";
+	const isExpired = label.toLowerCase() === "expired";
+	const expiry = status.expDate
+		? subscriptionDateFormatter.format(new Date(status.expDate * 1000))
+		: null;
+
+	return {
+		isExpired,
+		text: expiry ? `${label} ${isExpired ? "on" : "until"} ${expiry}` : label,
+	};
+}
+
+async function PlaylistSubscriptionStatus({
+	playlistId,
+}: {
+	playlistId: string;
+}) {
+	try {
+		const status = await getPlaylistStatus(playlistId);
+		const { isExpired, text } = formatSubscriptionStatus(status);
+
+		return (
+			<span
+				className={
+					isExpired
+						? "font-semibold text-red-600 dark:text-red-400"
+						: undefined
+				}
+			>
+				{text}
+			</span>
+		);
+	} catch {
+		return null;
+	}
+}
+
+function SubscriptionStatusSkeleton() {
+	return <Skeleton className="h-3 w-28" />;
+}
 
 async function Page() {
 	const playlists = await fetchPlaylists();
@@ -66,7 +114,15 @@ async function Page() {
 				</div>
 				<div className="divide-y divide-border/60">
 					{safePlaylists.map((playlist) => (
-						<PlaylistCard key={playlist.id} {...playlist} />
+						<PlaylistCard
+							key={playlist.id}
+							{...playlist}
+							subscriptionStatus={
+								<Suspense fallback={<SubscriptionStatusSkeleton />}>
+									<PlaylistSubscriptionStatus playlistId={playlist.id} />
+								</Suspense>
+							}
+						/>
 					))}
 				</div>
 				<Suspense fallback={<ContinueWatchingSkeleton />}>

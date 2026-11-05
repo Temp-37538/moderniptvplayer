@@ -9,7 +9,7 @@ import { ChevronRightIcon, RefreshCwIcon, Trash2Icon } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { toast } from "sonner";
 
 export type PlaylistCardData = {
@@ -22,12 +22,17 @@ export type PlaylistCardData = {
 
 type PlaylistCardAction = "refresh" | "delete";
 
+type PlaylistCardProps = PlaylistCardData & {
+	subscriptionStatus?: ReactNode;
+};
+
 export function PlaylistCard({
 	id,
 	playlistName,
 	serverUrl,
 	createdAt,
-}: PlaylistCardData) {
+	subscriptionStatus,
+}: PlaylistCardProps) {
 	const router = useRouter();
 	const [pendingAction, setPendingAction] = useState<PlaylistCardAction | null>(
 		null,
@@ -72,6 +77,11 @@ export function PlaylistCard({
 					<p className="mt-1 truncate text-xs text-muted-foreground">
 						{serverUrl} - {createdAt}
 					</p>
+					{subscriptionStatus ? (
+						<div className="mt-0.5 truncate text-xs text-muted-foreground">
+							{subscriptionStatus}
+						</div>
+					) : null}
 				</div>
 				<ChevronRightIcon className="size-4 shrink-0 text-muted-foreground/60" />
 			</Link>

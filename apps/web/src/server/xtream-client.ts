@@ -49,6 +49,11 @@ type ListOptions = {
 type Profile = { allowed_output_formats?: string[] } | null;
 type RawRecord = Record<string, unknown>;
 
+export type XtreamAccountInfo = RawRecord & {
+	status?: string | number | null;
+	exp_date?: string | number | null;
+};
+
 export type XtreamClientOptions = {
 	url: string;
 	username: string;
@@ -242,6 +247,19 @@ export class SafeXtream {
 	async getProfile() {
 		const data = toRecord(await this.#get("get_profile"));
 		return this.#serialize("profile", data.user_info);
+	}
+
+	async getAccountInfo(): Promise<XtreamAccountInfo> {
+		const url = `${this.baseUrl}/player_api.php?username=${enc(
+			this.#username,
+		)}&password=${enc(this.#password)}`;
+		const data = toRecord(
+			await safeFetchJson(url, {
+				allowPrivateHosts: this.#allowPrivateHosts,
+				...(this.#timeoutMs ? { timeoutMs: this.#timeoutMs } : {}),
+			}),
+		);
+		return toRecord(data.user_info) as XtreamAccountInfo;
 	}
 
 	async getServerInfo() {

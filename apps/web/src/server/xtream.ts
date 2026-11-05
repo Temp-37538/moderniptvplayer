@@ -77,6 +77,53 @@ export async function getPlaylistById(playlistId: string) {
 	return getCachedPlaylistByUserAndId(userId, playlistId);
 }
 
+const PLAYLIST_STATUS_TTL_MS = 5 * 60_000;
+
+export type PlaylistStatus = {
+	status: string;
+	expDate: number | null;
+};
+
+const playlistStatusCache = new Map<
+	string,
+	{ expires: number; value: PlaylistStatus }
+>();
+
+export async function getPlaylistStatus(
+	playlistId: string,
+): Promise<PlaylistStatus> {
+	const now = Date.now();
+	const hit = playlistStatusCache.get(playlistId);
+	if (hit && hit.expires > now) {
+		return hit.value;
+	}
+
+	const playlist = await getPlaylistById(playlistId);
+	if (!playlist) {
+		throw new Error("Playlist not found");
+	}
+
+	const info = await createXtreamClient(playlist).getAccountInfo();
+	const rawExpDate = info.exp_date;
+	const parsedExpDate =
+		rawExpDate === null ||
+		rawExpDate === undefined ||
+		rawExpDate === "" ||
+		rawExpDate === "null"
+			? Number.NaN
+			: Number(rawExpDate);
+	const value: PlaylistStatus = {
+		status: toStringSafe(info.status),
+		expDate: Number.isFinite(parsedExpDate) ? parsedExpDate : null,
+	};
+
+	playlistStatusCache.set(playlistId, {
+		expires: now + PLAYLIST_STATUS_TTL_MS,
+		value,
+	});
+	return value;
+}
+
 const toStringSafe = (value: unknown) =>
 	value === undefined || value === null ? "" : String(value);
 
