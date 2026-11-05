@@ -1,5 +1,4 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
 	Field,
 	FieldDescription,
@@ -156,14 +155,17 @@ export function SignUp({
 		emailAndPassword?.enabled && socialProviders && socialProviders.length > 0;
 
 	return (
-		<Card className={cn("w-full max-w-sm", className)}>
-			<CardHeader>
-				<CardTitle className="text-xl font-semibold">
+		<div className={cn("w-full", className)}>
+			<div className="mb-6 flex flex-col items-center gap-2 text-center">
+				<h1 className="text-2xl font-semibold tracking-tight">
 					{localization.auth.signUp}
-				</CardTitle>
-			</CardHeader>
+				</h1>
+				<p className="text-muted-foreground text-sm">
+					Enter your details to create an account
+				</p>
+			</div>
 
-			<CardContent>
+			<div>
 				<div className="flex flex-col gap-6">
 					{socialPosition === "top" && (
 						<>
@@ -431,7 +433,11 @@ export function SignUp({
 								)}
 
 								<div className="flex flex-col gap-3">
-									<Button type="submit" disabled={isPending}>
+									<Button
+										type="submit"
+										disabled={isPending}
+										className="w-full"
+									>
 										{signUpEmailPending && <Spinner />}
 
 										{localization.auth.signUp}
@@ -466,7 +472,7 @@ export function SignUp({
 				</div>
 
 				{emailAndPassword?.enabled && (
-					<div className="flex flex-col gap-3 items-center w-full mt-4">
+					<div className="mt-6 flex w-full flex-col items-center gap-3">
 						<FieldDescription className="text-center">
 							{localization.auth.alreadyHaveAnAccount}{" "}
 							<Link
@@ -478,7 +484,7 @@ export function SignUp({
 						</FieldDescription>
 					</div>
 				)}
-			</CardContent>
-		</Card>
+			</div>
+		</div>
 	);
 }
