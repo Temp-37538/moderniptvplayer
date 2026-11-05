@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
 	Field,
 	FieldDescription,
@@ -155,17 +156,14 @@ export function SignUp({
 		emailAndPassword?.enabled && socialProviders && socialProviders.length > 0;
 
 	return (
-		<div className={cn("w-full", className)}>
-			<div className="mb-6 flex flex-col items-center gap-2 text-center">
-				<h1 className="text-2xl font-semibold tracking-tight">
+		<Card className={cn("w-full max-w-sm", className)}>
+			<CardHeader>
+				<CardTitle className="text-xl font-semibold">
 					{localization.auth.signUp}
-				</h1>
-				<p className="text-muted-foreground text-sm">
-					Enter your details below to create your account
-				</p>
-			</div>
+				</CardTitle>
+			</CardHeader>
 
-			<div>
+			<CardContent>
 				<div className="flex flex-col gap-6">
 					{socialPosition === "top" && (
 						<>
@@ -468,7 +466,7 @@ export function SignUp({
 				</div>
 
 				{emailAndPassword?.enabled && (
-					<div className="mt-6 flex w-full flex-col items-center gap-3">
+					<div className="flex flex-col gap-3 items-center w-full mt-4">
 						<FieldDescription className="text-center">
 							{localization.auth.alreadyHaveAnAccount}{" "}
 							<Link
@@ -480,7 +478,7 @@ export function SignUp({
 						</FieldDescription>
 					</div>
 				)}
-			</div>
-		</div>
+			</CardContent>
+		</Card>
 	);
 }

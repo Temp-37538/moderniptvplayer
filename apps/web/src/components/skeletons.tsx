@@ -598,19 +598,25 @@ export function AuthSuspense({ path }: AuthSuspenseProps) {
 	}
 
 	return (
-		<div className="flex w-full max-w-sm flex-col gap-6">
-			<div className="grid auto-rows-min grid-rows-[auto_auto] items-start gap-1.5">
+		<div
+			data-slot="card"
+			className="text-card-foreground flex flex-col gap-6 rounded-xl border py-6 shadow-sm w-full max-w-sm bg-background/90"
+		>
+			<div
+				data-slot="card-header"
+				className="@container/card-header grid auto-rows-min grid-rows-[auto_auto] items-start gap-1.5 px-6 has-data-[slot=card-action]:grid-cols-[1fr_auto] [.border-b]:pb-6"
+			>
 				<Skeleton className={`h-6 md:h-7 ${titleWidth} rounded-md`} />
 				<Skeleton className={`h-3.5 md:h-4 ${descWidth} rounded-md`} />
 			</div>
 
-			<div className="grid gap-6">
+			<div data-slot="card-content" className="px-6 grid gap-6">
 				<div className="grid gap-4">
 					<div className="grid w-full gap-6">
 						{fields.length > 0 && (
 							<div className="grid gap-4">
 								{fields.map((field) => (
-									<div key={field} className="grid gap-2">
+									<div key={field} data-slot="form-item" className="grid gap-2">
 										<Skeleton className="h-3.5 w-16 rounded-md" />
 										<div className="relative">
 											<Skeleton className="h-9 w-full rounded-md border border-input/50 bg-muted/20" />
@@ -627,7 +633,10 @@ export function AuthSuspense({ path }: AuthSuspenseProps) {
 				</div>
 			</div>
 
-			<div className="flex items-center justify-center gap-1.5 text-muted-foreground text-sm">
+			<div
+				data-slot="card-footer"
+				className="flex items-center px-6 [.border-t]:pt-6 justify-center gap-1.5 text-muted-foreground text-sm"
+			>
 				<Skeleton className={`h-4 ${footerWidth} rounded-md`} />
 			</div>
 		</div>
