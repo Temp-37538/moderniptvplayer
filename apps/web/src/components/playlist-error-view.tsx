@@ -62,6 +62,7 @@ export function PlaylistErrorView({ error, retry }: PlaylistErrorViewProps) {
 	);
 	const [refetchKey, setRefetchKey] = useState(0);
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: refetchKey bumps to force a manual status refetch
 	useEffect(() => {
 		if (!playlistId) {
 			setStatus(null);
