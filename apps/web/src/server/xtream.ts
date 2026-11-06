@@ -89,6 +89,10 @@ const playlistStatusCache = new Map<
 	{ expires: number; value: PlaylistStatus }
 >();
 
+export function forgetPlaylistStatus(playlistId: string) {
+	playlistStatusCache.delete(playlistId);
+}
+
 export async function getPlaylistStatus(
 	playlistId: string,
 ): Promise<PlaylistStatus> {
