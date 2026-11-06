@@ -17,6 +17,7 @@
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
     "jsx": "react-jsx",
+    "allowImportingTsExtensions": true,
     "incremental": true,
     "plugins": [
       {

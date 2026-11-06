@@ -4,7 +4,10 @@ import { PaginationNav } from "@/components/pagination-nav";
 import type { IdCategoryPageProps as PageProps } from "@/components/types";
 import { toSafeImageSrc } from "@/lib/image-url";
 import { getCachedShows } from "@/server/cached-content";
-import { assertCategoryAvailable } from "@/server/category-access";
+import {
+	assertCategoryAvailable,
+	filterBrowsableItems,
+} from "@/server/category-access";
 import { getPlaylistById } from "@/server/xtream";
 import { Tv } from "lucide-react";
 import type { Metadata } from "next";
@@ -70,6 +73,12 @@ async function SeriesByCategoryContent({ params, searchParams }: PageProps) {
 		currentPage,
 		ITEMS_PER_PAGE,
 	);
+	const visibleShows = await filterBrowsableItems(
+		id,
+		"series",
+		categoryId,
+		shows,
+	);
 
 	const hasNextPage = shows.length === ITEMS_PER_PAGE;
 	const hasPreviousPage = currentPage > 1;
@@ -84,9 +93,9 @@ async function SeriesByCategoryContent({ params, searchParams }: PageProps) {
 					</div>
 				</div>
 			</div>
-			{shows.length > 0 ? (
+			{visibleShows.length > 0 ? (
 				<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-					{shows.map((show) => {
+					{visibleShows.map((show) => {
 						const safePosterSrc = toSafeImageSrc(show.poster);
 						return (
 							<Link

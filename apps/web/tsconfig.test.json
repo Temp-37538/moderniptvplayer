@@ -11,7 +11,7 @@
     "types": ["node"]
   },
   "include": [
-    "src/server/category-preference-policy.ts",
+    "src/lib/continue-watching.test.ts",
     "src/server/category-preference-policy.test.ts"
   ]
 }

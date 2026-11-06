@@ -1,9 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+	categoryTargetFromItemUrl,
 	isAdultCategoryName,
 	isCategorySetBlocked,
+	isItemOpenFromCategory,
 	matchesPreferenceScope,
+	normalizeCategoryName,
 	partitionCategories,
 	preferenceScopeWhere,
 	readEpisodeIds,
@@ -79,6 +82,24 @@ test("adult classification hits explicit category names and age marks", () => {
 	for (const name of adult) {
 		assert.equal(isAdultCategoryName(name), true, name);
 	}
+});
+
+test("native script names stay allowed when normalization is empty", () => {
+	const names = [
+		"للكبار",
+		"للبالغين",
+		"для взрослых",
+		"взрослые",
+		"成人",
+		"情色",
+		"成人电影",
+	];
+	for (const name of names) {
+		assert.equal(normalizeCategoryName(name), "", name);
+		assert.equal(isAdultCategoryName(name), false, name);
+	}
+	assert.equal(isAdultCategoryName("成人 18+"), true);
+	assert.equal(isAdultCategoryName("Adults"), true);
 });
 
 test("adult classification leaves ordinary and lookalike names alone", () => {
@@ -417,6 +438,110 @@ test("episode membership follows the show payload", () => {
 	assert.deepEqual(readEpisodeIds(show), ["ep-1", "ep-2"]);
 	assert.equal(readEpisodeIds(show).includes("ep-9"), false);
 	assert.deepEqual(readEpisodeIds({}), []);
+});
+
+test("hidden blocks only the requested category and adult blocks every name", () => {
+	const names = new Map([
+		["drama", "Drama"],
+		["sports", "Sports"],
+		["xxx", "XXX Movies"],
+		["native", "成人"],
+	]);
+	const hidden = new Set(["sports"]);
+	assert.equal(
+		isItemOpenFromCategory({
+			requestedCategoryId: "drama",
+			itemCategoryIds: ["sports", "drama"],
+			namesById: names,
+			hiddenIds: hidden,
+			lockAdultCategories: false,
+		}),
+		true,
+	);
+	assert.equal(
+		isCategorySetBlocked({
+			categoryIds: ["drama", "sports"],
+			namesById: names,
+			hiddenIds: hidden,
+			lockAdultCategories: false,
+			requiredIds: new Set(["sports"]),
+		}),
+		true,
+	);
+	assert.equal(
+		isItemOpenFromCategory({
+			requestedCategoryId: "drama",
+			itemCategoryIds: ["drama", "xxx"],
+			namesById: names,
+			hiddenIds: new Set(),
+			lockAdultCategories: true,
+		}),
+		false,
+	);
+	assert.equal(
+		isItemOpenFromCategory({
+			requestedCategoryId: "drama",
+			itemCategoryIds: ["sports", "native"],
+			namesById: names,
+			hiddenIds: hidden,
+			lockAdultCategories: true,
+		}),
+		true,
+	);
+	assert.equal(
+		isItemOpenFromCategory({
+			requestedCategoryId: "xxx",
+			itemCategoryIds: ["drama"],
+			namesById: names,
+			hiddenIds: new Set(),
+			lockAdultCategories: true,
+		}),
+		false,
+	);
+});
+
+test("saved item links keep playlist kind and category for later checks", () => {
+	assert.deepEqual(
+		categoryTargetFromItemUrl("/dashboard/movies/playlist-a/drama/movie-1"),
+		{
+			playlistId: "playlist-a",
+			kind: "movie",
+			categoryId: "drama",
+			itemId: "movie-1",
+		},
+	);
+	assert.deepEqual(
+		categoryTargetFromItemUrl(
+			"/dashboard/series/playlist-b/series-cat/show-9#episode-3",
+		),
+		{
+			playlistId: "playlist-b",
+			kind: "series",
+			categoryId: "series-cat",
+			itemId: "show-9",
+		},
+	);
+	assert.deepEqual(
+		categoryTargetFromItemUrl(
+			"/dashboard/channels/playlist-a/live-1/channel-2",
+		),
+		{
+			playlistId: "playlist-a",
+			kind: "channel",
+			categoryId: "live-1",
+			itemId: "channel-2",
+		},
+	);
+	assert.equal(
+		categoryTargetFromItemUrl("/dashboard/favorites/playlist-a"),
+		null,
+	);
+	assert.equal(
+		categoryTargetFromItemUrl(
+			"/dashboard/movies/playlist-a/drama/movie-1/extra",
+		)?.itemId,
+		"movie-1",
+	);
 });
 
 test("playback without a category stays open until a restriction exists", () => {

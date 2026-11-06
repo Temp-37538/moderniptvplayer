@@ -4,7 +4,12 @@ import { ResumeEpisodeButton } from "@/components/resume-episode-button";
 import { SeasonsList } from "@/components/seasons-list";
 import type { PageProps } from "@/components/types";
 import { toSafeImageSrc } from "@/lib/image-url";
-import { formatTimestamp, pickResumeEpisode } from "@/lib/series-resume";
+import {
+	formatEpisodeCode,
+	formatTimestamp,
+	pickResumeEpisode,
+	readPlayableSeasons,
+} from "@/lib/series-resume";
 import { toYoutubeEmbedUrl } from "@/lib/youtube";
 import { getCachedShow } from "@/server/cached-content";
 import { assertCategoryAvailable } from "@/server/category-access";
@@ -12,7 +17,6 @@ import { readCategoryIds } from "@/server/category-preference-policy";
 import { getItemStatus } from "@/server/user-items";
 import { getEpisodeProgress } from "@/server/watch-progress";
 import { getPlaylistById } from "@/server/xtream";
-import type { StandardXtreamEpisode } from "@iptv/xtream-api/standardized";
 import { PlayIcon, Tv } from "lucide-react";
 import type { Metadata } from "next";
 import Image from "next/image";
@@ -84,32 +88,24 @@ async function ShowDetailContent({ params }: PageProps) {
 	const safePosterSrc = toSafeImageSrc(show.poster);
 	const episodeProgress = await getEpisodeProgress(id, showId);
 
-	// Resume target for the "continue watching" button under the poster.
-	const episodesById = new Map<
-		string,
-		{ episode: StandardXtreamEpisode; seasonName: string }
-	>();
-	const playableIds: string[] = [];
-	for (const season of show.seasons ?? []) {
-		for (const episode of season.episodes ?? []) {
-			if (episode.url) {
-				episodesById.set(episode.id, { episode, seasonName: season.name });
-				playableIds.push(episode.id);
-			}
-		}
-	}
-	const resumeTarget = pickResumeEpisode(playableIds, episodeProgress);
+	// Resume target for the button under the poster. Same watching order as
+	// Continue Watching: only episodes that have a stream.
+	const playable = readPlayableSeasons(show);
+	const resumeTarget = pickResumeEpisode(
+		playable.map((episode) => episode.id),
+		episodeProgress,
+	);
 	const resumeEntry = resumeTarget
-		? episodesById.get(resumeTarget.episodeId)
+		? playable.find((episode) => episode.id === resumeTarget.episodeId)
 		: undefined;
 	const resumeLabel = resumeEntry
-		? `${resumeEntry.seasonName} - E${String(resumeEntry.episode.number).padStart(2, "0")}`
+		? formatEpisodeCode(resumeEntry.seasonName, resumeEntry.number)
 		: null;
 	const resumeText =
 		!resumeTarget || !resumeEntry
 			? ""
 			: resumeTarget.kind === "resume"
-				? `Resume at ${formatTimestamp(episodeProgress[resumeEntry.episode.id]?.positionSec ?? 0)}`
+				? `Resume at ${formatTimestamp(episodeProgress[resumeEntry.id]?.positionSec ?? 0)}`
 				: resumeTarget.kind === "next"
 					? "Next episode"
 					: resumeTarget.kind === "rewatch"
@@ -175,7 +171,7 @@ async function ShowDetailContent({ params }: PageProps) {
 						</div>
 						{resumeEntry && (
 							<ResumeEpisodeButton
-								episodeId={resumeEntry.episode.id}
+								episodeId={resumeEntry.id}
 								className="mt-5 block w-full overflow-hidden rounded-md border border-border/40 text-left transition-colors hover:bg-muted/40"
 							>
 								<span className="flex items-center gap-3 px-3 py-2.5">
@@ -196,10 +192,9 @@ async function ShowDetailContent({ params }: PageProps) {
 											style={{
 												width: `${Math.min(
 													100,
-													((episodeProgress[resumeEntry.episode.id]
-														?.positionSec ?? 0) /
-														(episodeProgress[resumeEntry.episode.id]
-															?.durationSec || 1)) *
+													((episodeProgress[resumeEntry.id]?.positionSec ?? 0) /
+														(episodeProgress[resumeEntry.id]?.durationSec ||
+															1)) *
 														100,
 												)}%`,
 											}}

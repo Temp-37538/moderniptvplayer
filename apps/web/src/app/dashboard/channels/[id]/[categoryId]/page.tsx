@@ -1,7 +1,10 @@
 import { createPageMetadata, getCategoryMetadataContext } from "@/app/metadata";
 import type { IdCategoryPageProps as PageProps } from "@/components/types";
 import { getCachedChannels } from "@/server/cached-content";
-import { assertCategoryAvailable } from "@/server/category-access";
+import {
+	assertCategoryAvailable,
+	filterBrowsableItems,
+} from "@/server/category-access";
 import { getPlaylistById } from "@/server/xtream";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -71,6 +74,12 @@ async function ChannelsByCategoryContent({ params, searchParams }: PageProps) {
 		currentPage,
 		ITEMS_PER_PAGE,
 	);
+	const visibleChannels = await filterBrowsableItems(
+		id,
+		"channel",
+		categoryId,
+		channels,
+	);
 
 	const hasNextPage = channels.length === ITEMS_PER_PAGE;
 	const hasPreviousPage = currentPage > 1;
@@ -85,9 +94,9 @@ async function ChannelsByCategoryContent({ params, searchParams }: PageProps) {
 					</div>
 				</div>
 			</div>
-			{channels.length > 0 ? (
+			{visibleChannels.length > 0 ? (
 				<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-					{channels.map((channel) => {
+					{visibleChannels.map((channel) => {
 						const safeLogoSrc = toSafeImageSrc(channel.logo);
 						return (
 							<Link

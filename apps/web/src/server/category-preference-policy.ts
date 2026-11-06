@@ -310,6 +310,12 @@ export function isAdultCategoryName(name: string) {
 	return !safePhrase;
 }
 
+/**
+ * Hidden categories block only ids the caller marked required, which is the
+ * category the user asked to open. The adult lock blocks any id whose name
+ * classifies as adult, including extra memberships on the same title. A
+ * missing name fails closed only for a required id.
+ */
 export function isCategorySetBlocked(input: {
 	categoryIds: readonly string[];
 	namesById: ReadonlyMap<string, string>;
@@ -317,8 +323,9 @@ export function isCategorySetBlocked(input: {
 	lockAdultCategories: boolean;
 	requiredIds?: ReadonlySet<string>;
 }) {
+	const requiredIds = input.requiredIds;
 	for (const categoryId of input.categoryIds) {
-		if (input.hiddenIds.has(categoryId)) {
+		if (requiredIds?.has(categoryId) && input.hiddenIds.has(categoryId)) {
 			return true;
 		}
 		if (!input.lockAdultCategories) {
@@ -326,7 +333,7 @@ export function isCategorySetBlocked(input: {
 		}
 		const name = input.namesById.get(categoryId);
 		if (name === undefined) {
-			if (input.requiredIds?.has(categoryId)) {
+			if (requiredIds?.has(categoryId)) {
 				return true;
 			}
 			continue;
@@ -336,6 +343,87 @@ export function isCategorySetBlocked(input: {
 		}
 	}
 	return false;
+}
+
+/**
+ * True when a title can stay visible from `requestedCategoryId`. Hidden
+ * applies only to that requested id. Adult names apply to every id supplied.
+ */
+export function isItemOpenFromCategory(input: {
+	requestedCategoryId: string;
+	itemCategoryIds: readonly string[];
+	namesById: ReadonlyMap<string, string>;
+	hiddenIds: ReadonlySet<string>;
+	lockAdultCategories: boolean;
+}) {
+	const categoryIds = [input.requestedCategoryId];
+	for (const categoryId of input.itemCategoryIds) {
+		if (categoryId && categoryId !== input.requestedCategoryId) {
+			categoryIds.push(categoryId);
+		}
+	}
+	return !isCategorySetBlocked({
+		categoryIds,
+		namesById: input.namesById,
+		hiddenIds: input.hiddenIds,
+		lockAdultCategories: input.lockAdultCategories,
+		requiredIds: new Set([input.requestedCategoryId]),
+	});
+}
+
+const SAVED_ITEM_URL =
+	/^\/dashboard\/(channels|movies|series)\/([^/]+)\/([^/]+)\/([^/#?]+)/;
+
+const SECTION_KIND = {
+	channels: "channel",
+	movies: "movie",
+	series: "series",
+} as const;
+
+export type SavedItemTarget = {
+	playlistId: string;
+	kind: CategoryKind;
+	categoryId: string;
+	itemId: string;
+};
+
+function decodePathSegment(value: string): string | null {
+	let decoded: string;
+	try {
+		decoded = decodeURIComponent(value);
+	} catch {
+		return null;
+	}
+	if (!isValidCategoryId(decoded) || decoded.includes("..")) {
+		return null;
+	}
+	return decoded;
+}
+
+/** Playlist, kind, and category stored in a dashboard item link. */
+export function categoryTargetFromItemUrl(
+	itemUrl: string,
+): SavedItemTarget | null {
+	const match = SAVED_ITEM_URL.exec(itemUrl);
+	if (!match) {
+		return null;
+	}
+	const section = match[1];
+	if (section !== "channels" && section !== "movies" && section !== "series") {
+		return null;
+	}
+	const playlistId = decodePathSegment(match[2] ?? "");
+	const categoryId = decodePathSegment(match[3] ?? "");
+	const itemId = decodePathSegment(match[4] ?? "");
+	if (!playlistId || !categoryId || !itemId) {
+		return null;
+	}
+	return {
+		playlistId,
+		kind: SECTION_KIND[section],
+		categoryId,
+		itemId,
+	};
 }
 
 export function unscopedPlaybackAllowed(input: {

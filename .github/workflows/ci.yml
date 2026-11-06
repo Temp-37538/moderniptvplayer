@@ -23,7 +23,7 @@ env:
 
 jobs:
   checks:
-    name: Lint and types
+    name: Lint, types, and tests
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -42,8 +42,8 @@ jobs:
         run: pnpm check
       - name: Type check
         run: pnpm check-types
-      - name: Category preference tests
-        run: pnpm --filter web test
+      - name: Tests
+        run: pnpm test
 
   build:
     name: Build
