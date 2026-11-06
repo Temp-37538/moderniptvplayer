@@ -147,6 +147,30 @@ export function stripUrlUserinfo(raw: string): {
 	};
 }
 
+/**
+ * Authorization is scoped to one origin (scheme, host, and port).
+ * A redirect that leaves that origin drops the header. Same-origin
+ * targets, including relative paths and the default port, keep it.
+ * The caller resolves network-path locations (`//host`) before comparing.
+ * Every other header, including Range, is unchanged.
+ */
+export function headersForRedirect(
+	headers: Record<string, string>,
+	from: URL,
+	to: URL,
+): Record<string, string> {
+	if (from.origin === to.origin) {
+		return headers;
+	}
+	const next: Record<string, string> = {};
+	for (const [name, value] of Object.entries(headers)) {
+		if (name.toLowerCase() !== "authorization") {
+			next[name] = value;
+		}
+	}
+	return next;
+}
+
 /** Synchronous checks that do not need DNS. Throws UnsafeUrlError. */
 export function assertHttpUrl(url: URL, allowPrivateHosts = false) {
 	if (url.protocol !== "http:" && url.protocol !== "https:") {
@@ -404,12 +428,15 @@ export async function safeFetch(
 		const raw = await requestOnce(url, resolved, deadline);
 
 		if (raw.location) {
+			let nextUrl: URL;
 			try {
-				url = new URL(raw.location, url);
+				nextUrl = new URL(raw.location, url);
 			} catch {
 				throw new UnsafeUrlError("Invalid redirect location");
 			}
-			url.hash = "";
+			nextUrl.hash = "";
+			resolved.headers = headersForRedirect(resolved.headers, url, nextUrl);
+			url = nextUrl;
 			continue;
 		}
 

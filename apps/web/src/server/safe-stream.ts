@@ -6,11 +6,12 @@ import zlib from "node:zlib";
 import {
 	agents,
 	assertHttpUrl,
+	headersForRedirect,
 	HttpTimeoutError,
 	normalizeHostname,
 	strictLookup,
 	UnsafeUrlError,
-} from "./safe-http";
+} from "./safe-http.ts";
 
 /**
  * Streaming counterpart of `safeFetch`, for media. It applies the same
@@ -146,12 +147,15 @@ export async function safeStream(
 
 		if (status >= 300 && status < 400 && location) {
 			response.resume();
+			let nextUrl: URL;
 			try {
-				url = new URL(location, url);
+				nextUrl = new URL(location, url);
 			} catch {
 				throw new UnsafeUrlError("Invalid redirect location");
 			}
-			url.hash = "";
+			nextUrl.hash = "";
+			resolved.headers = headersForRedirect(resolved.headers, url, nextUrl);
+			url = nextUrl;
 			continue;
 		}
 
