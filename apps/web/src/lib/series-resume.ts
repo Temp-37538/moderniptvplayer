@@ -9,20 +9,158 @@ export type EpisodeProgressEntry = {
 export type ResumeTarget = {
 	episodeId: string;
 	/**
-	 * "resume": an episode was left half way. "next": the last one is finished,
-	 * this is the following one. "start": nothing watched yet. "rewatch": the
-	 * whole series is finished, start over.
+	 * "resume": an episode was left part way. "next": the latest one is
+	 * finished and a later episode is not. "start": nothing watched yet.
+	 * "rewatch": every later episode is finished too, start over.
 	 */
 	kind: "resume" | "next" | "start" | "rewatch";
 };
+
+export type PlayableEpisodeSource = {
+	id?: string | null;
+	number?: number | null;
+	title?: string | null;
+	url?: string | null;
+	duration?: number | null;
+};
+
+export type PlayableSeasonSource = {
+	id?: string | null;
+	name?: string | null;
+	episodes?: PlayableEpisodeSource[] | null;
+};
+
+/** A playable episode in watching order: season after season, stream required. */
+export type PlayableEpisodeRef = {
+	id: string;
+	seasonId: string;
+	seasonName: string;
+	number: number;
+	title: string;
+	durationSec: number;
+};
+
+/**
+ * Watching order shared by the series page and Continue Watching.
+ * An episode with no stream is skipped: there is no next episode to invent.
+ */
+export function listPlayableEpisodes(
+	seasons: PlayableSeasonSource[],
+): PlayableEpisodeRef[] {
+	const episodes: PlayableEpisodeRef[] = [];
+	const seen = new Set<string>();
+	for (const season of seasons) {
+		const seasonName = season.name?.trim() || "Season";
+		const seasonId = season.id?.trim() || seasonName;
+		for (const episode of season.episodes ?? []) {
+			const id = episode.id?.trim() ?? "";
+			const url = episode.url?.trim() ?? "";
+			if (!id || !url || seen.has(id)) {
+				continue;
+			}
+			seen.add(id);
+			const duration = episode.duration ?? 0;
+			episodes.push({
+				id,
+				seasonId,
+				seasonName,
+				number: episode.number ?? 0,
+				title: episode.title?.trim() || `Episode ${episode.number ?? 0}`,
+				durationSec:
+					Number.isFinite(duration) && duration > 0 ? Math.floor(duration) : 0,
+			});
+		}
+	}
+	return episodes;
+}
+
+function textOrEmpty(value: unknown): string {
+	if (typeof value === "string") {
+		return value;
+	}
+	if (typeof value === "number" && Number.isFinite(value)) {
+		return String(value);
+	}
+	return "";
+}
+
+function numberOrZero(value: unknown): number {
+	const number = typeof value === "number" ? value : Number(value);
+	return Number.isFinite(number) ? number : 0;
+}
+
+/**
+ * Reads a show catalog into watching order. Fields are read loosely so a
+ * provider payload with a missing duration still yields the episode.
+ */
+export function readPlayableSeasons(show: unknown): PlayableEpisodeRef[] {
+	const showRecord =
+		show && typeof show === "object" ? (show as { seasons?: unknown }) : {};
+	const seasons = Array.isArray(showRecord.seasons) ? showRecord.seasons : [];
+	return listPlayableEpisodes(
+		seasons.map((season) => {
+			const seasonRecord =
+				season && typeof season === "object"
+					? (season as Record<string, unknown>)
+					: {};
+			const episodes = Array.isArray(seasonRecord.episodes)
+				? seasonRecord.episodes
+				: [];
+			return {
+				id: textOrEmpty(seasonRecord.id),
+				name: textOrEmpty(seasonRecord.name),
+				episodes: episodes.map((episode) => {
+					const record =
+						episode && typeof episode === "object"
+							? (episode as Record<string, unknown>)
+							: {};
+					return {
+						id: textOrEmpty(record.id),
+						number: numberOrZero(record.number),
+						title: textOrEmpty(record.title),
+						url: textOrEmpty(record.url),
+						duration: numberOrZero(record.duration),
+					};
+				}),
+			};
+		}),
+	);
+}
+
+/** "Season 2 - E04" */
+export function formatEpisodeCode(
+	seasonName: string,
+	episodeNumber: number,
+): string {
+	const number = String(Math.max(0, Math.floor(episodeNumber))).padStart(
+		2,
+		"0",
+	);
+	return `${seasonName} - E${number}`;
+}
+
+/** "Show - Season 2 - E04", capped for the progress row. */
+export function formatEpisodeProgressName(
+	showName: string,
+	seasonName: string,
+	episodeNumber: number,
+): string {
+	const show = showName.trim() || "Series";
+	return `${show} - ${formatEpisodeCode(seasonName, episodeNumber)}`.slice(
+		0,
+		300,
+	);
+}
 
 /**
  * Picks the episode to offer when opening a series.
  *
  * `order` lists the playable episode ids in watching order (season after
- * season). The most recently watched episode decides: unfinished, it is the
- * one to resume; finished, the next one is offered (resumed if it was already
- * started).
+ * season). The most recently watched episode decides. Unfinished, it is the
+ * one to resume. Finished, the next episode that is not already completed is
+ * offered (resumed if it was already started). Episodes that do not exist in
+ * `order` are not invented. When nothing remains after the latest one, the
+ * series is finished.
  */
 export function pickResumeEpisode(
 	order: string[],
@@ -51,15 +189,34 @@ export function pickResumeEpisode(
 		return { episodeId: lastId, kind: "resume" };
 	}
 
-	const nextId = order[lastIndex + 1];
-	if (nextId === undefined) {
-		return { episodeId: first, kind: "rewatch" };
+	for (let index = lastIndex + 1; index < order.length; index++) {
+		const nextId = order[index] as string;
+		const next = progress[nextId];
+		if (next?.completed) {
+			continue;
+		}
+		return {
+			episodeId: nextId,
+			kind: next && next.positionSec > 0 ? "resume" : "next",
+		};
 	}
-	const next = progress[nextId];
-	return {
-		episodeId: nextId,
-		kind: next && !next.completed && next.positionSec > 0 ? "resume" : "next",
-	};
+
+	return { episodeId: first, kind: "rewatch" };
+}
+
+/**
+ * The episode Continue Watching should surface, or null when the series has
+ * not been started or nothing unfinished remains after the latest activity.
+ */
+export function continueWatchingEpisodeId(
+	order: string[],
+	progress: Record<string, EpisodeProgressEntry>,
+): string | null {
+	const target = pickResumeEpisode(order, progress);
+	if (!target || target.kind === "start" || target.kind === "rewatch") {
+		return null;
+	}
+	return target.episodeId;
 }
 
 /** 3725 -> "1:02:05", 754 -> "12:34". */
