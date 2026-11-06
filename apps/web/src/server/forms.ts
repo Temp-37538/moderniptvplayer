@@ -304,8 +304,7 @@ export async function updatePlaylistAction(
 					},
 					success: false,
 					inputs: rawData,
-					message:
-						"Another playlist already uses this server and username.",
+					message: "Another playlist already uses this server and username.",
 				};
 			}
 		}
