@@ -53,7 +53,12 @@ function isSafeEpisodeId(value: string): boolean {
 	return true;
 }
 
-const segmentSchema = z.string().trim().min(1).max(128).refine(isSafePathSegment);
+const segmentSchema = z
+	.string()
+	.trim()
+	.min(1)
+	.max(128)
+	.refine(isSafePathSegment);
 
 const episodeInputSchema = z.object({
 	playlistId: segmentSchema,

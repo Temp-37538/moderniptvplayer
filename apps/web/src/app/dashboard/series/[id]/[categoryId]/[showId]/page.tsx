@@ -174,8 +174,7 @@ async function ShowDetailContent({ params }: PageProps) {
 											style={{
 												width: `${Math.min(
 													100,
-													((episodeProgress[resumeEntry.id]?.positionSec ??
-														0) /
+													((episodeProgress[resumeEntry.id]?.positionSec ?? 0) /
 														(episodeProgress[resumeEntry.id]?.durationSec ||
 															1)) *
 														100,
