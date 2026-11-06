@@ -119,6 +119,34 @@ export function isBlockedAddress(address: string) {
 	return blockedRanges.check(bare, type === 4 ? "ipv4" : "ipv6");
 }
 
+/**
+ * Userinfo is removed before the SSRF checks. When it was present, the
+ * caller receives a Basic authorization header and must not log either value.
+ */
+export function stripUrlUserinfo(raw: string): {
+	url: string;
+	headers: Record<string, string>;
+} {
+	let parsed: URL;
+	try {
+		parsed = new URL(raw);
+	} catch {
+		return { url: raw, headers: {} };
+	}
+	if (!parsed.username && !parsed.password) {
+		return { url: raw, headers: {} };
+	}
+	const user = decodeURIComponent(parsed.username);
+	const pass = decodeURIComponent(parsed.password);
+	parsed.username = "";
+	parsed.password = "";
+	const token = Buffer.from(`${user}:${pass}`, "utf8").toString("base64");
+	return {
+		url: parsed.toString(),
+		headers: { authorization: `Basic ${token}` },
+	};
+}
+
 /** Synchronous checks that do not need DNS. Throws UnsafeUrlError. */
 export function assertHttpUrl(url: URL, allowPrivateHosts = false) {
 	if (url.protocol !== "http:" && url.protocol !== "https:") {

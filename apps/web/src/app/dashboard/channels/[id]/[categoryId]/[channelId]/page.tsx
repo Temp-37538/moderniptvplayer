@@ -6,6 +6,7 @@ import type { ChannelDetailPageProps as PageProps } from "@/components/types";
 import { VideoPlayer } from "@/components/video-player";
 import { toSafeImageSrc } from "@/lib/image-url";
 import { withStreamCategory } from "@/lib/stream-category";
+import { liveSourceKind } from "@/server/m3u";
 import { getCachedChannel } from "@/server/cached-content";
 import { assertCategoryAvailable } from "@/server/category-access";
 import { readCategoryIds } from "@/server/category-preference-policy";
@@ -17,6 +18,13 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 
 export const instant = false;
+
+function entryUrl(value: object): string {
+	if ("url" in value && typeof value.url === "string") {
+		return value.url;
+	}
+	return "";
+}
 
 export async function generateMetadata({
 	params,
@@ -70,16 +78,18 @@ async function ChannelDetailContent({ params }: PageProps) {
 		readCategoryIds(channel),
 	);
 
-	const xtream = createXtreamClient(playlist);
-
-	const streamUrl = xtream.generateStreamUrl({
-		type: "channel",
-		streamId: channelId,
-		extension: "m3u8",
-	});
+	const streamUrl =
+		playlist.source === "M3U"
+			? entryUrl(channel)
+			: createXtreamClient(playlist).generateStreamUrl({
+					type: "channel",
+					streamId: channelId,
+					extension: "m3u8",
+				});
 	if (!streamUrl) {
 		notFound();
 	}
+	const liveKind = playlist.source === "M3U" ? liveSourceKind(streamUrl) : null;
 
 	const itemStatus = await getItemStatus(id, channelId, "channel");
 	const safeLogoSrc = toSafeImageSrc(channel.logo);
@@ -123,22 +133,44 @@ async function ChannelDetailContent({ params }: PageProps) {
 					title={channel.name}
 					// The desktop app plays the provider's own address with mpv.
 					desktopUrl={/^https?:\/\//i.test(streamUrl) ? streamUrl : undefined}
-					sources={[
-						{
-							kind: "hls",
-							src: withStreamCategory(
-								`/api/stream/live/${encodeURIComponent(id)}/${encodeURIComponent(channelId)}?ext=m3u8`,
-								categoryId,
-							),
-						},
-						{
-							kind: "mpegts",
-							src: withStreamCategory(
-								`/api/stream/live/${encodeURIComponent(id)}/${encodeURIComponent(channelId)}?ext=ts`,
-								categoryId,
-							),
-						},
-					]}
+					sources={
+						liveKind === "mpegts"
+							? [
+									{
+										kind: "mpegts" as const,
+										src: withStreamCategory(
+											`/api/stream/live/${encodeURIComponent(id)}/${encodeURIComponent(channelId)}?ext=ts`,
+											categoryId,
+										),
+									},
+								]
+							: liveKind === "hls"
+								? [
+										{
+											kind: "hls" as const,
+											src: withStreamCategory(
+												`/api/stream/live/${encodeURIComponent(id)}/${encodeURIComponent(channelId)}?ext=m3u8`,
+												categoryId,
+											),
+										},
+									]
+								: [
+										{
+											kind: "hls" as const,
+											src: withStreamCategory(
+												`/api/stream/live/${encodeURIComponent(id)}/${encodeURIComponent(channelId)}?ext=m3u8`,
+												categoryId,
+											),
+										},
+										{
+											kind: "mpegts" as const,
+											src: withStreamCategory(
+												`/api/stream/live/${encodeURIComponent(id)}/${encodeURIComponent(channelId)}?ext=ts`,
+												categoryId,
+											),
+										},
+									]
+					}
 				/>
 			</div>
 

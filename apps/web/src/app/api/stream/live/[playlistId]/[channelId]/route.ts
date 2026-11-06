@@ -14,6 +14,7 @@ import {
 	requireStreamUser,
 	streamError,
 } from "@/server/stream-proxy";
+import { m3uStreamTarget } from "@/server/m3u-catalog";
 import { getCachedPlaylistByUserAndId } from "@/server/xtream";
 import type { NextRequest } from "next/server";
 
@@ -94,6 +95,17 @@ export async function GET(request: NextRequest, { params }: Context) {
 				return streamError(404, "Category not available.");
 			}
 		}
+	}
+
+	if (playlist.source === "M3U") {
+		const target = await m3uStreamTarget(playlist, channelId).catch(() => null);
+		if (!target || target.kind !== "live") {
+			return streamError(404, "Stream not found.");
+		}
+		return proxyUpstream(request, target.url, {
+			userId: user.userId,
+			manifest: target.delivery === "hls",
+		});
 	}
 
 	return proxyUpstream(

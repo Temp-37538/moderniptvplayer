@@ -1,18 +1,27 @@
 "use server";
-import type { FormState, xtreamFormData } from "@/components/types";
+import type {
+	FormState,
+	M3uFormState,
+	xtreamFormData,
+} from "@/components/types";
 import { updateTag } from "next/cache";
 import { cookies } from "next/headers";
 import { z } from "zod";
 import { ACTIVE_PLAYLIST_COOKIE } from "./active-playlist";
 import { requireAuthenticatedUserId } from "./auth-utils";
 import { getPlaylistCacheTags } from "./cached-content";
+import { fetchM3uPlaylist, forgetM3uCatalog } from "./m3u-catalog";
+import { describeM3uFailure, M3uPlaylistError, parseM3uUrl } from "./m3u";
 import {
+	addM3uPlaylist,
 	addPlaylist,
 	deletePlaylist,
+	doesM3uPlaylistExist,
 	doesPlaylistExist,
 	isPlaylistValid,
 	normalizeServerUrl,
 	PlaylistAlreadyExistsError,
+	updateM3uPlaylist,
 	updatePlaylist,
 } from "./queries";
 import { checkRateLimit } from "./rate-limit";
@@ -165,6 +174,105 @@ export async function validate(
 	};
 }
 
+const m3uUrlSchema = z.string().trim().min(1, "M3U URL is required").max(4096);
+
+function m3uFailureState(
+	inputs: { m3uUrl: string; playlistName: string },
+	message: string,
+	field: "m3uUrl" | "playlistName" = "m3uUrl",
+): M3uFormState {
+	return {
+		errors: { [field]: message },
+		success: false,
+		inputs,
+		message,
+	};
+}
+
+async function importM3uPlaylist(rawUrl: string, rawName: string) {
+	let parts: ReturnType<typeof parseM3uUrl>;
+	try {
+		parts = parseM3uUrl(rawUrl);
+	} catch (error) {
+		throw error instanceof M3uPlaylistError
+			? error
+			: new M3uPlaylistError("invalid_url", "Enter an http(s) playlist URL.");
+	}
+	await fetchM3uPlaylist(parts.storedUrl);
+	const playlistName =
+		rawName.trim().slice(0, 100) ||
+		parts.origin.replace(/^https?:\/\//, "").slice(0, 100) ||
+		"M3U playlist";
+	return { parts, playlistName };
+}
+
+export async function addM3uPlaylistAction(
+	_prev: M3uFormState,
+	formData: FormData,
+): Promise<M3uFormState> {
+	const rawUrl = readFormText(formData, "m3uUrl");
+	const rawName = readFormText(formData, "playlistName");
+	const inputs = { m3uUrl: rawUrl, playlistName: rawName };
+	const parsedUrl = m3uUrlSchema.safeParse(rawUrl);
+	if (!parsedUrl.success) {
+		return m3uFailureState(
+			inputs,
+			parsedUrl.error.issues[0]?.message ?? "M3U URL is required",
+		);
+	}
+	const parsedName = z.string().trim().max(100).safeParse(rawName);
+	if (!parsedName.success) {
+		return m3uFailureState(
+			inputs,
+			"Playlist name is too long.",
+			"playlistName",
+		);
+	}
+
+	const userId = await requireAuthenticatedUserId();
+	const limit = checkRateLimit(
+		`validate-playlist:${userId}`,
+		VALIDATION_LIMIT,
+		VALIDATION_WINDOW_MS,
+	);
+	if (!limit.allowed) {
+		return m3uFailureState(
+			inputs,
+			`Too many attempts. Try again in ${limit.retryAfterSeconds}s.`,
+		);
+	}
+
+	let imported: Awaited<ReturnType<typeof importM3uPlaylist>>;
+	try {
+		imported = await importM3uPlaylist(parsedUrl.data, parsedName.data);
+	} catch (error) {
+		return m3uFailureState(inputs, describeM3uFailure(error));
+	}
+
+	if (await doesM3uPlaylistExist(imported.parts.identityKey)) {
+		return m3uFailureState(inputs, "You have already added this playlist.");
+	}
+
+	try {
+		const playlist = await addM3uPlaylist(
+			imported.playlistName,
+			imported.parts.storedUrl,
+		);
+		return {
+			errors: {},
+			success: true,
+			inputs: { m3uUrl: "", playlistName: imported.playlistName },
+			message: "Playlist added successfully !",
+			playlistId: playlist.id,
+		};
+	} catch (error) {
+		if (error instanceof PlaylistAlreadyExistsError) {
+			return m3uFailureState(inputs, "You have already added this playlist.");
+		}
+		throw error;
+	}
+}
+
 function readFormText(formData: FormData, key: string) {
 	const value = formData.get(key);
 	return typeof value === "string" ? value : "";
@@ -235,6 +343,15 @@ export async function updatePlaylistAction(
 			success: false,
 			inputs: rawData,
 			message: "Playlist not found.",
+		};
+	}
+
+	if (current.source === "M3U") {
+		return {
+			errors: {},
+			success: false,
+			inputs: rawData,
+			message: "This playlist uses an M3U URL. Update the name or URL instead.",
 		};
 	}
 
@@ -421,6 +538,122 @@ export async function updatePlaylistAction(
 	};
 }
 
+export async function updateM3uPlaylistAction(
+	_prev: M3uFormState,
+	formData: FormData,
+): Promise<M3uFormState> {
+	const playlistId = readFormText(formData, "playlistId").trim();
+	const rawName = readFormText(formData, "playlistName");
+	const rawUrl = readFormText(formData, "m3uUrl").trim();
+	const inputs = { m3uUrl: rawUrl, playlistName: rawName };
+	if (!playlistId || playlistId.length > 128) {
+		return m3uFailureState(inputs, "Playlist not found.", "playlistName");
+	}
+	const parsedName = z
+		.string()
+		.trim()
+		.min(1, "Playlist name is required")
+		.max(100)
+		.safeParse(rawName);
+	if (!parsedName.success) {
+		return m3uFailureState(
+			inputs,
+			parsedName.error.issues[0]?.message ?? "Playlist name is required",
+			"playlistName",
+		);
+	}
+
+	const current = await getPlaylistById(playlistId);
+	if (!current || current.source !== "M3U") {
+		return m3uFailureState(inputs, "Playlist not found.", "playlistName");
+	}
+
+	if (!rawUrl && parsedName.data === current.playlistName) {
+		return {
+			errors: {},
+			success: true,
+			inputs: { m3uUrl: "", playlistName: parsedName.data },
+			message: "Playlist updated.",
+			playlistId,
+		};
+	}
+
+	if (!rawUrl) {
+		await updateM3uPlaylist(playlistId, parsedName.data, null);
+		return {
+			errors: {},
+			success: true,
+			inputs: { m3uUrl: "", playlistName: parsedName.data },
+			message: "Playlist updated.",
+			playlistId,
+		};
+	}
+
+	const userId = await requireAuthenticatedUserId();
+	const limit = checkRateLimit(
+		`validate-playlist:${userId}`,
+		VALIDATION_LIMIT,
+		VALIDATION_WINDOW_MS,
+	);
+	if (!limit.allowed) {
+		return m3uFailureState(
+			inputs,
+			`Too many attempts. Try again in ${limit.retryAfterSeconds}s.`,
+		);
+	}
+
+	let imported: Awaited<ReturnType<typeof importM3uPlaylist>>;
+	try {
+		imported = await importM3uPlaylist(rawUrl, parsedName.data);
+	} catch (error) {
+		return m3uFailureState(inputs, describeM3uFailure(error));
+	}
+
+	if (
+		imported.parts.identityKey !== currentIdentity(current) &&
+		(await doesM3uPlaylistExist(imported.parts.identityKey, playlistId))
+	) {
+		return m3uFailureState(inputs, "You have already added this playlist.");
+	}
+
+	try {
+		await updateM3uPlaylist(
+			playlistId,
+			imported.playlistName,
+			imported.parts.storedUrl,
+		);
+	} catch (error) {
+		if (error instanceof PlaylistAlreadyExistsError) {
+			return m3uFailureState(inputs, "You have already added this playlist.");
+		}
+		if (error instanceof Error && error.message === "Playlist not found") {
+			return m3uFailureState(inputs, "Playlist not found.", "playlistName");
+		}
+		throw error;
+	}
+
+	forgetPlaylistStatus(playlistId);
+	expirePlaylistCacheTags(playlistId);
+	return {
+		errors: {},
+		success: true,
+		inputs: { m3uUrl: "", playlistName: imported.playlistName },
+		message: "Playlist updated.",
+		playlistId,
+	};
+}
+
+function currentIdentity(playlist: { m3uUrl: string | null }): string {
+	if (!playlist.m3uUrl) {
+		return "";
+	}
+	try {
+		return parseM3uUrl(playlist.m3uUrl).identityKey;
+	} catch {
+		return "";
+	}
+}
+
 async function assertPlaylistAccess(playlistId: string) {
 	const playlist = await getPlaylistById(playlistId);
 
@@ -443,6 +676,7 @@ export async function deletePlaylistAction(playlistId: string) {
 
 export async function refreshPlaylistCacheAction(playlistId: string) {
 	await assertPlaylistAccess(playlistId);
+	forgetM3uCatalog(playlistId);
 	expirePlaylistCacheTags(playlistId);
 }
 

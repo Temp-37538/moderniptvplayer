@@ -19,12 +19,23 @@ model User {
   @@map("user")
 }
 
+enum PlaylistSource {
+  XTREAM
+  M3U
+}
+
 model Playlist {
   id        String   @id @default(cuid())
+  source    PlaylistSource @default(XTREAM)
   serverUrl String
   username  String
   playlistName String
   password  String
+  // Encrypted M3U URL. Null for Xtream. Never selected for the client.
+  m3uUrl    String?
+  // Per-user identity. Xtream: normalized server URL, newline, username.
+  // M3U: sha256 of the canonical playlist URL with userinfo removed.
+  identityKey String
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
@@ -35,6 +46,7 @@ model Playlist {
   categoryPreferences CategoryPreference[]
 
   @@unique([userId, serverUrl, username])
+  @@unique([userId, identityKey])
   @@index([userId])
   @@map("playlist")
 }

@@ -15,6 +15,7 @@ import {
 	requireStreamUser,
 	streamError,
 } from "@/server/stream-proxy";
+import { m3uStreamTarget } from "@/server/m3u-catalog";
 import {
 	createXtreamClient,
 	getCachedPlaylistByUserAndId,
@@ -121,6 +122,18 @@ export async function GET(request: NextRequest, { params }: Context) {
 				return streamError(404, "Category not available.");
 			}
 		}
+	}
+
+	if (playlist.source === "M3U") {
+		const expected = kind === "movie" ? "movie" : "series";
+		const target = await m3uStreamTarget(playlist, streamId).catch(() => null);
+		if (!target || target.kind !== expected) {
+			return streamError(404, "Stream not found.");
+		}
+		return proxyUpstream(request, target.url, {
+			userId: user.userId,
+			manifest: target.delivery === "hls",
+		});
 	}
 
 	// The upstream URL (with the credentials) is built here, from what is

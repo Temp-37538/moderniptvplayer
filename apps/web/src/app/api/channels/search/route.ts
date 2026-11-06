@@ -1,8 +1,9 @@
+import { getCachedChannels } from "@/server/cached-content";
 import { prepareCategorySearch } from "@/server/category-access";
 import { readCategoryIds } from "@/server/category-preference-policy";
 import { searchInCategory } from "@/server/category-search";
 import { searchQuerySchema } from "@/server/search-params-schema";
-import { createXtreamClient, getPlaylistById } from "@/server/xtream";
+import { getPlaylistById } from "@/server/xtream";
 import type { StandardXtreamChannel } from "@iptv/xtream-api/standardized";
 import { type NextRequest, NextResponse } from "next/server";
 
@@ -36,19 +37,13 @@ export async function GET(request: NextRequest) {
 		);
 	}
 
-	const xtream = createXtreamClient(playlist);
-
 	try {
 		const result = await searchInCategory<StandardXtreamChannel>({
 			query: q,
 			limit,
 			maxPages,
-			loadPage: async ({ page, limit: pageLimit }) =>
-				(await xtream.getChannels({
-					categoryId,
-					page,
-					limit: pageLimit,
-				})) as StandardXtreamChannel[],
+			loadPage: ({ page, limit: pageLimit }) =>
+				getCachedChannels(playlistId, undefined, categoryId, page, pageLimit),
 			toSearchItem: (channel) => {
 				const id = String(channel.id ?? "");
 				if (!id) {

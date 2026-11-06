@@ -4,6 +4,9 @@ import Cryptr from "cryptr";
 import { env } from "@moderniptvplayer/env/server";
 import { revalidatePath } from "next/cache";
 import { requireAuthenticatedUserId } from "./auth-utils";
+import { forgetM3uCatalog } from "./m3u-catalog";
+import { parseM3uUrl } from "./m3u";
+import { xtreamIdentityKey } from "./playlist-identity";
 import { safeFetch } from "./safe-http";
 import { forgetPlaylistCredentials } from "./xtream";
 
@@ -59,6 +62,22 @@ export async function doesPlaylistExist(
 	return playlist !== null;
 }
 
+export async function doesM3uPlaylistExist(
+	identityKey: string,
+	excludePlaylistId?: string,
+) {
+	const userId = await requireAuthenticatedUserId();
+	const playlist = await prisma.playlist.findFirst({
+		where: {
+			userId,
+			identityKey,
+			...(excludePlaylistId ? { id: { not: excludePlaylistId } } : {}),
+		},
+		select: { id: true },
+	});
+	return playlist !== null;
+}
+
 export async function isPlaylistValid(
 	username: string,
 	serverUrl: string,
@@ -108,12 +127,15 @@ export async function addPlaylist(
 
 	try {
 		const encryptedPassword = cryptr.encrypt(password);
+		const normalized = normalizeServerUrl(serverUrl);
 		const playlist = await prisma.playlist.create({
 			data: {
+				source: "XTREAM",
 				username,
-				serverUrl: normalizeServerUrl(serverUrl),
+				serverUrl: normalized,
 				playlistName,
 				password: encryptedPassword,
+				identityKey: xtreamIdentityKey(normalized, username),
 				userId,
 			},
 		});
@@ -144,15 +166,18 @@ export async function updatePlaylist(
 
 	let updated = false;
 	try {
+		const normalized = normalizeServerUrl(serverUrl);
 		const result = await prisma.playlist.updateMany({
 			where: {
 				id: playlistId,
 				userId,
+				source: "XTREAM",
 			},
 			data: {
 				username,
-				serverUrl: normalizeServerUrl(serverUrl),
+				serverUrl: normalized,
 				playlistName,
+				identityKey: xtreamIdentityKey(normalized, username),
 				...(password ? { password: cryptr.encrypt(password) } : {}),
 			},
 		});
@@ -173,6 +198,86 @@ export async function updatePlaylist(
 	revalidatePath("/dashboard", "layout");
 }
 
+export async function addM3uPlaylist(playlistName: string, storedUrl: string) {
+	const userId = await requireAuthenticatedUserId();
+	const parts = parseM3uUrl(storedUrl);
+	try {
+		const playlist = await prisma.playlist.create({
+			data: {
+				source: "M3U",
+				serverUrl: parts.origin,
+				username: parts.identityKey,
+				playlistName,
+				password: cryptr.encrypt("m3u"),
+				m3uUrl: cryptr.encrypt(parts.storedUrl),
+				identityKey: parts.identityKey,
+				userId,
+			},
+		});
+		revalidatePath("/dashboard", "layout");
+		return playlist;
+	} catch (error) {
+		if (isUniqueViolation(error)) {
+			throw new PlaylistAlreadyExistsError();
+		}
+		console.error(
+			"Error adding M3U playlist:",
+			error instanceof Error ? error.name : "unknown",
+		);
+		throw new Error("Failed to add playlists");
+	}
+}
+
+/**
+ * Update the same M3U row. A null URL keeps the encrypted playlist URL.
+ * Favorites, watch later, and viewing progress stay on this id.
+ */
+export async function updateM3uPlaylist(
+	playlistId: string,
+	playlistName: string,
+	storedUrl: string | null,
+) {
+	const userId = await requireAuthenticatedUserId();
+	const nextUrl = storedUrl ? parseM3uUrl(storedUrl) : null;
+	let updated = false;
+	try {
+		const result = await prisma.playlist.updateMany({
+			where: {
+				id: playlistId,
+				userId,
+				source: "M3U",
+			},
+			data: {
+				playlistName,
+				...(nextUrl
+					? {
+							serverUrl: nextUrl.origin,
+							username: nextUrl.identityKey,
+							identityKey: nextUrl.identityKey,
+							m3uUrl: cryptr.encrypt(nextUrl.storedUrl),
+						}
+					: {}),
+			},
+		});
+		updated = result.count > 0;
+	} catch (error) {
+		if (isUniqueViolation(error)) {
+			throw new PlaylistAlreadyExistsError();
+		}
+		console.error(
+			"Error updating M3U playlist:",
+			error instanceof Error ? error.name : "unknown",
+		);
+		throw new Error("Failed to update playlist");
+	}
+	if (!updated) {
+		throw new Error("Playlist not found");
+	}
+	forgetPlaylistCredentials(playlistId);
+	forgetM3uCatalog(playlistId);
+	revalidatePath("/dashboard", "layout");
+}
+
 export async function deletePlaylist(playlistId: string) {
 	const userId = await requireAuthenticatedUserId();
 
@@ -184,6 +289,7 @@ export async function deletePlaylist(playlistId: string) {
 			},
 		});
 		forgetPlaylistCredentials(playlistId);
+		forgetM3uCatalog(playlistId);
 		revalidatePath("/dashboard", "layout");
 	} catch (error) {
 		console.error("Error deleting playlist:", error);
@@ -203,6 +309,7 @@ export async function fetchPlaylists() {
 			},
 			select: {
 				id: true,
+				source: true,
 				serverUrl: true,
 				username: true,
 				playlistName: true,

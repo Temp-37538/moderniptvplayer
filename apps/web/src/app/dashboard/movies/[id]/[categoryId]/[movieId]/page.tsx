@@ -88,13 +88,14 @@ async function MovieDetailContent({ params }: PageProps) {
 		readCategoryIds(movie),
 	);
 
-	const xtream = createXtreamClient(playlist);
-
-	const streamUrl = xtream.generateStreamUrl({
-		type: "movie",
-		streamId: movieId,
-		extension: "mp4",
-	});
+	const streamUrl =
+		playlist.source === "M3U"
+			? (movie.url ?? "")
+			: createXtreamClient(playlist).generateStreamUrl({
+					type: "movie",
+					streamId: movieId,
+					extension: "mp4",
+				});
 
 	const itemStatus = await getItemStatus(id, movieId, "movie");
 	const resume = await getResumeInfo(id, movieId, "movie");

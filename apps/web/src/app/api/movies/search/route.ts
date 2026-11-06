@@ -1,8 +1,9 @@
+import { getCachedMovies } from "@/server/cached-content";
 import { prepareCategorySearch } from "@/server/category-access";
 import { readCategoryIds } from "@/server/category-preference-policy";
 import { searchInCategory } from "@/server/category-search";
 import { searchQuerySchema } from "@/server/search-params-schema";
-import { createXtreamClient, getPlaylistById } from "@/server/xtream";
+import { getPlaylistById } from "@/server/xtream";
 import type { StandardXtreamMovieListing } from "@iptv/xtream-api/standardized";
 import { type NextRequest, NextResponse } from "next/server";
 
@@ -36,19 +37,13 @@ export async function GET(request: NextRequest) {
 		);
 	}
 
-	const xtream = createXtreamClient(playlist);
-
 	try {
 		const result = await searchInCategory<StandardXtreamMovieListing>({
 			query: q,
 			limit,
 			maxPages,
-			loadPage: async ({ page, limit: pageLimit }) =>
-				(await xtream.getMovies({
-					categoryId,
-					page,
-					limit: pageLimit,
-				})) as StandardXtreamMovieListing[],
+			loadPage: ({ page, limit: pageLimit }) =>
+				getCachedMovies(playlistId, undefined, categoryId, page, pageLimit),
 			toSearchItem: (movie) => {
 				const id = String(movie.id ?? "");
 				if (!id) {
