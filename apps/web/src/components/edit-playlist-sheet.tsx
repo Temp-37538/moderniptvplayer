@@ -51,9 +51,12 @@ export function EditPlaylistSheet({
 				<SheetHeader className="pr-10">
 					<SheetTitle>Edit playlist</SheetTitle>
 					<SheetDescription>
-						Update the name, server, username, or password. This playlist keeps
-						its favorites, watch later, and viewing progress. Leave the password
-						blank to keep the current one.
+						Update the name, server, username, or password.{" "}
+						<strong>
+							Favorites, watch later, and viewing progress stay attached to
+							this playlist even if the provider changes.
+						</strong>{" "}
+						Leave the password blank to keep the current one.
 					</SheetDescription>
 				</SheetHeader>
 				{open && playlist ? (

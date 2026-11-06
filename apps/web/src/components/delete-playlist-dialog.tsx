@@ -82,11 +82,10 @@ export function DeletePlaylistDialog({
 						<AlertDialogMedia className="bg-destructive/10 text-destructive dark:bg-destructive/20 dark:text-destructive">
 							<TriangleAlert />
 						</AlertDialogMedia>
-						<AlertDialogTitle>Delete playlist?</AlertDialogTitle>
+						<AlertDialogTitle>Delete playlist ?</AlertDialogTitle>
 						<AlertDialogDescription className="break-words">
-							This permanently deletes "{playlistName}" ({serverUrl}).
-							Favorites, watch later, and all viewing progress for this playlist
-							are deleted with it and cannot be restored.
+							Permanently deletes "{playlistName}" ({serverUrl}) along with its
+							favorites, watch later, and viewing progress. Cannot be undone.
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 
