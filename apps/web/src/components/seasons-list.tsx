@@ -427,56 +427,56 @@ export function SeasonsList({
 								aria-expanded={isOpen}
 								disabled={isDesktop}
 								onClick={() => toggle(season.id)}
-								className="flex min-w-0 flex-1 cursor-pointer flex-wrap items-baseline justify-between gap-3 text-left disabled:cursor-default"
+								className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 text-left disabled:cursor-default"
 							>
 								<h2 className="font-serif text-2xl tracking-tight">
 									{season.name}
 								</h2>
-								<span className="flex items-center gap-3">
-									<span className="text-xs font-medium tracking-wide text-muted-foreground tabular-nums">
-										{season.episodeCount} episode
-										{season.episodeCount !== 1 ? "s" : ""}
-									</span>
-									<span
-										className={`text-muted-foreground transition-transform duration-200 ease-out sm:hidden ${
-											isOpen ? "rotate-180" : ""
-										}`}
-									>
-										<ChevronDown className="size-4" />
-									</span>
+								<span
+									className={`text-muted-foreground transition-transform duration-200 ease-out sm:hidden ${
+										isOpen ? "rotate-180" : ""
+									}`}
+								>
+									<ChevronDown className="size-4" />
 								</span>
 							</button>
-							{seasonActions.length > 0 ? (
-								<div className="flex shrink-0 flex-wrap items-center gap-1">
-									{seasonActions.map((action) => (
-										<Button
-											key={action.label}
-											type="button"
-											variant="ghost"
-											size="xs"
-											className="text-muted-foreground"
-											disabled={isPending}
-											aria-label={`${action.label} for ${season.name}`}
-											onClick={() =>
-												updateWatched(
-													seasonEpisodes.map((episode) => episode.id),
-													action.watched,
-													() =>
-														setSeasonWatched({
-															playlistId,
-															showId,
-															categoryId,
-															seasonId: season.id,
-															watched: action.watched,
-														}),
-												)
-											}
-										>
-											{action.label}
-										</Button>
-									))}
-								</div>
-							) : null}
+							<div className="flex shrink-0 flex-wrap items-center gap-3">
+								<span className="text-xs font-medium tracking-wide text-muted-foreground tabular-nums">
+									{season.episodeCount} episode
+									{season.episodeCount !== 1 ? "s" : ""}
+								</span>
+								{seasonActions.length > 0 ? (
+									<div className="flex flex-wrap items-center gap-1">
+										{seasonActions.map((action) => (
+											<Button
+												key={action.label}
+												type="button"
+												variant="ghost"
+												size="xs"
+												className="text-muted-foreground"
+												disabled={isPending}
+												aria-label={`${action.label} for ${season.name}`}
+												onClick={() =>
+													updateWatched(
+														seasonEpisodes.map((episode) => episode.id),
+														action.watched,
+														() =>
+															setSeasonWatched({
+																playlistId,
+																showId,
+																categoryId,
+																seasonId: season.id,
+																watched: action.watched,
+															}),
+													)
+												}
+											>
+												{action.label}
+											</Button>
+										))}
+									</div>
+								) : null}
+							</div>
 						</div>
 
 						<div
