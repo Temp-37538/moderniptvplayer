@@ -16,10 +16,13 @@ import { VideoPlayer } from "@/components/video-player";
 import { useDesktopBridge } from "@/lib/desktop/bridge";
 import { PLAY_EPISODE_EVENT } from "@/lib/play-episode";
 import type { ProgressDetails } from "@/lib/player/types";
+import { seasonWatchActions } from "@/lib/season-watch";
 import type { EpisodeProgressEntry } from "@/lib/series-resume";
+import { setEpisodeWatched, setSeasonWatched } from "@/server/episode-watch";
 import { CheckIcon, ChevronDown, Clock, PlayIcon, XIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
+import { toast } from "sonner";
 
 type Episode = {
 	durationFormatted?: string;
@@ -65,6 +68,63 @@ type PlayableEpisode = {
 
 const MOBILE_BREAKPOINT = "(min-width: 640px)";
 
+function playableEpisodes(season: Season): Episode[] {
+	return (season.episodes ?? []).filter((episode) => episode.id && episode.url);
+}
+
+function withWatchedState(
+	current: Record<string, EpisodeProgressEntry>,
+	episodeIds: string[],
+	watched: boolean,
+): Record<string, EpisodeProgressEntry> {
+	const next = { ...current };
+	const now = Date.now();
+	const count = episodeIds.length;
+	episodeIds.forEach((id, index) => {
+		const previous = current[id];
+		const durationSec = previous?.durationSec ?? 0;
+		const age = watched ? count - 1 - index : index;
+		next[id] = {
+			positionSec: watched && durationSec > 0 ? durationSec : 0,
+			durationSec,
+			completed: watched,
+			updatedAt: now - age,
+		};
+	});
+	return next;
+}
+
+function EpisodeWatchButton({
+	completed,
+	disabled,
+	onToggle,
+}: {
+	completed: boolean;
+	disabled: boolean;
+	onToggle: () => void;
+}) {
+	return (
+		<Button
+			type="button"
+			variant="ghost"
+			size="icon-sm"
+			aria-pressed={completed}
+			aria-label={
+				completed ? "Mark episode as unwatched" : "Mark episode as watched"
+			}
+			title={completed ? "Mark as unwatched" : "Mark as watched"}
+			disabled={disabled}
+			onClick={onToggle}
+		>
+			<CheckIcon
+				className={
+					completed ? "size-4 text-primary" : "size-4 text-muted-foreground/40"
+				}
+			/>
+		</Button>
+	);
+}
+
 // This whole block is a client component on purpose. The season toggle needs state,
 // and passing render props down from the server page is impossible because RSC
 // cannot serialise functions. So the data comes in as plain props instead.
@@ -81,10 +141,13 @@ export function SeasonsList({
 	showName,
 	showPoster,
 	posterSrc,
-	progress,
+	progress: serverProgress,
 }: SeasonsListProps) {
 	const router = useRouter();
 	const bridge = useDesktopBridge();
+	const [isPending, startTransition] = useTransition();
+	const [progress, setProgress] = useState(serverProgress);
+	const [progressSource, setProgressSource] = useState(serverProgress);
 	const [playingId, setPlayingId] = useState<string | null>(null);
 	const [openSeasons, setOpenSeasons] = useState<Set<string>>(
 		() => new Set(seasons.map((season) => season.id)),
@@ -141,6 +204,29 @@ export function SeasonsList({
 		window.addEventListener(PLAY_EPISODE_EVENT, onPlayEpisode);
 		return () => window.removeEventListener(PLAY_EPISODE_EVENT, onPlayEpisode);
 	}, []);
+
+	if (progressSource !== serverProgress) {
+		setProgressSource(serverProgress);
+		setProgress(serverProgress);
+	}
+
+	function updateWatched(
+		episodeIds: string[],
+		watched: boolean,
+		action: () => Promise<void>,
+	) {
+		const previous = progress;
+		setProgress((current) => withWatchedState(current, episodeIds, watched));
+		startTransition(async () => {
+			try {
+				await action();
+				router.refresh();
+			} catch {
+				setProgress(previous);
+				toast.error("Could not update watched episodes");
+			}
+		});
+	}
 
 	// Watching order: season after season, only what has a stream.
 	const playable: PlayableEpisode[] = seasons.flatMap((season) =>
@@ -330,24 +416,22 @@ export function SeasonsList({
 			) : null}
 			{seasons.map((season) => {
 				const isOpen = openSeasons.has(season.id);
+				const seasonEpisodes = playableEpisodes(season);
+				const seasonActions = seasonWatchActions(seasonEpisodes, progress);
 
 				return (
 					<section key={season.id}>
-						<button
-							type="button"
-							aria-expanded={isOpen}
-							disabled={isDesktop}
-							onClick={() => toggle(season.id)}
-							className="flex w-full cursor-pointer flex-wrap items-baseline justify-between gap-3 border-b border-border/50 pb-3 text-left disabled:cursor-default"
-						>
-							<h2 className="font-serif text-2xl tracking-tight">
-								{season.name}
-							</h2>
-							<span className="flex items-center gap-3">
-								<span className="text-xs font-medium tracking-wide text-muted-foreground tabular-nums">
-									{season.episodeCount} episode
-									{season.episodeCount !== 1 ? "s" : ""}
-								</span>
+						<div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/50 pb-3">
+							<button
+								type="button"
+								aria-expanded={isOpen}
+								disabled={isDesktop}
+								onClick={() => toggle(season.id)}
+								className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 text-left disabled:cursor-default"
+							>
+								<h2 className="font-serif text-2xl tracking-tight">
+									{season.name}
+								</h2>
 								<span
 									className={`text-muted-foreground transition-transform duration-200 ease-out sm:hidden ${
 										isOpen ? "rotate-180" : ""
@@ -355,8 +439,45 @@ export function SeasonsList({
 								>
 									<ChevronDown className="size-4" />
 								</span>
-							</span>
-						</button>
+							</button>
+							<div className="flex shrink-0 flex-wrap items-center gap-3">
+								<span className="text-xs font-medium tracking-wide text-muted-foreground tabular-nums">
+									{season.episodeCount} episode
+									{season.episodeCount !== 1 ? "s" : ""}
+								</span>
+								{seasonActions.length > 0 ? (
+									<div className="flex flex-wrap items-center gap-1">
+										{seasonActions.map((action) => (
+											<Button
+												key={action.label}
+												type="button"
+												variant="ghost"
+												size="xs"
+												className="text-muted-foreground"
+												disabled={isPending}
+												aria-label={`${action.label} for ${season.name}`}
+												onClick={() =>
+													updateWatched(
+														seasonEpisodes.map((episode) => episode.id),
+														action.watched,
+														() =>
+															setSeasonWatched({
+																playlistId,
+																showId,
+																categoryId,
+																seasonId: season.id,
+																watched: action.watched,
+															}),
+													)
+												}
+											>
+												{action.label}
+											</Button>
+										))}
+									</div>
+								) : null}
+							</div>
+						</div>
 
 						<div
 							className={`grid transition-[grid-template-rows] duration-200 ease-out sm:grid-rows-[1fr] ${
@@ -430,6 +551,25 @@ export function SeasonsList({
 
 												{episode.url && (
 													<div className="flex shrink-0 items-center gap-0.5">
+														<EpisodeWatchButton
+															completed={
+																progress[episode.id]?.completed ?? false
+															}
+															disabled={isPending}
+															onToggle={() => {
+																const watched =
+																	!progress[episode.id]?.completed;
+																updateWatched([episode.id], watched, () =>
+																	setEpisodeWatched({
+																		playlistId,
+																		showId,
+																		categoryId,
+																		episodeId: episode.id,
+																		watched,
+																	}),
+																);
+															}}
+														/>
 														<Button
 															variant="ghost"
 															size="icon-sm"
@@ -440,18 +580,14 @@ export function SeasonsList({
 															}
 															title={
 																progress[episode.id]?.completed
-																	? "Watched"
+																	? "Watch again"
 																	: startAt(episode.id) > 0
 																		? "Resume"
 																		: "Play"
 															}
 															onClick={() => setPlayingId(episode.id)}
 														>
-															{progress[episode.id]?.completed ? (
-																<CheckIcon className="size-4 text-primary" />
-															) : (
-																<PlayIcon className="size-4" />
-															)}
+															<PlayIcon className="size-4" />
 														</Button>
 														<div className="flex items-center gap-0.5 opacity-0 transition-opacity duration-200 ease-out group-hover:opacity-100 focus-within:opacity-100">
 															<CopyStreamButton url={episode.url} />
