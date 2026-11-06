@@ -39,7 +39,11 @@ const isUniqueViolation = (error: unknown) =>
 	"code" in error &&
 	(error as { code?: unknown }).code === "P2002";
 
-export async function doesPlaylistExist(username: string, serverUrl: string) {
+export async function doesPlaylistExist(
+	username: string,
+	serverUrl: string,
+	excludePlaylistId?: string,
+) {
 	const userId = await requireAuthenticatedUserId();
 
 	const playlist = await prisma.playlist.findFirst({
@@ -47,6 +51,7 @@ export async function doesPlaylistExist(username: string, serverUrl: string) {
 			userId,
 			username,
 			serverUrl: normalizeServerUrl(serverUrl),
+			...(excludePlaylistId ? { id: { not: excludePlaylistId } } : {}),
 		},
 		select: { id: true },
 	});
@@ -121,6 +126,51 @@ export async function addPlaylist(
 		console.error("Error adding playlist:", error);
 		throw new Error("Failed to add playlists");
 	}
+}
+
+/**
+ * Update the existing playlist row. Favorites, watch later, and viewing
+ * progress point at this id, so a password or host change must not recreate it.
+ * Pass a null password to keep the encrypted value already stored.
+ */
+export async function updatePlaylist(
+	playlistId: string,
+	username: string,
+	serverUrl: string,
+	playlistName: string,
+	password: string | null,
+) {
+	const userId = await requireAuthenticatedUserId();
+
+	let updated = false;
+	try {
+		const result = await prisma.playlist.updateMany({
+			where: {
+				id: playlistId,
+				userId,
+			},
+			data: {
+				username,
+				serverUrl: normalizeServerUrl(serverUrl),
+				playlistName,
+				...(password ? { password: cryptr.encrypt(password) } : {}),
+			},
+		});
+		updated = result.count > 0;
+	} catch (error) {
+		if (isUniqueViolation(error)) {
+			throw new PlaylistAlreadyExistsError();
+		}
+		console.error("Error updating playlist:", error);
+		throw new Error("Failed to update playlist");
+	}
+
+	if (!updated) {
+		throw new Error("Playlist not found");
+	}
+
+	forgetPlaylistCredentials(playlistId);
+	revalidatePath("/dashboard", "layout");
 }
 
 export async function deletePlaylist(playlistId: string) {
