@@ -16,6 +16,7 @@ import { VideoPlayer } from "@/components/video-player";
 import { useDesktopBridge } from "@/lib/desktop/bridge";
 import { PLAY_EPISODE_EVENT } from "@/lib/play-episode";
 import type { ProgressDetails } from "@/lib/player/types";
+import { seasonWatchActions } from "@/lib/season-watch";
 import type { EpisodeProgressEntry } from "@/lib/series-resume";
 import { setEpisodeWatched, setSeasonWatched } from "@/server/episode-watch";
 import { CheckIcon, ChevronDown, Clock, PlayIcon, XIcon } from "lucide-react";
@@ -69,25 +70,6 @@ const MOBILE_BREAKPOINT = "(min-width: 640px)";
 
 function playableEpisodes(season: Season): Episode[] {
 	return (season.episodes ?? []).filter((episode) => episode.id && episode.url);
-}
-
-function seasonWatchActions(
-	episodes: Episode[],
-	progress: Record<string, EpisodeProgressEntry>,
-): { watched: boolean; label: string }[] {
-	const completed = episodes.filter(
-		(episode) => progress[episode.id]?.completed,
-	).length;
-	if (completed === episodes.length) {
-		return [{ watched: false, label: "Mark unwatched" }];
-	}
-	if (completed === 0) {
-		return [{ watched: true, label: "Mark watched" }];
-	}
-	return [
-		{ watched: true, label: "Mark watched" },
-		{ watched: false, label: "Mark unwatched" },
-	];
 }
 
 function withWatchedState(

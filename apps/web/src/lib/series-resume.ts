@@ -27,7 +27,12 @@ export type PlayableEpisodeSource = {
 export type PlayableSeasonSource = {
 	id?: string | null;
 	name?: string | null;
-	episodes?: PlayableEpisodeSource[] | null;
+	episodes?: readonly PlayableEpisodeSource[] | null;
+};
+
+/** Catalog show fields required to list playable episodes. */
+export type PlayableShowSource = {
+	seasons?: readonly PlayableSeasonSource[] | null;
 };
 
 /** A playable episode in watching order: season after season, stream required. */
@@ -45,7 +50,7 @@ export type PlayableEpisodeRef = {
  * An episode with no stream is skipped: there is no next episode to invent.
  */
 export function listPlayableEpisodes(
-	seasons: PlayableSeasonSource[],
+	seasons: readonly PlayableSeasonSource[],
 ): PlayableEpisodeRef[] {
 	const episodes: PlayableEpisodeRef[] = [];
 	const seen = new Set<string>();
@@ -74,57 +79,11 @@ export function listPlayableEpisodes(
 	return episodes;
 }
 
-function textOrEmpty(value: unknown): string {
-	if (typeof value === "string") {
-		return value;
-	}
-	if (typeof value === "number" && Number.isFinite(value)) {
-		return String(value);
-	}
-	return "";
-}
-
-function numberOrZero(value: unknown): number {
-	const number = typeof value === "number" ? value : Number(value);
-	return Number.isFinite(number) ? number : 0;
-}
-
-/**
- * Reads a show catalog into watching order. Fields are read loosely so a
- * provider payload with a missing duration still yields the episode.
- */
-export function readPlayableSeasons(show: unknown): PlayableEpisodeRef[] {
-	const showRecord =
-		show && typeof show === "object" ? (show as { seasons?: unknown }) : {};
-	const seasons = Array.isArray(showRecord.seasons) ? showRecord.seasons : [];
-	return listPlayableEpisodes(
-		seasons.map((season) => {
-			const seasonRecord =
-				season && typeof season === "object"
-					? (season as Record<string, unknown>)
-					: {};
-			const episodes = Array.isArray(seasonRecord.episodes)
-				? seasonRecord.episodes
-				: [];
-			return {
-				id: textOrEmpty(seasonRecord.id),
-				name: textOrEmpty(seasonRecord.name),
-				episodes: episodes.map((episode) => {
-					const record =
-						episode && typeof episode === "object"
-							? (episode as Record<string, unknown>)
-							: {};
-					return {
-						id: textOrEmpty(record.id),
-						number: numberOrZero(record.number),
-						title: textOrEmpty(record.title),
-						url: textOrEmpty(record.url),
-						duration: numberOrZero(record.duration),
-					};
-				}),
-			};
-		}),
-	);
+/** Watching order for a typed catalog show. Episodes without a stream are skipped. */
+export function readPlayableSeasons(
+	show: PlayableShowSource,
+): PlayableEpisodeRef[] {
+	return listPlayableEpisodes(show.seasons ?? []);
 }
 
 /** "Season 2 - E04" */

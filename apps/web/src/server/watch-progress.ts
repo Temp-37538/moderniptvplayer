@@ -1,6 +1,12 @@
 import "server-only";
 import prisma from "@moderniptvplayer/db";
 import {
+	CONTINUE_CANDIDATE_FACTOR,
+	latestSeriesRows,
+	mergeContinueCandidates,
+} from "@/lib/continue-candidates";
+import { httpPoster, isSafePathSegment } from "@/lib/progress-fields";
+import {
 	continueWatchingEpisodeId,
 	formatEpisodeProgressName,
 	readPlayableSeasons,
@@ -265,29 +271,6 @@ function decodeSegment(value: string): string | null {
 	}
 }
 
-function isSafePathSegment(value: string): boolean {
-	if (value.length < 1 || value.length > 128) {
-		return false;
-	}
-	if (
-		value.includes("/") ||
-		value.includes("\\") ||
-		value.includes("..") ||
-		value.includes("#") ||
-		value.includes("?") ||
-		value.includes("%")
-	) {
-		return false;
-	}
-	for (const character of value) {
-		const code = character.charCodeAt(0);
-		if (code < 32 || code === 127) {
-			return false;
-		}
-	}
-	return true;
-}
-
 export function seriesEpisodeItemUrl(
 	playlistId: string,
 	categoryId: string,
@@ -328,17 +311,6 @@ function firstSafeCategory(categoryIds: unknown): string | null {
 		}
 	}
 	return null;
-}
-
-function httpPoster(value: unknown): string | null {
-	if (typeof value !== "string") {
-		return null;
-	}
-	const trimmed = value.trim();
-	if (!/^https?:\/\//i.test(trimmed) || trimmed.length > 2048) {
-		return null;
-	}
-	return trimmed;
 }
 
 function reuseSeriesPath(
@@ -446,11 +418,6 @@ async function resolveShow(row: {
 	}
 
 	const playable = readPlayableSeasons(show);
-	const showRecord = show as {
-		name?: unknown;
-		poster?: unknown;
-		categoryIds?: unknown;
-	};
 	const progress = await getEpisodeProgress(row.playlistId, row.showId);
 	const episodeId = continueWatchingEpisodeId(
 		playable.map((episode) => episode.id),
@@ -480,26 +447,121 @@ async function resolveShow(row: {
 		row.playlistId,
 		row.showId,
 		episodeId,
-		showRecord.categoryIds,
+		show.categoryIds,
 	);
 	if (!itemUrl) {
 		return null;
 	}
 	const entry = progress[episodeId];
-	const showName = typeof showRecord.name === "string" ? showRecord.name : "";
 	return {
 		id: `next:${row.playlistId}:${row.showId}:${episodeId}`,
 		itemName: formatEpisodeProgressName(
-			showName,
+			show.name,
 			episode.seasonName,
 			episode.number,
 		),
 		itemUrl,
-		itemImage: row.itemImage ?? httpPoster(showRecord.poster),
+		itemImage: row.itemImage ?? httpPoster(show.poster),
 		positionSec: entry && !entry.completed ? entry.positionSec : 0,
 		durationSec:
 			entry && entry.durationSec > 0 ? entry.durationSec : episode.durationSec,
 	};
+}
+
+const SHOW_RESOLVE_CONCURRENCY = 4;
+
+type ContinueRow = {
+	id: string;
+	playlistId: string;
+	showId: string | null;
+	itemId: string;
+	itemName: string;
+	itemUrl: string;
+	itemImage: string | null;
+	positionSec: number;
+	durationSec: number;
+	completed: boolean;
+	updatedAt: Date;
+};
+
+/**
+ * Newest unfinished movie rows. Series are loaded separately so a season of
+ * episode writes cannot occupy the window.
+ */
+async function loadUnfinishedMovies(
+	userId: string,
+	pool: number,
+): Promise<ContinueRow[]> {
+	if (pool <= 0) {
+		return [];
+	}
+	return prisma.watchProgress.findMany({
+		where: { userId, showId: null, completed: false },
+		orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
+		take: pool,
+	});
+}
+
+/**
+ * Latest progress row for each series, limited to the newest `pool` shows.
+ * Prisma groupBy is the portable aggregate (PostgreSQL here): one group per
+ * playlist and show, then the matching episode rows are collapsed in
+ * latestSeriesRows so equal timestamps still yield a single row.
+ */
+async function loadLatestSeriesRows(
+	userId: string,
+	pool: number,
+): Promise<ContinueRow[]> {
+	if (pool <= 0) {
+		return [];
+	}
+	const groups = await prisma.watchProgress.groupBy({
+		by: ["playlistId", "showId"],
+		where: { userId, showId: { not: null } },
+		_max: { updatedAt: true },
+	});
+	const ranked = groups.flatMap((group) => {
+		const updatedAt = group._max.updatedAt;
+		if (!group.showId || !updatedAt) {
+			return [];
+		}
+		return [
+			{
+				playlistId: group.playlistId,
+				showId: group.showId,
+				updatedAt,
+			},
+		];
+	});
+	ranked.sort(
+		(left, right) => right.updatedAt.getTime() - left.updatedAt.getTime(),
+	);
+	const selected = ranked.slice(0, pool);
+	if (selected.length === 0) {
+		return [];
+	}
+	const rows = await prisma.watchProgress.findMany({
+		where: {
+			userId,
+			OR: selected.map((key) => ({
+				playlistId: key.playlistId,
+				showId: key.showId,
+			})),
+		},
+	});
+	return latestSeriesRows(rows);
+}
+
+async function resolveCandidate(
+	row: ContinueRow,
+): Promise<ContinueWatchingItem | null> {
+	if (!row.showId) {
+		return row.completed ? null : toContinueItem(row);
+	}
+	if (!row.completed) {
+		return toContinueItem(row);
+	}
+	return resolveShow(row);
 }
 
 /** Unfinished titles, latest first. A show appears once. */
@@ -507,39 +569,30 @@ export async function getContinueWatching(
 	limit = 12,
 ): Promise<ContinueWatchingItem[]> {
 	const userId = await requireAuthenticatedUserId();
-	const rows = await prisma.watchProgress.findMany({
-		where: { userId },
-		orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
-		take: limit * 4,
-	});
-
-	const seenShows = new Set<string>();
+	const pool = Math.max(0, limit) * CONTINUE_CANDIDATE_FACTOR;
+	const [movies, series] = await Promise.all([
+		loadUnfinishedMovies(userId, pool),
+		loadLatestSeriesRows(userId, pool),
+	]);
+	const candidates = mergeContinueCandidates(movies, series, pool);
 	const items: ContinueWatchingItem[] = [];
-	for (const row of rows) {
-		if (items.length >= limit) {
-			break;
-		}
-		// Movies (and anything that is not a series) stay on this row.
-		if (!row.showId) {
-			if (!row.completed) {
-				items.push(toContinueItem(row));
+	for (
+		let offset = 0;
+		offset < candidates.length && items.length < limit;
+		offset += SHOW_RESOLVE_CONCURRENCY
+	) {
+		const batch = candidates.slice(offset, offset + SHOW_RESOLVE_CONCURRENCY);
+		const resolved = await Promise.all(
+			batch.map((row) => resolveCandidate(row)),
+		);
+		for (const item of resolved) {
+			if (!item) {
+				continue;
 			}
-			continue;
-		}
-		const key = `${row.playlistId}:${row.showId}`;
-		if (seenShows.has(key)) {
-			continue;
-		}
-		seenShows.add(key);
-		// Still in progress: the stored row is the episode to resume. The
-		// provider is consulted only once that episode is finished.
-		if (!row.completed) {
-			items.push(toContinueItem(row));
-			continue;
-		}
-		const next = await resolveShow(row);
-		if (next) {
-			items.push(next);
+			items.push(item);
+			if (items.length === limit) {
+				break;
+			}
 		}
 	}
 	return items;
