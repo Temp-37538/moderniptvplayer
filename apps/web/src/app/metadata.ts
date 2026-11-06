@@ -12,6 +12,8 @@ import type { StandardXtreamCategory } from "@iptv/xtream-api/standardized";
 import type { Metadata } from "next";
 import { cache } from "react";
 import { requireAuthenticatedUserId } from "@/server/auth-utils";
+import { isCategoryAvailableForUser } from "@/server/category-access";
+import { categoryKindForSection } from "@/server/category-preference-policy";
 import { getCachedPlaylistByUserAndId } from "@/server/xtream";
 
 export const APP_NAME = "Modern IPTV Player";
@@ -168,6 +170,8 @@ export const getCategoryMetadataContext = cache(
 			return null;
 		}
 
+		const userId = await requireAuthenticatedUserId();
+
 		try {
 			const categories = await getSectionCategoriesCached(
 				section,
@@ -175,10 +179,17 @@ export const getCategoryMetadataContext = cache(
 				playlist,
 			);
 			const category = categories.find((entry) => entry.id === categoryId);
+			const allowed = await isCategoryAvailableForUser(
+				userId,
+				playlistId,
+				categoryKindForSection(section),
+				[categoryId],
+				[categoryId],
+			);
 
 			return {
 				playlist,
-				categoryName: category?.name ?? null,
+				categoryName: allowed ? (category?.name ?? null) : null,
 			};
 		} catch {
 			return {

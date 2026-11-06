@@ -1,5 +1,6 @@
 import { createPageMetadata, getCategoryMetadataContext } from "@/app/metadata";
 import { CategoryItemSearch } from "@/components/category-item-search";
+import { assertCategoryAvailable } from "@/server/category-access";
 import { getPlaylistById } from "@/server/xtream";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -14,6 +15,7 @@ export async function generateMetadata({
 	params,
 }: PageProps): Promise<Metadata> {
 	const { id, categoryId } = await params;
+	await assertCategoryAvailable(id, "series", categoryId);
 	const context = await getCategoryMetadataContext("series", id, categoryId);
 	const categoryTitle = context?.categoryName ?? "Series Search";
 
@@ -38,6 +40,8 @@ async function SeriesCategorySearchContent({ params }: PageProps) {
 	if (!playlist) {
 		notFound();
 	}
+
+	await assertCategoryAvailable(id, "series", categoryId);
 
 	return (
 		<CategoryItemSearch

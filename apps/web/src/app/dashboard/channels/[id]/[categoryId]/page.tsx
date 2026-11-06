@@ -1,6 +1,7 @@
 import { createPageMetadata, getCategoryMetadataContext } from "@/app/metadata";
 import type { IdCategoryPageProps as PageProps } from "@/components/types";
 import { getCachedChannels } from "@/server/cached-content";
+import { assertCategoryAvailable } from "@/server/category-access";
 import { getPlaylistById } from "@/server/xtream";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -23,6 +24,7 @@ export async function generateMetadata({
 	const { id, categoryId } = await params;
 	const { page: pageParam } = await searchParams;
 	const currentPage = Number(pageParam) || 1;
+	await assertCategoryAvailable(id, "channel", categoryId);
 	const context = await getCategoryMetadataContext("channels", id, categoryId);
 	const categoryTitle = context?.categoryName ?? "Channels";
 	const pageSuffix = currentPage > 1 ? `, page ${currentPage}` : "";
@@ -59,6 +61,8 @@ async function ChannelsByCategoryContent({ params, searchParams }: PageProps) {
 	if (!playlist) {
 		notFound();
 	}
+
+	await assertCategoryAvailable(id, "channel", categoryId);
 
 	const channels = await getCachedChannels(
 		id,

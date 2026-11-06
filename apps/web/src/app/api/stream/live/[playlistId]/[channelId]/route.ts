@@ -1,3 +1,12 @@
+import { getCachedChannel } from "@/server/cached-content";
+import {
+	isCategoryAvailableForUser,
+	isUnscopedPlaybackAllowed,
+} from "@/server/category-access";
+import {
+	parseCategoryQuery,
+	readCategoryIds,
+} from "@/server/category-preference-policy";
 import {
 	buildLiveStreamUrl,
 	ID_PATTERN,
@@ -31,6 +40,60 @@ export async function GET(request: NextRequest, { params }: Context) {
 	const playlist = await getCachedPlaylistByUserAndId(user.userId, playlistId);
 	if (!playlist) {
 		return streamError(404, "Playlist not found.");
+	}
+
+	const category = parseCategoryQuery(
+		request.nextUrl.searchParams.get("category"),
+	);
+	if (!category.ok) {
+		return streamError(400, "Invalid stream.");
+	}
+	const restricted = !(await isUnscopedPlaybackAllowed(
+		user.userId,
+		playlistId,
+		"channel",
+	));
+	if (!category.categoryId) {
+		if (restricted) {
+			return streamError(404, "Category not available.");
+		}
+	} else {
+		const categoryAllowed = await isCategoryAvailableForUser(
+			user.userId,
+			playlistId,
+			"channel",
+			[category.categoryId],
+			[category.categoryId],
+		);
+		if (!categoryAllowed) {
+			return streamError(404, "Category not available.");
+		}
+		if (restricted) {
+			let channel: unknown;
+			try {
+				channel = await getCachedChannel(
+					playlistId,
+					undefined,
+					category.categoryId,
+					channelId,
+				);
+			} catch {
+				return streamError(404, "Category not available.");
+			}
+			if (!channel) {
+				return streamError(404, "Category not available.");
+			}
+			const itemAllowed = await isCategoryAvailableForUser(
+				user.userId,
+				playlistId,
+				"channel",
+				readCategoryIds(channel),
+				[],
+			);
+			if (!itemAllowed) {
+				return streamError(404, "Category not available.");
+			}
+		}
 	}
 
 	return proxyUpstream(

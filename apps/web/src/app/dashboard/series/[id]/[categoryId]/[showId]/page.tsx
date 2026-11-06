@@ -7,6 +7,8 @@ import { toSafeImageSrc } from "@/lib/image-url";
 import { formatTimestamp, pickResumeEpisode } from "@/lib/series-resume";
 import { toYoutubeEmbedUrl } from "@/lib/youtube";
 import { getCachedShow } from "@/server/cached-content";
+import { assertCategoryAvailable } from "@/server/category-access";
+import { readCategoryIds } from "@/server/category-preference-policy";
 import { getItemStatus } from "@/server/user-items";
 import { getEpisodeProgress } from "@/server/watch-progress";
 import { getPlaylistById } from "@/server/xtream";
@@ -22,7 +24,14 @@ export async function generateMetadata({
 	params,
 }: PageProps): Promise<Metadata> {
 	const { id, categoryId, showId } = await params;
+	await assertCategoryAvailable(id, "series", categoryId);
 	const context = await getShowMetadataContext(id, showId);
+	await assertCategoryAvailable(
+		id,
+		"series",
+		categoryId,
+		readCategoryIds(context?.show),
+	);
 	const showTitle = context?.show?.name ?? "Series Details";
 	const description = context?.show?.plot?.trim();
 
@@ -56,11 +65,20 @@ async function ShowDetailContent({ params }: PageProps) {
 		notFound();
 	}
 
+	await assertCategoryAvailable(id, "series", categoryId);
+
 	const show = await getCachedShow(id, playlist, showId);
 
 	if (!show) {
 		notFound();
 	}
+
+	await assertCategoryAvailable(
+		id,
+		"series",
+		categoryId,
+		readCategoryIds(show),
+	);
 
 	const itemStatus = await getItemStatus(id, showId, "series");
 	const safePosterSrc = toSafeImageSrc(show.poster);

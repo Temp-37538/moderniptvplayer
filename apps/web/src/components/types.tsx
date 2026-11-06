@@ -1,4 +1,3 @@
-import type { StandardXtreamCategory } from "@iptv/xtream-api/standardized";
 import {
 	ClapperboardIcon,
 	FilmIcon,
@@ -8,10 +7,18 @@ import {
 } from "lucide-react";
 import type * as React from "react";
 
+export type ListedCategory = {
+	id: string;
+	name: string;
+	pinned: boolean;
+};
+
 export type CategorySearchProps = {
 	id: string;
 	playlistName: string;
-	categories: StandardXtreamCategory[];
+	categories: ListedCategory[];
+	hiddenCategories: ListedCategory[];
+	lockAdultCategories: boolean;
 };
 
 /**

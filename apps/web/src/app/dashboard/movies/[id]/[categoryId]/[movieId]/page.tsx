@@ -5,9 +5,12 @@ import { ItemActionButtons } from "@/components/item-action-buttons";
 import type { MovieDetailPageProps as PageProps } from "@/components/types";
 import { VideoPlayer } from "@/components/video-player";
 import { toSafeImageSrc } from "@/lib/image-url";
+import { withStreamCategory } from "@/lib/stream-category";
 import { formatTimestamp } from "@/lib/series-resume";
 import { toYoutubeEmbedUrl } from "@/lib/youtube";
 import { getCachedMovie } from "@/server/cached-content";
+import { assertCategoryAvailable } from "@/server/category-access";
+import { readCategoryIds } from "@/server/category-preference-policy";
 import { getItemStatus } from "@/server/user-items";
 import { getResumeInfo } from "@/server/watch-progress";
 import { createXtreamClient, getPlaylistById } from "@/server/xtream";
@@ -33,7 +36,14 @@ export async function generateMetadata({
 	params,
 }: PageProps): Promise<Metadata> {
 	const { id, categoryId, movieId } = await params;
+	await assertCategoryAvailable(id, "movie", categoryId);
 	const context = await getMovieMetadataContext(id, movieId);
+	await assertCategoryAvailable(
+		id,
+		"movie",
+		categoryId,
+		readCategoryIds(context?.movie),
+	);
 	const movieTitle = context?.movie?.name ?? "Movie Details";
 	const description = context?.movie?.plot?.trim();
 
@@ -63,11 +73,20 @@ async function MovieDetailContent({ params }: PageProps) {
 		notFound();
 	}
 
+	await assertCategoryAvailable(id, "movie", categoryId);
+
 	const movie = await getCachedMovie(id, playlist, movieId);
 
 	if (!movie) {
 		notFound();
 	}
+
+	await assertCategoryAvailable(
+		id,
+		"movie",
+		categoryId,
+		readCategoryIds(movie),
+	);
 
 	const xtream = createXtreamClient(playlist);
 
@@ -192,7 +211,10 @@ async function MovieDetailContent({ params }: PageProps) {
 								sources={[
 									{
 										kind: extension === "m3u8" ? "hls" : "native",
-										src: `/api/stream/vod/${encodeURIComponent(id)}/movie/${encodeURIComponent(movieId)}?ext=${encodeURIComponent(extension)}`,
+										src: withStreamCategory(
+											`/api/stream/vod/${encodeURIComponent(id)}/movie/${encodeURIComponent(movieId)}?ext=${encodeURIComponent(extension)}`,
+											categoryId,
+										),
 									},
 									// Fallback for providers that refuse the server's IP.
 									...(directUrl

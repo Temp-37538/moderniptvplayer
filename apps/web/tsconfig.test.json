@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "noEmit": true,
+    "verbatimModuleSyntax": true,
+    "allowImportingTsExtensions": true,
+    "skipLibCheck": true,
+    "types": ["node"]
+  },
+  "include": [
+    "src/server/category-preference-policy.ts",
+    "src/server/category-preference-policy.test.ts"
+  ]
+}

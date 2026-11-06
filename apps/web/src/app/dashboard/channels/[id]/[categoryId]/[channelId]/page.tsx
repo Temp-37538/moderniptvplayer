@@ -5,7 +5,10 @@ import { ItemActionButtons } from "@/components/item-action-buttons";
 import type { ChannelDetailPageProps as PageProps } from "@/components/types";
 import { VideoPlayer } from "@/components/video-player";
 import { toSafeImageSrc } from "@/lib/image-url";
+import { withStreamCategory } from "@/lib/stream-category";
 import { getCachedChannel } from "@/server/cached-content";
+import { assertCategoryAvailable } from "@/server/category-access";
+import { readCategoryIds } from "@/server/category-preference-policy";
 import { getItemStatus } from "@/server/user-items";
 import { createXtreamClient, getPlaylistById } from "@/server/xtream";
 import { Radio } from "lucide-react";
@@ -19,7 +22,14 @@ export async function generateMetadata({
 	params,
 }: PageProps): Promise<Metadata> {
 	const { id, categoryId, channelId } = await params;
+	await assertCategoryAvailable(id, "channel", categoryId);
 	const context = await getChannelMetadataContext(id, categoryId, channelId);
+	await assertCategoryAvailable(
+		id,
+		"channel",
+		categoryId,
+		readCategoryIds(context?.channel),
+	);
 	const channelName = context?.channel?.name ?? "Channel Details";
 
 	return createPageMetadata({
@@ -45,11 +55,20 @@ async function ChannelDetailContent({ params }: PageProps) {
 		notFound();
 	}
 
+	await assertCategoryAvailable(id, "channel", categoryId);
+
 	const channel = await getCachedChannel(id, playlist, categoryId, channelId);
 
 	if (!channel) {
 		notFound();
 	}
+
+	await assertCategoryAvailable(
+		id,
+		"channel",
+		categoryId,
+		readCategoryIds(channel),
+	);
 
 	const xtream = createXtreamClient(playlist);
 
@@ -107,11 +126,17 @@ async function ChannelDetailContent({ params }: PageProps) {
 					sources={[
 						{
 							kind: "hls",
-							src: `/api/stream/live/${encodeURIComponent(id)}/${encodeURIComponent(channelId)}?ext=m3u8`,
+							src: withStreamCategory(
+								`/api/stream/live/${encodeURIComponent(id)}/${encodeURIComponent(channelId)}?ext=m3u8`,
+								categoryId,
+							),
 						},
 						{
 							kind: "mpegts",
-							src: `/api/stream/live/${encodeURIComponent(id)}/${encodeURIComponent(channelId)}?ext=ts`,
+							src: withStreamCategory(
+								`/api/stream/live/${encodeURIComponent(id)}/${encodeURIComponent(channelId)}?ext=ts`,
+								categoryId,
+							),
 						},
 					]}
 				/>

@@ -1,3 +1,13 @@
+import { getCachedMovie, getCachedShow } from "@/server/cached-content";
+import {
+	isCategoryAvailableForUser,
+	isUnscopedPlaybackAllowed,
+} from "@/server/category-access";
+import {
+	parseCategoryQuery,
+	readCategoryIds,
+	readEpisodeIds,
+} from "@/server/category-preference-policy";
 import {
 	EXTENSION_PATTERN,
 	ID_PATTERN,
@@ -36,6 +46,81 @@ export async function GET(request: NextRequest, { params }: Context) {
 	const playlist = await getCachedPlaylistByUserAndId(user.userId, playlistId);
 	if (!playlist) {
 		return streamError(404, "Playlist not found.");
+	}
+
+	const categoryKind = kind === "movie" ? "movie" : "series";
+	const category = parseCategoryQuery(
+		request.nextUrl.searchParams.get("category"),
+	);
+	const show = parseCategoryQuery(request.nextUrl.searchParams.get("show"));
+	if (!category.ok || !show.ok) {
+		return streamError(400, "Invalid stream.");
+	}
+	const restricted = !(await isUnscopedPlaybackAllowed(
+		user.userId,
+		playlistId,
+		categoryKind,
+	));
+	if (!category.categoryId) {
+		if (restricted) {
+			return streamError(404, "Category not available.");
+		}
+	} else {
+		const categoryAllowed = await isCategoryAvailableForUser(
+			user.userId,
+			playlistId,
+			categoryKind,
+			[category.categoryId],
+			[category.categoryId],
+		);
+		if (!categoryAllowed) {
+			return streamError(404, "Category not available.");
+		}
+		if (restricted && kind === "movie") {
+			let movie: unknown;
+			try {
+				movie = await getCachedMovie(playlistId, undefined, streamId);
+			} catch {
+				return streamError(404, "Category not available.");
+			}
+			if (!movie) {
+				return streamError(404, "Category not available.");
+			}
+			const itemAllowed = await isCategoryAvailableForUser(
+				user.userId,
+				playlistId,
+				"movie",
+				[category.categoryId, ...readCategoryIds(movie)],
+				[category.categoryId],
+			);
+			if (!itemAllowed) {
+				return streamError(404, "Category not available.");
+			}
+		}
+		if (restricted && kind === "episode") {
+			if (!show.categoryId) {
+				return streamError(404, "Category not available.");
+			}
+			let series: unknown;
+			try {
+				series = await getCachedShow(playlistId, undefined, show.categoryId);
+			} catch {
+				return streamError(404, "Category not available.");
+			}
+			if (!series || !readEpisodeIds(series).includes(streamId)) {
+				return streamError(404, "Category not available.");
+			}
+			const itemAllowed = await isCategoryAvailableForUser(
+				user.userId,
+				playlistId,
+				"series",
+				[category.categoryId, ...readCategoryIds(series)],
+				[category.categoryId],
+			);
+			if (!itemAllowed) {
+				return streamError(404, "Category not available.");
+			}
+		}
 	}
 
 	// The upstream URL (with the credentials) is built here, from what is

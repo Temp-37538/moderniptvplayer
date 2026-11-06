@@ -1,8 +1,7 @@
 import { createPageMetadata, getPlaylistMetadataContext } from "@/app/metadata";
 import { SeriesCategorySearch } from "@/components/series-category-search";
 import type { IdPageProps as PageProps } from "@/components/types";
-import { getCachedSeriesCategories } from "@/server/cached-content";
-import { getPlaylistById } from "@/server/xtream";
+import { loadCategoryBrowser } from "@/server/category-access";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
@@ -38,19 +37,19 @@ export default function SeriesCategoriesPage({ params }: PageProps) {
 async function SeriesCategoriesContent({ params }: PageProps) {
 	const { id } = await params;
 
-	const playlist = await getPlaylistById(id);
+	const browser = await loadCategoryBrowser(id, "series");
 
-	if (!playlist) {
+	if (!browser) {
 		notFound();
 	}
-
-	const typedCategories = await getCachedSeriesCategories(id, playlist);
 
 	return (
 		<SeriesCategorySearch
 			id={id}
-			playlistName={playlist.playlistName}
-			categories={typedCategories}
+			playlistName={browser.playlistName}
+			categories={browser.categories}
+			hiddenCategories={browser.hiddenCategories}
+			lockAdultCategories={browser.lockAdultCategories}
 		/>
 	);
 }

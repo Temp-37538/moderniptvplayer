@@ -9,9 +9,11 @@ model User {
   sessions      Session[]
   accounts      Account[]
   playlists     Playlist[]
-  watchLater    WatchLater[]
-  favorites     Favorite[]
-  watchProgress WatchProgress[]
+  watchLater           WatchLater[]
+  favorites            Favorite[]
+  watchProgress        WatchProgress[]
+  categoryPreferences  CategoryPreference[]
+  safetyPreference     UserSafetyPreference?
 
   @@unique([email])
   @@map("user")
@@ -27,9 +29,10 @@ model Playlist {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  watchLater WatchLater[]
-  favorites  Favorite[]
-  watchProgress WatchProgress[]
+  watchLater          WatchLater[]
+  favorites           Favorite[]
+  watchProgress       WatchProgress[]
+  categoryPreferences CategoryPreference[]
 
   @@unique([userId, serverUrl, username])
   @@index([userId])

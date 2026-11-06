@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "check-types": "tsc -p tsconfig.json --noEmit",
+    "check-types": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json --noEmit",
+    "test": "tsc -p tsconfig.test.json --noEmit && node --experimental-strip-types --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test src/server/category-preference-policy.test.ts",
     "dev": "next dev --port 3001",
     "build": "next build",
     "start": "next start"

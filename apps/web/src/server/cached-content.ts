@@ -8,6 +8,7 @@ import type {
 } from "@iptv/xtream-api/standardized";
 import { cacheLife, cacheTag } from "next/cache";
 import { requireAuthenticatedUserId } from "@/server/auth-utils";
+import type { CategoryKind } from "@/server/category-preference-policy";
 import {
 	createXtreamClient,
 	getCachedPlaylistByUserAndId,
@@ -84,6 +85,22 @@ async function resolvePlaylist(userId: string, playlistId: string) {
 
 async function resolveClient(userId: string, playlistId: string) {
 	return createXtreamClient(await resolvePlaylist(userId, playlistId));
+}
+
+async function categoryContentAllowed(
+	playlistId: string,
+	kind: CategoryKind,
+	categoryId: string,
+) {
+	const userId = await requireAuthenticatedUserId();
+	const { isCategoryAvailableForUser } = await import("./category-access");
+	return isCategoryAvailableForUser(
+		userId,
+		playlistId,
+		kind,
+		[categoryId],
+		[categoryId],
+	);
 }
 
 // Cached functions only receive non-secret arguments (user and playlist ids):
@@ -269,13 +286,11 @@ export async function getCachedChannels(
 	page: number,
 	limit: number,
 ) {
-	return loadChannels(
-		await requireAuthenticatedUserId(),
-		playlistId,
-		categoryId,
-		page,
-		limit,
-	);
+	const userId = await requireAuthenticatedUserId();
+	if (!(await categoryContentAllowed(playlistId, "channel", categoryId))) {
+		return [];
+	}
+	return loadChannels(userId, playlistId, categoryId, page, limit);
 }
 
 export async function getCachedChannel(
@@ -284,12 +299,11 @@ export async function getCachedChannel(
 	categoryId: string,
 	channelId: string,
 ) {
-	return loadChannel(
-		await requireAuthenticatedUserId(),
-		playlistId,
-		categoryId,
-		channelId,
-	);
+	const userId = await requireAuthenticatedUserId();
+	if (!(await categoryContentAllowed(playlistId, "channel", categoryId))) {
+		return null;
+	}
+	return loadChannel(userId, playlistId, categoryId, channelId);
 }
 
 export async function getCachedMovies(
@@ -299,13 +313,11 @@ export async function getCachedMovies(
 	page: number,
 	limit: number,
 ) {
-	return loadMovies(
-		await requireAuthenticatedUserId(),
-		playlistId,
-		categoryId,
-		page,
-		limit,
-	);
+	const userId = await requireAuthenticatedUserId();
+	if (!(await categoryContentAllowed(playlistId, "movie", categoryId))) {
+		return [];
+	}
+	return loadMovies(userId, playlistId, categoryId, page, limit);
 }
 
 export async function getCachedMovie(
@@ -323,13 +335,11 @@ export async function getCachedShows(
 	page: number,
 	limit: number,
 ) {
-	return loadShows(
-		await requireAuthenticatedUserId(),
-		playlistId,
-		categoryId,
-		page,
-		limit,
-	);
+	const userId = await requireAuthenticatedUserId();
+	if (!(await categoryContentAllowed(playlistId, "series", categoryId))) {
+		return [];
+	}
+	return loadShows(userId, playlistId, categoryId, page, limit);
 }
 
 export async function getCachedShow(

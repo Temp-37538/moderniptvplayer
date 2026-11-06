@@ -1,3 +1,4 @@
+import { prepareCategorySearch } from "@/server/category-access";
 import { searchInCategory } from "@/server/category-search";
 import { searchQuerySchema } from "@/server/search-params-schema";
 import { createXtreamClient, getPlaylistById } from "@/server/xtream";
@@ -24,6 +25,14 @@ export async function GET(request: NextRequest) {
 
 	if (!playlist) {
 		return NextResponse.json({ error: "Playlist not found." }, { status: 404 });
+	}
+
+	const gate = await prepareCategorySearch(playlistId, "channel", categoryId);
+	if (!gate.allowed) {
+		return NextResponse.json(
+			{ error: "Category not available." },
+			{ status: 404 },
+		);
 	}
 
 	const xtream = createXtreamClient(playlist);
@@ -54,6 +63,7 @@ export async function GET(request: NextRequest) {
 			},
 		});
 
+		result.items = result.items.filter((item) => gate.keep(item.categoryId));
 		return NextResponse.json(result);
 	} catch (error) {
 		console.error("Failed to search channels by category:", error);

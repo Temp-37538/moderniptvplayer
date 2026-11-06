@@ -4,6 +4,7 @@ import { PaginationNav } from "@/components/pagination-nav";
 import type { IdCategoryPageProps as PageProps } from "@/components/types";
 import { toSafeImageSrc } from "@/lib/image-url";
 import { getCachedShows } from "@/server/cached-content";
+import { assertCategoryAvailable } from "@/server/category-access";
 import { getPlaylistById } from "@/server/xtream";
 import { Tv } from "lucide-react";
 import type { Metadata } from "next";
@@ -22,6 +23,7 @@ export async function generateMetadata({
 	const { id, categoryId } = await params;
 	const { page: pageParam } = await searchParams;
 	const currentPage = Number(pageParam) || 1;
+	await assertCategoryAvailable(id, "series", categoryId);
 	const context = await getCategoryMetadataContext("series", id, categoryId);
 	const categoryTitle = context?.categoryName ?? "Series";
 	const pageSuffix = currentPage > 1 ? `, page ${currentPage}` : "";
@@ -58,6 +60,8 @@ async function SeriesByCategoryContent({ params, searchParams }: PageProps) {
 	if (!playlist) {
 		notFound();
 	}
+
+	await assertCategoryAvailable(id, "series", categoryId);
 
 	const shows = await getCachedShows(
 		id,
