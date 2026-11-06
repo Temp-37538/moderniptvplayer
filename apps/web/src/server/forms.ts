@@ -11,10 +11,12 @@ import {
 	deletePlaylist,
 	doesPlaylistExist,
 	isPlaylistValid,
+	normalizeServerUrl,
 	PlaylistAlreadyExistsError,
+	updatePlaylist,
 } from "./queries";
 import { checkRateLimit } from "./rate-limit";
-import { getPlaylistById } from "./xtream";
+import { forgetPlaylistStatus, getPlaylistById } from "./xtream";
 
 const VALIDATION_LIMIT = 10;
 const VALIDATION_WINDOW_MS = 60_000;
@@ -160,6 +162,262 @@ export async function validate(
 		success: true,
 		inputs: validatedData.data,
 		message: "Playlist added successfully !",
+	};
+}
+
+function readFormText(formData: FormData, key: string) {
+	const value = formData.get(key);
+	return typeof value === "string" ? value : "";
+}
+
+export async function updatePlaylistAction(
+	_prev: FormState,
+	formData: FormData,
+): Promise<FormState> {
+	const credentialsSchema = z.object({
+		username: z.string().trim().min(1, "Username is required").max(128),
+		password: z.string().trim().max(256),
+		serverUrl: z
+			.string()
+			.trim()
+			.max(2048)
+			.pipe(
+				z.url({
+					protocol: /^https?$/,
+					error: "Please enter a valid http(s) URL",
+				}),
+			),
+		playlistName: z
+			.string()
+			.trim()
+			.min(1, "Playlist name is required")
+			.max(100),
+	});
+
+	const rawData: xtreamFormData = {
+		username: readFormText(formData, "username"),
+		password: readFormText(formData, "password"),
+		playlistName: readFormText(formData, "playlistName"),
+		serverUrl: readFormText(formData, "serverUrl"),
+	};
+	const playlistIdResult = z
+		.string()
+		.trim()
+		.min(1)
+		.max(128)
+		.safeParse(readFormText(formData, "playlistId"));
+	const validatedData = credentialsSchema.safeParse(rawData);
+
+	if (!validatedData.success) {
+		const { properties } = z.treeifyError(validatedData.error);
+		return {
+			errors: { properties },
+			success: false,
+			inputs: rawData,
+			message: "Please fix the errors above.",
+		};
+	}
+
+	if (!playlistIdResult.success) {
+		return {
+			errors: {},
+			success: false,
+			inputs: rawData,
+			message: "Playlist not found.",
+		};
+	}
+
+	const playlistId = playlistIdResult.data;
+	const current = await getPlaylistById(playlistId);
+	if (!current) {
+		return {
+			errors: {},
+			success: false,
+			inputs: rawData,
+			message: "Playlist not found.",
+		};
+	}
+
+	let normalizedServerUrl: string;
+	try {
+		normalizedServerUrl = normalizeServerUrl(validatedData.data.serverUrl);
+	} catch {
+		return {
+			errors: {
+				properties: {
+					serverUrl: {
+						errors: ["Please enter a valid http(s) URL"],
+					},
+				},
+			},
+			success: false,
+			inputs: rawData,
+			message: "Please fix the errors above.",
+		};
+	}
+
+	const passwordProvided = validatedData.data.password.length > 0;
+	const usernameChanged = validatedData.data.username !== current.username;
+	const serverChanged = normalizedServerUrl !== current.serverUrl;
+	const connectionChanged =
+		passwordProvided || usernameChanged || serverChanged;
+
+	// A display-name change does not contact the provider. Connection changes
+	// reuse the same checks as creating a playlist, then write the same row.
+	if (connectionChanged) {
+		const userId = await requireAuthenticatedUserId();
+		const limit = checkRateLimit(
+			`validate-playlist:${userId}`,
+			VALIDATION_LIMIT,
+			VALIDATION_WINDOW_MS,
+		);
+		if (!limit.allowed) {
+			return {
+				errors: {},
+				success: false,
+				inputs: rawData,
+				message: `Too many attempts. Try again in ${limit.retryAfterSeconds}s.`,
+			};
+		}
+
+		if (usernameChanged || serverChanged) {
+			const alreadyExists = await doesPlaylistExist(
+				validatedData.data.username,
+				normalizedServerUrl,
+				playlistId,
+			);
+			if (alreadyExists) {
+				return {
+					errors: {
+						properties: {
+							serverUrl: {
+								errors: [
+									"Another playlist already uses this server and username",
+								],
+							},
+							username: {
+								errors: [
+									"Another playlist already uses this server and username",
+								],
+							},
+						},
+					},
+					success: false,
+					inputs: rawData,
+					message: "Another playlist already uses this server and username.",
+				};
+			}
+		}
+
+		const valid = await isPlaylistValid(
+			validatedData.data.username,
+			normalizedServerUrl,
+			passwordProvided ? validatedData.data.password : current.password,
+		);
+
+		if (valid.error === "network") {
+			return {
+				errors: {
+					properties: {
+						serverUrl: {
+							errors: [
+								"Unable to reach the playlist server. Check the URL or DNS.",
+							],
+						},
+					},
+				},
+				success: false,
+				inputs: rawData,
+				message: "Playlist server is unreachable.",
+			};
+		}
+
+		if (!valid.ok) {
+			return {
+				errors: {
+					properties: {
+						serverUrl: { errors: ["Invalid playlist credentials"] },
+						password: { errors: ["Invalid playlist credentials"] },
+						username: { errors: ["Invalid playlist credentials"] },
+					},
+				},
+				success: false,
+				inputs: rawData,
+				message: "Invalid playlist.",
+			};
+		}
+	}
+
+	const savedInputs: xtreamFormData = {
+		username: validatedData.data.username,
+		password: "",
+		playlistName: validatedData.data.playlistName,
+		serverUrl: normalizedServerUrl,
+	};
+
+	if (
+		!connectionChanged &&
+		validatedData.data.playlistName === current.playlistName
+	) {
+		return {
+			errors: {},
+			success: true,
+			inputs: savedInputs,
+			message: "Playlist updated.",
+		};
+	}
+
+	try {
+		await updatePlaylist(
+			playlistId,
+			validatedData.data.username,
+			normalizedServerUrl,
+			validatedData.data.playlistName,
+			passwordProvided ? validatedData.data.password : null,
+		);
+	} catch (error) {
+		if (error instanceof PlaylistAlreadyExistsError) {
+			return {
+				errors: {
+					properties: {
+						serverUrl: {
+							errors: [
+								"Another playlist already uses this server and username",
+							],
+						},
+						username: {
+							errors: [
+								"Another playlist already uses this server and username",
+							],
+						},
+					},
+				},
+				success: false,
+				inputs: rawData,
+				message: "Another playlist already uses this server and username.",
+			};
+		}
+		if (error instanceof Error && error.message === "Playlist not found") {
+			return {
+				errors: {},
+				success: false,
+				inputs: rawData,
+				message: "Playlist not found.",
+			};
+		}
+		throw error;
+	}
+
+	if (connectionChanged) {
+		forgetPlaylistStatus(playlistId);
+		expirePlaylistCacheTags(playlistId);
+	}
+
+	return {
+		errors: {},
+		success: true,
+		inputs: savedInputs,
+		message: "Playlist updated.",
 	};
 }
 

@@ -1,3 +1,5 @@
+import { DeletePlaylistDialog } from "@/components/delete-playlist-dialog";
+import { EditPlaylistSheet } from "@/components/edit-playlist-sheet";
 import { Button } from "@/components/ui/button";
 import {
 	DropdownMenu,
@@ -16,13 +18,13 @@ import {
 } from "@/components/ui/sidebar";
 import { usePlaylistIdFromPath } from "@/hooks/use-playlist-id";
 import {
-	deletePlaylistAction,
 	preparePlaylistSwitchAction,
 	refreshPlaylistCacheAction,
 } from "@/server/forms";
 import {
 	ChevronsUpDownIcon,
 	ListVideoIcon,
+	PencilIcon,
 	PlusIcon,
 	RefreshCwIcon,
 	Trash2Icon,
@@ -40,6 +42,11 @@ export function PlaylistSwitcher() {
 	const { isMobile, setOpenMobile, openMobile } = useSidebar();
 	const router = useRouter();
 	const [pendingAction, setPendingAction] = useState<string | null>(null);
+	const [menuOpen, setMenuOpen] = useState(false);
+	const [editTarget, setEditTarget] = useState<Playlist | null>(null);
+	const [editOpen, setEditOpen] = useState(false);
+	const [deleteTarget, setDeleteTarget] = useState<Playlist | null>(null);
+	const [deleteOpen, setDeleteOpen] = useState(false);
 	const { section, playlistId: playlistIdFromPath } = usePlaylistIdFromPath();
 
 	const activePlaylist = (() => {
@@ -98,17 +105,16 @@ export function PlaylistSwitcher() {
 		}
 	};
 
-	const deletePlaylist = async (playlist: Playlist) => {
-		setPendingAction(`delete:${playlist.id}`);
-		try {
-			await deletePlaylistAction(playlist.id);
-			router.replace("/dashboard");
-			toast.success(`Playlist deleted: ${playlist.playlistName}`);
-		} catch {
-			toast.error("Unable to delete playlist");
-		} finally {
-			setPendingAction(null);
-		}
+	const openEdit = (playlist: Playlist) => {
+		setEditTarget(playlist);
+		setMenuOpen(false);
+		setEditOpen(true);
+	};
+
+	const openDelete = (playlist: Playlist) => {
+		setDeleteTarget(playlist);
+		setMenuOpen(false);
+		setDeleteOpen(true);
 	};
 
 	if (!activePlaylist) {
@@ -136,102 +142,150 @@ export function PlaylistSwitcher() {
 		);
 	}
 	return (
-		<SidebarMenu>
-			<SidebarMenuItem>
-				<DropdownMenu>
-					<DropdownMenuTrigger
-						render={
-							<SidebarMenuButton
-								size="lg"
-								className="data-open:bg-sidebar-accent cursor-pointer data-open:text-sidebar-accent-foreground"
-							/>
-						}
+		<>
+			<SidebarMenu>
+				<SidebarMenuItem>
+					<DropdownMenu
+						open={menuOpen}
+						onOpenChange={(nextOpen) => setMenuOpen(nextOpen)}
 					>
-						<div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-							<ListVideoIcon />
-						</div>
-						<div className="grid flex-1 text-left text-sm leading-tight">
-							<span className="truncate font-medium">
-								{activePlaylist.playlistName}
-							</span>
-							<span className="truncate text-xs text-muted-foreground group-hover/menu-button:text-sidebar-accent-foreground">
-								{activePlaylist.serverUrl}
-							</span>
-						</div>
-						<ChevronsUpDownIcon className="ml-auto" />
-					</DropdownMenuTrigger>
-					<DropdownMenuContent
-						className="min-w-56 rounded-lg"
-						align="start"
-						side={isMobile ? "bottom" : "right"}
-						sideOffset={4}
-					>
-						<DropdownMenuGroup>
-							<DropdownMenuLabel className="text-muted-foreground text-xs">
-								My Playlists
-							</DropdownMenuLabel>
-							{playlists.map((playlist) => (
-								<DropdownMenuItem
-									key={playlist.id}
-									onClick={() => {
-										openMobile && setOpenMobile(false);
-										setActivePlaylist(playlist);
-									}}
-									className="gap-2 p-2 cursor-pointer hover:bg-secondary hover:text-secondary-foreground"
-								>
-									<div className="flex-1 min-w-0">
-										<div className="truncate font-medium">
-											{playlist.playlistName}
-										</div>
-										<div className="truncate text-xs text-muted-foreground">
-											{playlist.username} {playlist.serverUrl}
-										</div>
-									</div>
-									<Button
-										size="sm"
-										disabled={pendingAction === `refresh:${playlist.id}`}
-										className="ml-2 "
-										onClick={(e) => {
-											e.stopPropagation();
-											refreshCache(playlist);
+						<DropdownMenuTrigger
+							render={
+								<SidebarMenuButton
+									size="lg"
+									className="data-open:bg-sidebar-accent cursor-pointer data-open:text-sidebar-accent-foreground"
+								/>
+							}
+						>
+							<div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
+								<ListVideoIcon />
+							</div>
+							<div className="grid flex-1 text-left text-sm leading-tight">
+								<span className="truncate font-medium">
+									{activePlaylist.playlistName}
+								</span>
+								<span className="truncate text-xs text-muted-foreground group-hover/menu-button:text-sidebar-accent-foreground">
+									{activePlaylist.serverUrl}
+								</span>
+							</div>
+							<ChevronsUpDownIcon className="ml-auto" />
+						</DropdownMenuTrigger>
+						<DropdownMenuContent
+							className="min-w-80 rounded-lg"
+							align="start"
+							side={isMobile ? "bottom" : "right"}
+							sideOffset={4}
+						>
+							<DropdownMenuGroup>
+								<DropdownMenuLabel className="text-muted-foreground text-xs">
+									My Playlists
+								</DropdownMenuLabel>
+								{playlists.map((playlist) => (
+									<DropdownMenuItem
+										key={playlist.id}
+										onClick={(event) => {
+											if (
+												event.target instanceof Element &&
+												event.target.closest("button")
+											) {
+												return;
+											}
+											openMobile && setOpenMobile(false);
+											setActivePlaylist(playlist);
 										}}
+										className="gap-2 p-2 cursor-pointer hover:bg-secondary hover:text-secondary-foreground"
 									>
-										<RefreshCwIcon
-											className={`size-4 ${pendingAction === `refresh:${playlist.id}` ? "animate-spin" : ""}`}
-										/>
-									</Button>
-									<Button
-										size="sm"
-										disabled={pendingAction === `delete:${playlist.id}`}
-										className="ml-2"
-										onClick={(e) => {
-											e.stopPropagation();
-											deletePlaylist(playlist);
+										<div className="flex-1 min-w-0">
+											<div className="truncate font-medium">
+												{playlist.playlistName}
+											</div>
+											<div className="truncate text-xs text-muted-foreground">
+												{playlist.username} {playlist.serverUrl}
+											</div>
+										</div>
+										<Button
+											type="button"
+											size="sm"
+											aria-label={`Edit ${playlist.playlistName}`}
+											className="ml-2 shrink-0"
+											onClick={(event) => {
+												event.stopPropagation();
+												openEdit(playlist);
+											}}
+										>
+											<PencilIcon className="size-4" />
+										</Button>
+										<Button
+											type="button"
+											size="sm"
+											aria-label={`Refresh cache for ${playlist.playlistName}`}
+											disabled={pendingAction === `refresh:${playlist.id}`}
+											className="ml-2 shrink-0"
+											onClick={(event) => {
+												event.stopPropagation();
+												refreshCache(playlist);
+											}}
+										>
+											<RefreshCwIcon
+												className={`size-4 ${pendingAction === `refresh:${playlist.id}` ? "animate-spin" : ""}`}
+											/>
+										</Button>
+										<Button
+											type="button"
+											size="sm"
+											aria-label={`Delete ${playlist.playlistName}`}
+											className="ml-2 shrink-0"
+											onClick={(event) => {
+												event.stopPropagation();
+												openDelete(playlist);
+											}}
+										>
+											<Trash2Icon className="size-4" />
+										</Button>
+									</DropdownMenuItem>
+								))}
+							</DropdownMenuGroup>
+							<DropdownMenuSeparator />
+							<DropdownMenuGroup>
+								<DropdownMenuItem className="cursor-pointer hover:bg-primary hover:text-primary-foreground p-0">
+									<Link
+										onClick={() => {
+											openMobile && setOpenMobile(false);
 										}}
+										href="/dashboard/addplaylist"
+										className="bg-transparent flex gap-2 justify-content p-2 items-center font-medium w-full h-full"
 									>
-										<Trash2Icon className="size-4" />
-									</Button>
+										<PlusIcon className="size-4" />
+										Add a playlist
+									</Link>
 								</DropdownMenuItem>
-							))}
-						</DropdownMenuGroup>
-						<DropdownMenuSeparator />
-						<DropdownMenuGroup>
-							<DropdownMenuItem className="cursor-pointer hover:bg-primary hover:text-primary-foreground p-0">
-								<Link
-									onClick={() => {
-										openMobile && setOpenMobile(false);
-									}}
-									href="/dashboard/addplaylist"
-									className="bg-transparent flex gap-2 justify-content p-2 items-center font-medium w-full h-full"
-								>
-									<PlusIcon className="size-4" />
-									Add a playlist
-								</Link>
-							</DropdownMenuItem>
-						</DropdownMenuGroup>
-					</DropdownMenuContent>
-				</DropdownMenu>
-			</SidebarMenuItem>
-		</SidebarMenu>
+							</DropdownMenuGroup>
+						</DropdownMenuContent>
+					</DropdownMenu>
+				</SidebarMenuItem>
+			</SidebarMenu>
+			<EditPlaylistSheet
+				open={editOpen}
+				onOpenChange={setEditOpen}
+				fieldIdPrefix={`switcher-${editTarget?.id ?? "none"}`}
+				playlist={
+					editTarget
+						? {
+								id: editTarget.id,
+								playlistName: editTarget.playlistName,
+								serverUrl: editTarget.serverUrl,
+								username: editTarget.username,
+							}
+						: null
+				}
+			/>
+			<DeletePlaylistDialog
+				open={deleteOpen}
+				onOpenChange={setDeleteOpen}
+				playlistId={deleteTarget?.id ?? ""}
+				playlistName={deleteTarget?.playlistName ?? ""}
+				serverUrl={deleteTarget?.serverUrl ?? ""}
+			/>
+		</>
 	);
 }
