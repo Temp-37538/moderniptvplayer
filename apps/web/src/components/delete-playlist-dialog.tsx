@@ -1,7 +1,6 @@
 "use client";
 
 import { deletePlaylistAction } from "@/server/forms";
-import { TriangleAlert } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
 import { toast } from "sonner";
@@ -12,7 +11,6 @@ import {
 	AlertDialogDescription,
 	AlertDialogFooter,
 	AlertDialogHeader,
-	AlertDialogMedia,
 	AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
@@ -79,9 +77,6 @@ export function DeletePlaylistDialog({
 			<AlertDialogContent>
 				<form onSubmit={handleSubmit} className="flex flex-col gap-6">
 					<AlertDialogHeader>
-						<AlertDialogMedia className="bg-destructive/10 text-destructive dark:bg-destructive/20 dark:text-destructive">
-							<TriangleAlert />
-						</AlertDialogMedia>
 						<AlertDialogTitle>Delete playlist ?</AlertDialogTitle>
 						<AlertDialogDescription className="break-words">
 							Permanently deletes "{playlistName}" ({serverUrl}) along with its
