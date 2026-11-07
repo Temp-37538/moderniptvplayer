@@ -278,6 +278,57 @@ export async function updateM3uPlaylist(
 	revalidatePath("/dashboard", "layout");
 }
 
+/**
+ * Turn an existing M3U row into Xtream without changing its id.
+ * Favorites, watch later, progress, and category preferences stay attached.
+ * The encrypted M3U URL is cleared so the credential query is not kept.
+ */
+export async function replaceM3uPlaylistWithXtream(
+	playlistId: string,
+	playlistName: string,
+	username: string,
+	serverUrl: string,
+	password: string,
+) {
+	const userId = await requireAuthenticatedUserId();
+	const normalized = normalizeServerUrl(serverUrl);
+	let updated = false;
+	try {
+		const result = await prisma.playlist.updateMany({
+			where: {
+				id: playlistId,
+				userId,
+				source: "M3U",
+			},
+			data: {
+				source: "XTREAM",
+				username,
+				serverUrl: normalized,
+				playlistName,
+				password: cryptr.encrypt(password),
+				m3uUrl: null,
+				identityKey: xtreamIdentityKey(normalized, username),
+			},
+		});
+		updated = result.count > 0;
+	} catch (error) {
+		if (isUniqueViolation(error)) {
+			throw new PlaylistAlreadyExistsError();
+		}
+		console.error(
+			"Error converting playlist:",
+			error instanceof Error ? error.name : "unknown",
+		);
+		throw new Error("Failed to update playlist");
+	}
+	if (!updated) {
+		throw new Error("Playlist not found");
+	}
+	forgetPlaylistCredentials(playlistId);
+	forgetM3uCatalog(playlistId);
+	revalidatePath("/dashboard", "layout");
+}
+
 export async function deletePlaylist(playlistId: string) {
 	const userId = await requireAuthenticatedUserId();
 

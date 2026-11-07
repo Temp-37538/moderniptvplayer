@@ -13,7 +13,9 @@ export type M3uPlaylistErrorCode =
 	| "network"
 	| "invalid"
 	| "too_large"
-	| "empty";
+	| "empty"
+	| "unsupported_url"
+	| "server_refused";
 
 export class M3uPlaylistError extends Error {
 	readonly code: M3uPlaylistErrorCode;
@@ -58,6 +60,128 @@ export function describeM3uFailure(error: unknown): string {
 		return error.message;
 	}
 	return "Unable to load this M3U playlist.";
+}
+
+export const M3U_HTTP_884_REFUSAL =
+	"The playlist server refused the M3U download (HTTP 884).";
+
+export function http884UnsupportedUrlMessage(): string {
+	return `${M3U_HTTP_884_REFUSAL} This address is not a get.php URL with a username and password, so Xtream login was not attempted. The credentials are not necessarily incorrect.`;
+}
+
+export function http884RejectedMessage(): string {
+	return `${M3U_HTTP_884_REFUSAL} Xtream login was not accepted. The credentials are not necessarily incorrect.`;
+}
+
+export function http884UnreachableMessage(): string {
+	return `${M3U_HTTP_884_REFUSAL} Xtream login could not be reached. This does not mean the credentials are incorrect.`;
+}
+
+export type XtreamPlaylistTarget = {
+	username: string;
+	password: string;
+	serverUrl: string;
+};
+
+const XTREAM_USERNAME_MAX = 128;
+const XTREAM_PASSWORD_MAX = 256;
+const XTREAM_SERVER_MAX = 2048;
+const GET_PHP_PATH = /^(.*)\/get\.php\/?$/i;
+
+/**
+ * Xtream M3U addresses look like `https://host:port/base/get.php?username&password`.
+ * The server base keeps the scheme, host, port, and any directory before get.php.
+ * Returns null when the URL cannot supply those Xtream parameters.
+ */
+export function xtreamTargetFromGetPhp(
+	input: string,
+): XtreamPlaylistTarget | null {
+	let url: URL;
+	try {
+		url = new URL(input.trim());
+	} catch {
+		return null;
+	}
+	if (url.protocol !== "http:" && url.protocol !== "https:") {
+		return null;
+	}
+	const path = GET_PHP_PATH.exec(url.pathname);
+	if (!path) {
+		return null;
+	}
+	const username = url.searchParams.get("username")?.trim() ?? "";
+	const password = url.searchParams.get("password")?.trim() ?? "";
+	if (
+		!username ||
+		!password ||
+		username.length > XTREAM_USERNAME_MAX ||
+		password.length > XTREAM_PASSWORD_MAX ||
+		/[\r\n]/.test(username) ||
+		/[\r\n]/.test(password)
+	) {
+		return null;
+	}
+
+	const server = new URL(url.origin);
+	const directory = path[1] ?? "";
+	server.pathname = directory === "" ? "/" : directory;
+	server.search = "";
+	server.hash = "";
+	server.username = "";
+	server.password = "";
+	const serverUrl = server.toString().replace(/\/+$/, "");
+	if (!serverUrl || serverUrl.length > XTREAM_SERVER_MAX) {
+		return null;
+	}
+	return { username, password, serverUrl };
+}
+
+export type XtreamLoginCheck = {
+	ok: boolean;
+	error?: "network";
+};
+
+export type M3uImportDecision =
+	| { mode: "m3u"; parsed: ParsedM3u }
+	| { mode: "xtream"; target: XtreamPlaylistTarget };
+
+/**
+ * HTTP 884 ignores the body and tries Xtream only for a get.php URL.
+ * Any other status keeps the normal M3U result, including a get.php URL
+ * that actually returned a playlist.
+ */
+export async function decideM3uImport(input: {
+	storedUrl: string;
+	status: number;
+	body: string;
+	validateXtream: (target: XtreamPlaylistTarget) => Promise<XtreamLoginCheck>;
+}): Promise<M3uImportDecision> {
+	if (input.status === 884) {
+		const target = xtreamTargetFromGetPhp(input.storedUrl);
+		if (!target) {
+			throw new M3uPlaylistError(
+				"unsupported_url",
+				http884UnsupportedUrlMessage(),
+			);
+		}
+		const login = await input.validateXtream(target);
+		if (login.error === "network") {
+			throw new M3uPlaylistError("network", http884UnreachableMessage());
+		}
+		if (!login.ok) {
+			throw new M3uPlaylistError("server_refused", http884RejectedMessage());
+		}
+		return { mode: "xtream", target };
+	}
+
+	if (input.status < 200 || input.status >= 300) {
+		throw new M3uPlaylistError(
+			"invalid",
+			"This URL did not return a usable M3U playlist.",
+		);
+	}
+
+	return { mode: "m3u", parsed: parseM3uPlaylist(input.body) };
 }
 
 export function parseM3uUrl(input: string): M3uUrlParts {

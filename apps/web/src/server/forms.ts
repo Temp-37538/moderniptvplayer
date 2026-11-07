@@ -10,8 +10,14 @@ import { z } from "zod";
 import { ACTIVE_PLAYLIST_COOKIE } from "./active-playlist";
 import { requireAuthenticatedUserId } from "./auth-utils";
 import { getPlaylistCacheTags } from "./cached-content";
-import { fetchM3uPlaylist, forgetM3uCatalog } from "./m3u-catalog";
-import { describeM3uFailure, M3uPlaylistError, parseM3uUrl } from "./m3u";
+import { forgetM3uCatalog, retrieveSubmittedM3u } from "./m3u-catalog";
+import {
+	decideM3uImport,
+	describeM3uFailure,
+	M3uPlaylistError,
+	parseM3uUrl,
+	type XtreamPlaylistTarget,
+} from "./m3u";
 import {
 	addM3uPlaylist,
 	addPlaylist,
@@ -21,6 +27,7 @@ import {
 	isPlaylistValid,
 	normalizeServerUrl,
 	PlaylistAlreadyExistsError,
+	replaceM3uPlaylistWithXtream,
 	updateM3uPlaylist,
 	updatePlaylist,
 } from "./queries";
@@ -189,7 +196,34 @@ function m3uFailureState(
 	};
 }
 
-async function importM3uPlaylist(rawUrl: string, rawName: string) {
+function playlistLabel(rawName: string, serverLike: string) {
+	const trimmed = rawName.trim().slice(0, 100);
+	if (trimmed) {
+		return trimmed;
+	}
+	try {
+		return new URL(serverLike).host.slice(0, 100) || "M3U playlist";
+	} catch {
+		return "M3U playlist";
+	}
+}
+
+type SubmittedPlaylist =
+	| {
+			mode: "m3u";
+			parts: ReturnType<typeof parseM3uUrl>;
+			playlistName: string;
+	  }
+	| {
+			mode: "xtream";
+			target: XtreamPlaylistTarget;
+			playlistName: string;
+	  };
+
+async function importSubmittedPlaylist(
+	rawUrl: string,
+	rawName: string,
+): Promise<SubmittedPlaylist> {
 	let parts: ReturnType<typeof parseM3uUrl>;
 	try {
 		parts = parseM3uUrl(rawUrl);
@@ -198,12 +232,32 @@ async function importM3uPlaylist(rawUrl: string, rawName: string) {
 			? error
 			: new M3uPlaylistError("invalid_url", "Enter an http(s) playlist URL.");
 	}
-	await fetchM3uPlaylist(parts.storedUrl);
-	const playlistName =
-		rawName.trim().slice(0, 100) ||
-		parts.origin.replace(/^https?:\/\//, "").slice(0, 100) ||
-		"M3U playlist";
-	return { parts, playlistName };
+	const retrieved = await retrieveSubmittedM3u(parts.storedUrl);
+	const decision = await decideM3uImport({
+		storedUrl: parts.storedUrl,
+		status: retrieved.status,
+		body: retrieved.body,
+		validateXtream: async (target) => {
+			const valid = await isPlaylistValid(
+				target.username,
+				target.serverUrl,
+				target.password,
+			);
+			return { ok: valid.ok, error: valid.error };
+		},
+	});
+	if (decision.mode === "xtream") {
+		return {
+			mode: "xtream",
+			target: decision.target,
+			playlistName: playlistLabel(rawName, decision.target.serverUrl),
+		};
+	}
+	return {
+		mode: "m3u",
+		parts,
+		playlistName: playlistLabel(rawName, parts.origin),
+	};
 }
 
 export async function addM3uPlaylistAction(
@@ -242,11 +296,42 @@ export async function addM3uPlaylistAction(
 		);
 	}
 
-	let imported: Awaited<ReturnType<typeof importM3uPlaylist>>;
+	let imported: SubmittedPlaylist;
 	try {
-		imported = await importM3uPlaylist(parsedUrl.data, parsedName.data);
+		imported = await importSubmittedPlaylist(parsedUrl.data, parsedName.data);
 	} catch (error) {
 		return m3uFailureState(inputs, describeM3uFailure(error));
+	}
+
+	if (imported.mode === "xtream") {
+		if (
+			await doesPlaylistExist(
+				imported.target.username,
+				imported.target.serverUrl,
+			)
+		) {
+			return m3uFailureState(inputs, "You have already added this playlist.");
+		}
+		try {
+			const playlist = await addPlaylist(
+				imported.target.username,
+				imported.target.serverUrl,
+				imported.playlistName,
+				imported.target.password,
+			);
+			return {
+				errors: {},
+				success: true,
+				inputs: { m3uUrl: "", playlistName: imported.playlistName },
+				message: "Playlist added successfully !",
+				playlistId: playlist.id,
+			};
+		} catch (error) {
+			if (error instanceof PlaylistAlreadyExistsError) {
+				return m3uFailureState(inputs, "You have already added this playlist.");
+			}
+			throw error;
+		}
 	}
 
 	if (await doesM3uPlaylistExist(imported.parts.identityKey)) {
@@ -602,11 +687,49 @@ export async function updateM3uPlaylistAction(
 		);
 	}
 
-	let imported: Awaited<ReturnType<typeof importM3uPlaylist>>;
+	let imported: SubmittedPlaylist;
 	try {
-		imported = await importM3uPlaylist(rawUrl, parsedName.data);
+		imported = await importSubmittedPlaylist(rawUrl, parsedName.data);
 	} catch (error) {
 		return m3uFailureState(inputs, describeM3uFailure(error));
+	}
+
+	if (imported.mode === "xtream") {
+		if (
+			await doesPlaylistExist(
+				imported.target.username,
+				imported.target.serverUrl,
+				playlistId,
+			)
+		) {
+			return m3uFailureState(inputs, "You have already added this playlist.");
+		}
+		try {
+			await replaceM3uPlaylistWithXtream(
+				playlistId,
+				imported.playlistName,
+				imported.target.username,
+				imported.target.serverUrl,
+				imported.target.password,
+			);
+		} catch (error) {
+			if (error instanceof PlaylistAlreadyExistsError) {
+				return m3uFailureState(inputs, "You have already added this playlist.");
+			}
+			if (error instanceof Error && error.message === "Playlist not found") {
+				return m3uFailureState(inputs, "Playlist not found.", "playlistName");
+			}
+			throw error;
+		}
+		forgetPlaylistStatus(playlistId);
+		expirePlaylistCacheTags(playlistId);
+		return {
+			errors: {},
+			success: true,
+			inputs: { m3uUrl: "", playlistName: imported.playlistName },
+			message: "Playlist updated.",
+			playlistId,
+		};
 	}
 
 	if (

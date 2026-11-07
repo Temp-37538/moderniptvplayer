@@ -12,6 +12,7 @@ import {
 	findM3uStream,
 	type M3uKind,
 	M3uPlaylistError,
+	M3U_HTTP_884_REFUSAL,
 	M3U_MAX_BYTES,
 	type ParsedM3u,
 	pageSlice,
@@ -22,10 +23,8 @@ import {
 const EMPTY_DATE = new Date(0);
 import {
 	HttpResponseTooLargeError,
-	HttpTimeoutError,
 	safeFetch,
 	stripUrlUserinfo,
-	UnsafeUrlError,
 } from "./safe-http";
 
 const CATALOG_TTL_MS = 60_000;
@@ -47,12 +46,11 @@ export function forgetM3uCatalog(playlistId: string) {
 	}
 }
 
-export async function fetchM3uPlaylist(storedUrl: string): Promise<ParsedM3u> {
+async function requestM3u(storedUrl: string) {
 	const parts = parseM3uUrl(storedUrl);
 	const target = stripUrlUserinfo(parts.storedUrl);
-	let response: Awaited<ReturnType<typeof safeFetch>>;
 	try {
-		response = await safeFetch(target.url, {
+		return await safeFetch(target.url, {
 			headers: {
 				accept: "application/vnd.apple.mpegurl, audio/mpegurl, text/plain, */*",
 				...target.headers,
@@ -68,28 +66,37 @@ export async function fetchM3uPlaylist(storedUrl: string): Promise<ParsedM3u> {
 				"This M3U playlist is too large to import.",
 			);
 		}
-		if (
-			error instanceof UnsafeUrlError ||
-			error instanceof HttpTimeoutError ||
-			error instanceof Error
-		) {
-			console.warn(
-				"[m3u] fetch failed:",
-				error instanceof Error ? error.name : "unknown",
-			);
-		}
+		console.warn(
+			"[m3u] fetch failed:",
+			error instanceof Error ? error.name : "unknown",
+		);
 		throw new M3uPlaylistError("network", "Unable to reach the playlist URL.");
 	}
+}
 
+export async function fetchM3uPlaylist(storedUrl: string): Promise<ParsedM3u> {
+	const response = await requestM3u(storedUrl);
+	if (response.status === 884) {
+		throw new M3uPlaylistError("server_refused", M3U_HTTP_884_REFUSAL);
+	}
 	if (!response.ok) {
 		throw new M3uPlaylistError(
 			"invalid",
 			"This URL did not return a usable M3U playlist.",
 		);
 	}
+	return parseM3uPlaylist(response.body.toString("utf8"));
+}
 
-	const text = response.body.toString("utf8");
-	return parseM3uPlaylist(text);
+/** Status and body for an add or edit. HTTP 884 does not expose the body. */
+export async function retrieveSubmittedM3u(
+	storedUrl: string,
+): Promise<{ status: number; body: string }> {
+	const response = await requestM3u(storedUrl);
+	return {
+		status: response.status,
+		body: response.status === 884 ? "" : response.body.toString("utf8"),
+	};
 }
 
 export async function readM3uCatalog(playlist: {
