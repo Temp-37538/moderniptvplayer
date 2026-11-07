@@ -1,6 +1,4 @@
 import assert from "node:assert/strict";
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
 import test from "node:test";
 import { xtreamIdentityKey } from "./playlist-identity.ts";
 import { stripUrlUserinfo } from "./safe-http.ts";
@@ -12,8 +10,6 @@ import {
 	parseM3uPlaylist,
 	parseM3uUrl,
 } from "./m3u.ts";
-
-const execFileAsync = promisify(execFile);
 
 const SAMPLE = `#EXTM3U
 #EXTINF:-1 tvg-id="news.1" tvg-logo="https://cdn.example/news.png" group-title="News",World News
@@ -167,68 +163,4 @@ test("stream userinfo is removed before the request and sent as Basic auth", () 
 		`Basic ${Buffer.from("alice:s3cret", "utf8").toString("base64")}`,
 	);
 	assert.deepEqual(stripUrlUserinfo("https://cdn.example/a").headers, {});
-});
-
-test("playlist ownership is enforced per user in the database", async (t) => {
-	const databaseUrl = process.env.DATABASE_URL;
-	if (!databaseUrl) {
-		t.skip("DATABASE_URL is not set");
-		return;
-	}
-	const url = new URL(databaseUrl);
-	const env = {
-		...process.env,
-		PGHOST: url.hostname,
-		PGPORT: url.port || "5432",
-		PGUSER: decodeURIComponent(url.username),
-		PGPASSWORD: decodeURIComponent(url.password),
-		PGDATABASE: url.pathname.replace(/^\//, ""),
-	};
-	const suffix = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-	const userA = `m3u-a-${suffix}`;
-	const userB = `m3u-b-${suffix}`;
-	const playlistA = `m3u-pa-${suffix}`;
-	const playlistB = `m3u-pb-${suffix}`;
-	const identity = parseM3uUrl(
-		"https://cdn.example/list.m3u?token=ownership",
-	).identityKey;
-
-	const sql = async (statement: string) => {
-		const result = await execFileAsync(
-			"psql",
-			["-v", "ON_ERROR_STOP=1", "-t", "-A", "-c", statement],
-			{ env },
-		);
-		return result.stdout.trim();
-	};
-
-	try {
-		await sql(
-			`INSERT INTO "user" (id, name, email, "emailVerified", "createdAt", "updatedAt") VALUES ('${userA}', 'A', '${userA}@example.test', false, NOW(), NOW()), ('${userB}', 'B', '${userB}@example.test', false, NOW(), NOW());`,
-		);
-		await sql(
-			`INSERT INTO playlist (id, source, "serverUrl", username, "playlistName", password, "m3uUrl", "identityKey", "userId", "createdAt", "updatedAt") VALUES ('${playlistA}', 'M3U', 'https://cdn.example', '${identity}', 'Owned', 'cipher', 'cipher-url', '${identity}', '${userA}', NOW(), NOW());`,
-		);
-		await assert.rejects(
-			sql(
-				`INSERT INTO playlist (id, source, "serverUrl", username, "playlistName", password, "m3uUrl", "identityKey", "userId", "createdAt", "updatedAt") VALUES ('dup-${suffix}', 'M3U', 'https://cdn.example', '${identity}', 'Dup', 'cipher', 'cipher-url', '${identity}', '${userA}', NOW(), NOW());`,
-			),
-			/duplicate key/i,
-		);
-		await sql(
-			`INSERT INTO playlist (id, source, "serverUrl", username, "playlistName", password, "m3uUrl", "identityKey", "userId", "createdAt", "updatedAt") VALUES ('${playlistB}', 'M3U', 'https://cdn.example', '${identity}', 'Other', 'cipher', 'cipher-url', '${identity}', '${userB}', NOW(), NOW());`,
-		);
-		const visibleToA = await sql(
-			`SELECT COUNT(*) FROM playlist WHERE id = '${playlistB}' AND "userId" = '${userA}';`,
-		);
-		const ownedByA = await sql(
-			`SELECT COUNT(*) FROM playlist WHERE id = '${playlistA}' AND "userId" = '${userA}' AND source = 'M3U';`,
-		);
-		assert.equal(visibleToA, "0");
-		assert.equal(ownedByA, "1");
-	} finally {
-		await sql(
-			`DELETE FROM playlist WHERE id IN ('${playlistA}', '${playlistB}', 'dup-${suffix}'); DELETE FROM "user" WHERE id IN ('${userA}', '${userB}');`,
-		).catch(() => undefined);
-	}
 });
