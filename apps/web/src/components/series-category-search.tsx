@@ -53,6 +53,7 @@ function CategorySearchBase({
 	const [adultLocked, setAdultLocked] = useState(lockAdultCategories);
 	const [pendingId, setPendingId] = useState<string | null>(null);
 	const [lockPending, setLockPending] = useState(false);
+	const [hiddenOpen, setHiddenOpen] = useState(false);
 
 	useEffect(() => {
 		setQuery(searchParams.get("q") ?? "");
@@ -157,7 +158,7 @@ function CategorySearchBase({
 	return (
 		<div className="h-full flex flex-col gap-3 md:gap-4  scrollbar-thin scrollbar-thumb-rounded-lg scrollbar-thumb-border/50 scrollbar-track-border/20">
 			<div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-				<div className="flex items-center gap-2.5 md:gap-3 min-w-0">
+				<div className="flex items-center justify-between gap-2.5 md:gap-3 min-w-0">
 					<div className="min-w-0">
 						<h1 className="text-lg md:text-2xl font-bold tracking-tight truncate">
 							{title}
@@ -166,6 +167,19 @@ function CategorySearchBase({
 							{playlistName} {filteredCategories.length} categories
 						</p>
 					</div>
+					<label
+						htmlFor="adult-category-lock-mobile"
+						className="flex md:hidden items-center gap-2 text-xs text-muted-foreground shrink-0"
+					>
+						<Switch
+							id="adult-category-lock-mobile"
+							size="sm"
+							checked={adultLocked}
+							disabled={lockPending}
+							onCheckedChange={onLockChange}
+						/>
+						Lock adult categories
+					</label>
 				</div>
 				<div className="flex flex-col gap-2 md:items-end">
 					<SearchForm
@@ -192,7 +206,7 @@ function CategorySearchBase({
 					/>
 					<label
 						htmlFor="adult-category-lock"
-						className="flex items-center gap-2 text-xs text-muted-foreground"
+						className="hidden md:flex items-center gap-2 text-xs text-muted-foreground"
 					>
 						<Switch
 							id="adult-category-lock"
@@ -224,7 +238,7 @@ function CategorySearchBase({
 											: `Pin ${category.name}`
 									}
 									disabled={pendingId === category.id}
-									className="inline-flex size-7 items-center justify-center rounded-md bg-background/80 text-muted-foreground hover:text-foreground disabled:opacity-50"
+									className="inline-flex size-7 items-center justify-center rounded-md bg-background/80 text-muted-foreground hover:text-foreground disabled:opacity-50 cursor-pointer"
 									onClick={() => onTogglePin(category)}
 								>
 									<Pin
@@ -235,7 +249,7 @@ function CategorySearchBase({
 									type="button"
 									aria-label={`Hide ${category.name}`}
 									disabled={pendingId === category.id}
-									className="inline-flex size-7 items-center justify-center rounded-md bg-background/80 text-muted-foreground hover:text-foreground disabled:opacity-50"
+									className="inline-flex size-7 items-center justify-center rounded-md bg-background/80 text-muted-foreground hover:text-foreground disabled:opacity-50 cursor-pointer"
 									onClick={() => onHide(category)}
 								>
 									<EyeOff className="size-3.5" />
@@ -243,11 +257,8 @@ function CategorySearchBase({
 							</div>
 							<Link
 								href={buildCategoryHref(category.id)}
-								className="flex flex-col items-center gap-2 md:gap-3 p-3 pt-9 md:p-5 md:pt-10"
+								className="flex flex-col items-center justify-center gap-2 md:gap-3 p-3 pt-9 pb-10 md:p-5 md:pt-10 md:pb-12"
 							>
-								<div className="flex items-center justify-center size-8 md:size-10 rounded-lg bg-muted/50 text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-colors duration-200">
-									<FolderOpen className="size-4 md:size-5" />
-								</div>
 								<span className="text-xs md:text-sm font-medium text-center leading-tight line-clamp-2">
 									{category.name}
 								</span>
@@ -263,33 +274,53 @@ function CategorySearchBase({
 					</div>
 				)}
 				{hidden.length > 0 && (
-					<details className="mt-4 rounded-xl border border-border/50 bg-card px-4 py-3">
-						<summary className="cursor-pointer text-sm font-medium">
-							Hidden ({hidden.length})
-						</summary>
-						<ul className="mt-3 flex flex-col gap-2">
-							{hidden.map((category) => (
-								<li
-									key={category.id}
-									className="flex items-center justify-between gap-3 text-sm"
-								>
-									<span className="min-w-0 truncate text-muted-foreground">
-										{category.name}
-									</span>
-									<button
-										type="button"
-										aria-label={`Show ${category.name}`}
-										disabled={pendingId === category.id}
-										className="inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-xs hover:bg-muted disabled:opacity-50"
-										onClick={() => onUnhide(category)}
-									>
-										<Eye className="size-3.5" />
-										Show
-									</button>
-								</li>
-							))}
-						</ul>
-					</details>
+					<div className="mt-4 rounded-xl border border-border/50 bg-card px-4 py-3">
+						<button
+							type="button"
+							className="flex w-full cursor-pointer items-center justify-between text-sm font-medium"
+							onClick={() => setHiddenOpen((open) => !open)}
+							aria-expanded={hiddenOpen}
+						>
+							<span>Hidden ({hidden.length})</span>
+							<span
+								className={`transition-transform duration-200 ${hiddenOpen ? "rotate-180" : ""}`}
+							>
+								▾
+							</span>
+						</button>
+						<div
+							className={`grid transition-all duration-200 ease-out ${
+								hiddenOpen
+									? "grid-rows-[1fr] opacity-100"
+									: "grid-rows-[0fr] opacity-0"
+							}`}
+						>
+							<div className="overflow-hidden">
+								<ul className="mt-3 flex flex-col gap-2">
+									{hidden.map((category) => (
+										<li
+											key={category.id}
+											className="flex items-center justify-between gap-3 text-sm"
+										>
+											<span className="min-w-0 truncate text-muted-foreground">
+												{category.name}
+											</span>
+											<button
+												type="button"
+												aria-label={`Show ${category.name}`}
+												disabled={pendingId === category.id}
+												className="inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-xs hover:bg-muted disabled:opacity-50 cursor-pointer"
+												onClick={() => onUnhide(category)}
+											>
+												<Eye className="size-3.5" />
+												Show
+											</button>
+										</li>
+									))}
+								</ul>
+							</div>
+						</div>
+					</div>
 				)}
 			</div>
 		</div>

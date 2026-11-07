@@ -27,7 +27,7 @@ import {
 	stripUrlUserinfo,
 } from "./safe-http";
 
-const CATALOG_TTL_MS = 60_000;
+const CATALOG_TTL_MS = 600_000;
 const CATALOG_MAX_ENTRIES = 8;
 
 type CatalogCacheEntry = {

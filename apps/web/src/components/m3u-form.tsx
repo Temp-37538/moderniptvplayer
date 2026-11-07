@@ -46,6 +46,7 @@ export function M3UForm() {
 					<Input
 						id="m3u-url"
 						name="m3uUrl"
+						key={inputs?.m3uUrl ?? ""}
 						required
 						maxLength={4096}
 						defaultValue={inputs?.m3uUrl ?? ""}
@@ -74,6 +75,7 @@ export function M3UForm() {
 					<Input
 						id="m3u-playlist-name"
 						name="playlistName"
+						key={inputs?.playlistName ?? ""}
 						maxLength={100}
 						defaultValue={inputs?.playlistName ?? ""}
 						placeholder="My Playlist"

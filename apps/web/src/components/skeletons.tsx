@@ -101,23 +101,30 @@ export function ChannelListSkeletonNoSearchBar({
 export function CategoryGridSkeleton({ count = 35 }: { count?: number }) {
 	return (
 		<div className="h-full flex flex-col gap-4">
-			<div className="flex items-center justify-between">
-				<div className="flex items-center gap-3">
+			<div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+				<div className="flex items-center justify-between gap-2.5 md:gap-3 min-w-0">
 					<div className="space-y-2">
 						<Skeleton className="h-7 w-22 md:w-32" />
 						<Skeleton className="h-4 w-22 md:w-48 " />
 					</div>
+					<Skeleton className="h-5 w-28 md:hidden rounded-md shrink-0" />
 				</div>
-				<Skeleton className="h-8 w-40 md:w-70 rounded-md" />
+				<div className="flex flex-col gap-2 md:items-end">
+					<Skeleton className="h-8 w-full md:w-70 rounded-md" />
+					<Skeleton className="hidden md:block h-4 w-40 rounded-md" />
+				</div>
 			</div>
 			<div className="flex-1 overflow-y-auto scrollbar-none">
 				<div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
 					{Array.from({ length: count }).map((_, i) => (
 						<div
 							key={i}
-							className="flex flex-col items-center gap-3 rounded-xl border border-border/50 bg-card p-5"
+							className="relative flex flex-col items-center justify-center rounded-xl border border-border/50 bg-card p-3 pt-9 pb-10 md:p-5 md:pt-10 md:pb-12"
 						>
-							<Skeleton className="size-10 rounded-lg" />
+							<div className="absolute top-2 right-2 z-10 flex gap-1">
+								<Skeleton className="size-7 rounded-md" />
+								<Skeleton className="size-7 rounded-md" />
+							</div>
 							<Skeleton className="h-4 w-24 rounded" />
 						</div>
 					))}
@@ -302,12 +309,23 @@ export function ShowDetailSkeleton() {
 }
 
 export function ContinueWatchingSkeleton({ count = 6 }: { count?: number }) {
+	const visibility = [
+		"",
+		"",
+		"hidden sm:block",
+		"hidden sm:block",
+		"hidden lg:block",
+		"hidden lg:block",
+	];
 	return (
 		<section className="mb-8">
 			<Skeleton className="mb-3 h-6 w-40" />
 			<div className="flex gap-4 overflow-x-auto pb-2 scrollbar-none">
 				{Array.from({ length: count }).map((_, i) => (
-					<div key={i} className="w-36 shrink-0 space-y-2">
+					<div
+						key={i}
+						className={`w-36 shrink-0 space-y-2 ${visibility[i] ?? ""}`}
+					>
 						<Skeleton className="aspect-2/3 w-full rounded-lg" />
 						<Skeleton className="h-4 w-full" />
 						<Skeleton className="h-4 w-2/3" />

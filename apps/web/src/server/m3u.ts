@@ -70,7 +70,7 @@ export function http884UnsupportedUrlMessage(): string {
 }
 
 export function http884RejectedMessage(): string {
-	return `${M3U_HTTP_884_REFUSAL} Xtream login was not accepted. The credentials are not necessarily incorrect.`;
+	return "The server rejected the Xtream login.";
 }
 
 export function http884UnreachableMessage(): string {
