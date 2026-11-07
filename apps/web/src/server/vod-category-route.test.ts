@@ -288,15 +288,30 @@ for (const item of playbackKinds) {
 		assertNoUpstream(state);
 	});
 
-	test(`forged category is denied for ${item.article} ${item.label} when every category is visible`, async () => {
+	test(`${item.label} is not looked up when nothing is hidden or locked`, async () => {
 		const state = installState();
 		useDetail(state, item, [VISIBLE]);
 
-		const { response, text } = await playItem(state, item, OTHER);
+		const { response } = await playItem(state, item, OTHER);
 
-		assertDenied(response, text);
+		assert.equal(response.status, 200);
+		assert.equal(item.loads(state), 0);
 		assert.equal(state.catalogLoads, 0);
-		assertNoUpstream(state);
+		assert.equal(state.proxyCalls.length, 1);
+	});
+
+	test(`a lookup failure does not stop ${item.article} ${item.label} when nothing is hidden or locked`, async () => {
+		const state = installState();
+		item.assign(state, "throw");
+		state.findCatalog = () => {
+			throw new Error("listing unavailable");
+		};
+
+		const { response } = await playItem(state, item, VISIBLE);
+
+		assert.equal(response.status, 200);
+		assert.equal(state.catalogLoads, 0);
+		assert.equal(state.proxyCalls.length, 1);
 	});
 
 	test(`cross-listed ${item.label} plays through the visible category only`, async () => {
@@ -379,6 +394,8 @@ for (const item of playbackKinds) {
 
 	test(`${item.label} without detail categories uses one category lookup`, async () => {
 		const state = installState();
+		state.hiddenIds = new Set([HIDDEN]);
+		restrict(state);
 		useDetail(state, item, []);
 		state.findCatalog = () => ({
 			id: item.membershipId,
@@ -433,6 +450,8 @@ for (const item of playbackKinds) {
 
 test("a movie detail failure uses the category lookup and fails closed", async () => {
 	const state = installState();
+	state.hiddenIds = new Set([HIDDEN]);
+	restrict(state);
 	state.movie = "throw";
 	state.findCatalog = () => ({ id: MOVIE, categoryIds: [VISIBLE] });
 
@@ -442,6 +461,8 @@ test("a movie detail failure uses the category lookup and fails closed", async (
 	assert.equal(state.proxyCalls.length, 1);
 
 	const deniedState = installState();
+	deniedState.hiddenIds = new Set([HIDDEN]);
+	restrict(deniedState);
 	deniedState.movie = "throw";
 	deniedState.findCatalog = () => {
 		throw new Error("listing unavailable");
@@ -453,6 +474,8 @@ test("a movie detail failure uses the category lookup and fails closed", async (
 
 test("episode that is not in the requested show is denied", async () => {
 	const state = installState();
+	state.hiddenIds = new Set([HIDDEN]);
+	restrict(state);
 	state.show = {
 		id: SHOW,
 		categoryIds: [VISIBLE],
@@ -472,6 +495,8 @@ test("episode that is not in the requested show is denied", async () => {
 
 test("episode category without a show id is denied", async () => {
 	const state = installState();
+	state.hiddenIds = new Set([HIDDEN]);
+	restrict(state);
 	state.show = playbackKinds[1]?.detail([VISIBLE]);
 
 	const { response, text } = await play(state, {
@@ -486,6 +511,8 @@ test("episode category without a show id is denied", async () => {
 
 test("episode playback stops when the show detail cannot be read", async () => {
 	const state = installState();
+	state.hiddenIds = new Set([HIDDEN]);
+	restrict(state);
 	state.show = "throw";
 	state.findCatalog = () => ({ id: SHOW, categoryIds: [VISIBLE] });
 
@@ -553,6 +580,8 @@ test("unscoped playback without a category stays available", async () => {
 test("M3U playback keeps category membership and does not build an Xtream URL", async () => {
 	const state = installState();
 	state.playlist = playlist("M3U");
+	state.hiddenIds = new Set([HIDDEN]);
+	restrict(state);
 	state.movie = playbackKinds[0]?.detail([VISIBLE]);
 	state.m3uTarget = {
 		url: "http://cdn.example/heat.mp4",
