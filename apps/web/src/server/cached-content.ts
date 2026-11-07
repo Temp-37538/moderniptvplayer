@@ -9,15 +9,14 @@ import type {
 import { cacheLife, cacheTag } from "next/cache";
 import { requireAuthenticatedUserId } from "@/server/auth-utils";
 import type { CategoryKind } from "@/server/category-preference-policy";
+import { M3U_MAX_ENTRIES } from "@/server/m3u";
 import {
 	m3uCategories,
 	m3uChannel,
 	m3uChannels,
 	m3uMovie,
-	m3uMovieInCategory,
 	m3uMovies,
 	m3uShow,
-	m3uShowInCategory,
 	m3uShows,
 } from "@/server/m3u-catalog";
 import {
@@ -67,12 +66,6 @@ const getMoviesCacheTag = (
 const getMovieCacheTag = (playlistId: string, movieId: string) =>
 	`playlist-${playlistId}-movie-${movieId}`;
 
-const getMovieInCategoryCacheTag = (
-	playlistId: string,
-	categoryId: string,
-	movieId: string,
-) => `playlist-${playlistId}-movie-${movieId}-category-${categoryId}`;
-
 const getShowsCacheTag = (
 	playlistId: string,
 	categoryId: string,
@@ -81,12 +74,6 @@ const getShowsCacheTag = (
 
 const getShowCacheTag = (playlistId: string, showId: string) =>
 	`playlist-${playlistId}-show-${showId}`;
-
-const getShowInCategoryCacheTag = (
-	playlistId: string,
-	categoryId: string,
-	showId: string,
-) => `playlist-${playlistId}-show-${showId}-category-${categoryId}`;
 
 const getPlaylistParentTag = (playlistId: string) => `playlist-${playlistId}`;
 
@@ -271,26 +258,6 @@ async function loadMovie(
 	throw lastError;
 }
 
-async function loadMovieInCategory(
-	userId: string,
-	playlistId: string,
-	categoryId: string,
-	movieId: string,
-): Promise<StandardXtreamMovieListing | null> {
-	"use cache";
-	cacheLife("hours");
-	cacheTag(getMovieInCategoryCacheTag(playlistId, categoryId, movieId));
-	cacheTag(getPlaylistParentTag(playlistId));
-	const playlist = await resolvePlaylist(userId, playlistId);
-	if (playlist.source === "M3U") {
-		return m3uMovieInCategory(playlist, categoryId, movieId);
-	}
-	return (await createXtreamClient(playlist).getMovieInCategory({
-		categoryId,
-		movieId,
-	})) as StandardXtreamMovieListing | null;
-}
-
 async function loadShows(
 	userId: string,
 	playlistId: string,
@@ -325,24 +292,38 @@ async function loadShow(userId: string, playlistId: string, showId: string) {
 	return (await getShowSafe(playlist, showId)) as StandardXtreamShow;
 }
 
-async function loadShowInCategory(
+type CatalogKind = Exclude<CategoryKind, "channel">;
+
+/**
+ * One full category list, then the matching row. `getMovies` / `getShows`
+ * without a page already return the whole Xtream category. M3U listings are
+ * capped by the catalog itself, so one slice covers every entry in it.
+ */
+async function loadCatalogMembership(
 	userId: string,
 	playlistId: string,
+	kind: CatalogKind,
 	categoryId: string,
-	showId: string,
-): Promise<Omit<StandardXtreamShow, "seasons"> | null> {
+	itemId: string,
+) {
 	"use cache";
 	cacheLife("hours");
-	cacheTag(getShowInCategoryCacheTag(playlistId, categoryId, showId));
+	cacheTag(`playlist-${playlistId}-${kind}-${itemId}-category-${categoryId}`);
 	cacheTag(getPlaylistParentTag(playlistId));
 	const playlist = await resolvePlaylist(userId, playlistId);
-	if (playlist.source === "M3U") {
-		return m3uShowInCategory(playlist, categoryId, showId);
-	}
-	return (await createXtreamClient(playlist).getShowInCategory({
-		categoryId,
-		showId,
-	})) as Omit<StandardXtreamShow, "seasons"> | null;
+	const items =
+		playlist.source === "M3U"
+			? kind === "movie"
+				? await m3uMovies(playlist, categoryId, 1, M3U_MAX_ENTRIES)
+				: await m3uShows(playlist, categoryId, 1, M3U_MAX_ENTRIES)
+			: kind === "movie"
+				? ((await createXtreamClient(playlist).getMovies({
+						categoryId,
+					})) as Array<{ id?: string }>)
+				: ((await createXtreamClient(playlist).getShows({
+						categoryId,
+					})) as Array<{ id?: string }>);
+	return items.find((item) => item.id === itemId) ?? null;
 }
 
 export async function getCachedMovieCategories(
@@ -415,18 +396,6 @@ export async function getCachedMovie(
 	return loadMovie(await requireAuthenticatedUserId(), playlistId, movieId);
 }
 
-export async function getCachedMovieInCategory(
-	playlistId: string,
-	categoryId: string,
-	movieId: string,
-): Promise<StandardXtreamMovieListing | null> {
-	const userId = await requireAuthenticatedUserId();
-	if (!(await categoryContentAllowed(playlistId, "movie", categoryId))) {
-		return null;
-	}
-	return loadMovieInCategory(userId, playlistId, categoryId, movieId);
-}
-
 export async function getCachedShows(
 	playlistId: string,
 	_playlist: LegacyPlaylistArgument | undefined,
@@ -449,14 +418,15 @@ export async function getCachedShow(
 	return loadShow(await requireAuthenticatedUserId(), playlistId, showId);
 }
 
-export async function getCachedShowInCategory(
+export async function getCachedCatalogMembership(
 	playlistId: string,
+	kind: CatalogKind,
 	categoryId: string,
-	showId: string,
-): Promise<Omit<StandardXtreamShow, "seasons"> | null> {
+	itemId: string,
+) {
 	const userId = await requireAuthenticatedUserId();
-	if (!(await categoryContentAllowed(playlistId, "series", categoryId))) {
+	if (!(await categoryContentAllowed(playlistId, kind, categoryId))) {
 		return null;
 	}
-	return loadShowInCategory(userId, playlistId, categoryId, showId);
+	return loadCatalogMembership(userId, playlistId, kind, categoryId, itemId);
 }

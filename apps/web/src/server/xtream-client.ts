@@ -113,11 +113,6 @@ const toRecord = (value: unknown): RawRecord =>
 const toId = (value: unknown) =>
 	typeof value === "string" || typeof value === "number" ? String(value) : "";
 
-const listedMovieId = (item: RawRecord) =>
-	toId(item.stream_id) || toId(item.id);
-
-const listedShowId = (item: RawRecord) => toId(item.series_id) || toId(item.id);
-
 const enc = encodeURIComponent;
 
 export class SafeXtream {
@@ -293,17 +288,6 @@ export class SafeXtream {
 		);
 	}
 
-	#withMovieUrl(item: RawRecord): RawRecord {
-		return {
-			...item,
-			url: this.generateStreamUrl({
-				type: "movie",
-				streamId: listedMovieId(item),
-				extension: toId(item.container_extension) || "mp4",
-			}),
-		};
-	}
-
 	#withChannelUrl(item: RawRecord): RawRecord {
 		return {
 			...item,
@@ -347,30 +331,15 @@ export class SafeXtream {
 	async getMovies({ categoryId, page, limit }: ListOptions = {}) {
 		await this.#ensureProfile();
 		const all = await this.#getList("get_vod_streams", categoryId);
-		const items = this.#paginate(all, page, limit).map((item) =>
-			this.#withMovieUrl(item),
-		);
+		const items = this.#paginate(all, page, limit).map((item) => ({
+			...item,
+			url: this.generateStreamUrl({
+				type: "movie",
+				streamId: toId(item.stream_id),
+				extension: toId(item.container_extension) || "mp4",
+			}),
+		}));
 		return this.#serialize("movies", items) as unknown[];
-	}
-
-	/** One movie of a category, without serializing the whole category. */
-	async getMovieInCategory({
-		categoryId,
-		movieId,
-	}: {
-		categoryId: string;
-		movieId: string;
-	}) {
-		await this.#ensureProfile();
-		const all = await this.#getList("get_vod_streams", categoryId);
-		const match = all.find((item) => listedMovieId(item) === movieId);
-		if (!match) {
-			return null;
-		}
-		const [movie] = this.#serialize("movies", [
-			this.#withMovieUrl(match),
-		]) as unknown[];
-		return movie ?? null;
 	}
 
 	async getMovie({ movieId }: { movieId: string }) {
@@ -400,24 +369,6 @@ export class SafeXtream {
 			"shows",
 			this.#paginate(all, page, limit),
 		) as unknown[];
-	}
-
-	/** One show of a category, without serializing the whole category. */
-	async getShowInCategory({
-		categoryId,
-		showId,
-	}: {
-		categoryId: string;
-		showId: string;
-	}) {
-		await this.#ensureProfile();
-		const all = await this.#getList("get_series", categoryId);
-		const match = all.find((item) => listedShowId(item) === showId);
-		if (!match) {
-			return null;
-		}
-		const [show] = this.#serialize("shows", [match]) as unknown[];
-		return show ?? null;
 	}
 
 	/** Raw `get_series_info` payload (a private copy, safe to mutate). */

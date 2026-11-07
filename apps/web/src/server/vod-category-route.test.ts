@@ -33,10 +33,9 @@ const OTHER = "other-v";
 const ADULT = "adult-a";
 
 type PlaylistSource = "XTREAM" | "M3U";
+type StreamKind = "movie" | "episode";
 
 type CategoryCheck = {
-	userId: string;
-	playlistId: string;
 	kind: string;
 	categoryIds: string[];
 	requiredIds: string[];
@@ -64,28 +63,71 @@ type RouteState = {
 	} | null;
 	movie: unknown;
 	show: unknown;
-	findMovie: (categoryId: string, movieId: string) => unknown;
-	findShow: (categoryId: string, showId: string) => unknown;
+	findCatalog: (kind: string, categoryId: string, itemId: string) => unknown;
 	m3uTarget: { url: string; kind: string; delivery: string } | null;
-	playlistLoads: number;
 	movieLoads: number;
 	showLoads: number;
-	movieListLoads: number;
-	showListLoads: number;
+	catalogLoads: number;
 	m3uCalls: number;
 	xtreamClients: number;
 	proxyCalls: Array<{ url: string; userId: string; manifest: boolean }>;
 	streamUrls: Array<{ type: string; streamId: string; extension: string }>;
 	categoryChecks: CategoryCheck[];
-	movieLoad: { movieId?: string } | null;
 	showLoad: { showId?: string } | null;
-	movieListLoad: { categoryId?: string; movieId?: string } | null;
-	showListLoad: { categoryId?: string; showId?: string } | null;
+	catalogLoad: { kind?: string; categoryId?: string; itemId?: string } | null;
 };
 
-function missingFromCategory() {
-	return null;
-}
+type PlaybackKind = {
+	label: string;
+	article: "a" | "an";
+	kind: StreamKind;
+	accessKind: "movie" | "series";
+	streamId: string;
+	membershipId: string;
+	show?: string;
+	detail: (categoryIds: readonly string[]) => unknown;
+	assign: (state: RouteState, detail: unknown) => void;
+	loads: (state: RouteState) => number;
+};
+
+const playbackKinds: PlaybackKind[] = [
+	{
+		label: "film",
+		article: "a",
+		kind: "movie",
+		accessKind: "movie",
+		streamId: MOVIE,
+		membershipId: MOVIE,
+		detail: (categoryIds) => ({
+			id: MOVIE,
+			name: "Heat",
+			categoryIds: [...categoryIds],
+		}),
+		assign: (state, detail) => {
+			state.movie = detail;
+		},
+		loads: (state) => state.movieLoads,
+	},
+	{
+		label: "episode",
+		article: "an",
+		kind: "episode",
+		accessKind: "series",
+		streamId: EPISODE,
+		membershipId: SHOW,
+		show: SHOW,
+		detail: (categoryIds) => ({
+			id: SHOW,
+			name: "The Office",
+			categoryIds: [...categoryIds],
+			seasons: [{ episodes: [{ id: EPISODE }] }],
+		}),
+		assign: (state, detail) => {
+			state.show = detail;
+		},
+		loads: (state) => state.showLoads,
+	},
+];
 
 function installState(): RouteState {
 	const state: RouteState = {
@@ -104,27 +146,22 @@ function installState(): RouteState {
 		playlist: playlist(),
 		movie: null,
 		show: null,
-		findMovie: missingFromCategory,
-		findShow: missingFromCategory,
+		findCatalog: () => null,
 		m3uTarget: {
 			url: "http://cdn.example/movie.mp4",
 			kind: "movie",
 			delivery: "file",
 		},
-		playlistLoads: 0,
 		movieLoads: 0,
 		showLoads: 0,
-		movieListLoads: 0,
-		showListLoads: 0,
+		catalogLoads: 0,
 		m3uCalls: 0,
 		xtreamClients: 0,
 		proxyCalls: [],
 		streamUrls: [],
 		categoryChecks: [],
-		movieLoad: null,
 		showLoad: null,
-		movieListLoad: null,
-		showListLoad: null,
+		catalogLoad: null,
 	};
 	state.allowCategory = (categoryIds, requiredIds) => {
 		if (!state.owned) {
@@ -144,7 +181,7 @@ function installState(): RouteState {
 	return state;
 }
 
-function syncUnscoped(state: RouteState) {
+function restrict(state: RouteState) {
 	state.unscoped =
 		state.owned && !state.lockAdult && state.hiddenIds.size === 0;
 }
@@ -161,37 +198,35 @@ function playlist(source: PlaylistSource = "XTREAM") {
 	};
 }
 
-function movieDetail(categoryIds: readonly string[]) {
-	return { id: MOVIE, name: "Heat", categoryIds: [...categoryIds] };
+function useDetail(
+	state: RouteState,
+	item: PlaybackKind,
+	categoryIds: readonly string[],
+) {
+	item.assign(state, item.detail(categoryIds));
 }
 
-function showDetail(
-	categoryIds: readonly string[],
-	episodeIds: readonly string[],
-) {
-	return {
-		id: SHOW,
-		name: "The Office",
-		categoryIds: [...categoryIds],
-		seasons: [{ episodes: episodeIds.map((id) => ({ id })) }],
-	};
+function forgetPlayback(state: RouteState) {
+	state.proxyCalls = [];
+	state.streamUrls = [];
+	state.xtreamClients = 0;
+	state.m3uCalls = 0;
 }
 
 async function play(
 	state: RouteState,
 	input: {
-		kind: "movie" | "episode";
+		kind: StreamKind;
 		streamId?: string;
 		category?: string;
 		show?: string;
-		ext?: string;
 	},
 ) {
 	const streamId = input.streamId ?? (input.kind === "movie" ? MOVIE : EPISODE);
 	const url = new URL(
 		`http://localhost/api/stream/vod/${PLAYLIST}/${input.kind}/${streamId}`,
 	);
-	url.searchParams.set("ext", input.ext ?? "mp4");
+	url.searchParams.set("ext", "mp4");
 	if (input.category) {
 		url.searchParams.set("category", input.category);
 	}
@@ -214,6 +249,15 @@ async function play(
 	return { response, text };
 }
 
+function playItem(state: RouteState, item: PlaybackKind, category?: string) {
+	return play(state, {
+		kind: item.kind,
+		streamId: item.streamId,
+		category,
+		show: item.show,
+	});
+}
+
 function assertNoUpstream(state: RouteState) {
 	assert.equal(state.proxyCalls.length, 0);
 	assert.equal(state.streamUrls.length, 0);
@@ -221,251 +265,176 @@ function assertNoUpstream(state: RouteState) {
 	assert.equal(state.m3uCalls, 0);
 }
 
-test("forged visible movie category is denied and does not open upstream", async () => {
-	const state = installState();
-	state.hiddenIds = new Set([HIDDEN]);
-	syncUnscoped(state);
-	state.movie = movieDetail([HIDDEN]);
-
-	const { response, text } = await play(state, {
-		kind: "movie",
-		category: VISIBLE,
-	});
-
+function assertDenied(response: Response, text: string) {
 	assert.equal(response.status, 404);
 	assert.equal(JSON.parse(text).error, "Category not available.");
-	assert.equal(state.movieLoads, 1);
-	assert.equal(state.movieListLoads, 0);
-	assertNoUpstream(state);
-});
+}
 
-test("forged visible episode category is denied for a real show", async () => {
-	const state = installState();
-	state.hiddenIds = new Set([HIDDEN]);
-	syncUnscoped(state);
-	state.show = showDetail([HIDDEN], [EPISODE]);
+for (const item of playbackKinds) {
+	test(`forged visible category is denied for ${item.article} ${item.label}`, async () => {
+		const state = installState();
+		state.hiddenIds = new Set([HIDDEN]);
+		restrict(state);
+		useDetail(state, item, [HIDDEN]);
 
-	const { response, text } = await play(state, {
-		kind: "episode",
-		category: VISIBLE,
-		show: SHOW,
+		const { response, text } = await playItem(state, item, VISIBLE);
+
+		assertDenied(response, text);
+		assert.equal(item.loads(state), 1);
+		assert.equal(state.catalogLoads, 0);
+		if (item.kind === "episode") {
+			assert.equal(state.showLoad?.showId, SHOW);
+		}
+		assertNoUpstream(state);
 	});
 
-	assert.equal(response.status, 404);
-	assert.equal(JSON.parse(text).error, "Category not available.");
-	assert.equal(state.showLoads, 1);
-	assert.equal(state.showLoad?.showId, SHOW);
-	assert.equal(state.showListLoads, 0);
-	assertNoUpstream(state);
-});
+	test(`forged category is denied for ${item.article} ${item.label} when every category is visible`, async () => {
+		const state = installState();
+		useDetail(state, item, [VISIBLE]);
 
-test("forged category is denied when every category is visible", async () => {
-	const state = installState();
-	state.movie = movieDetail([VISIBLE]);
+		const { response, text } = await playItem(state, item, OTHER);
 
-	const { response } = await play(state, { kind: "movie", category: OTHER });
-
-	assert.equal(response.status, 404);
-	assert.equal(state.movieListLoads, 0);
-	assertNoUpstream(state);
-});
-
-test("cross-listed movie plays through the visible category only", async () => {
-	const state = installState();
-	state.hiddenIds = new Set([HIDDEN]);
-	state.lockAdult = true;
-	syncUnscoped(state);
-	state.movie = movieDetail([HIDDEN, VISIBLE]);
-
-	const allowed = await play(state, { kind: "movie", category: VISIBLE });
-	assert.equal(allowed.response.status, 200);
-	assert.equal(state.proxyCalls.length, 1);
-	assert.equal(state.streamUrls.length, 1);
-	assert.deepEqual(state.streamUrls[0], {
-		type: "movie",
-		streamId: MOVIE,
-		extension: "mp4",
-	});
-	assert.equal(state.movieListLoads, 0);
-	assert.ok(
-		state.categoryChecks.some(
-			(check) =>
-				check.kind === "movie" &&
-				check.categoryIds.includes(HIDDEN) &&
-				check.categoryIds.includes(VISIBLE) &&
-				check.requiredIds.length === 1 &&
-				check.requiredIds[0] === VISIBLE,
-		),
-	);
-
-	state.proxyCalls = [];
-	state.streamUrls = [];
-	state.xtreamClients = 0;
-	const denied = await play(state, { kind: "movie", category: HIDDEN });
-	assert.equal(denied.response.status, 404);
-	assert.equal(JSON.parse(denied.text).error, "Category not available.");
-	assert.equal(state.proxyCalls.length, 0);
-	assert.equal(state.streamUrls.length, 0);
-	assert.equal(state.xtreamClients, 0);
-});
-
-test("cross-listed episode plays through the visible category only", async () => {
-	const state = installState();
-	state.hiddenIds = new Set([HIDDEN]);
-	syncUnscoped(state);
-	state.show = showDetail([HIDDEN, VISIBLE], [EPISODE]);
-
-	const allowed = await play(state, {
-		kind: "episode",
-		category: VISIBLE,
-		show: SHOW,
-	});
-	assert.equal(allowed.response.status, 200);
-	assert.deepEqual(state.streamUrls[0], {
-		type: "episode",
-		streamId: EPISODE,
-		extension: "mp4",
-	});
-	assert.ok(
-		state.categoryChecks.some(
-			(check) =>
-				check.kind === "series" &&
-				check.categoryIds.includes(HIDDEN) &&
-				check.categoryIds.includes(VISIBLE) &&
-				check.requiredIds.length === 1 &&
-				check.requiredIds[0] === VISIBLE,
-		),
-	);
-
-	state.proxyCalls = [];
-	state.streamUrls = [];
-	state.xtreamClients = 0;
-	const denied = await play(state, {
-		kind: "episode",
-		category: HIDDEN,
-		show: SHOW,
-	});
-	assert.equal(denied.response.status, 404);
-	assert.equal(state.proxyCalls.length, 0);
-	assert.equal(state.xtreamClients, 0);
-});
-
-test("episode that is not in the requested show is denied", async () => {
-	const state = installState();
-	state.show = showDetail([VISIBLE], ["other-episode"]);
-
-	const { response } = await play(state, {
-		kind: "episode",
-		category: VISIBLE,
-		show: SHOW,
+		assertDenied(response, text);
+		assert.equal(state.catalogLoads, 0);
+		assertNoUpstream(state);
 	});
 
-	assert.equal(response.status, 404);
-	assert.equal(state.showListLoads, 0);
-	assertNoUpstream(state);
-});
+	test(`cross-listed ${item.label} plays through the visible category only`, async () => {
+		const state = installState();
+		state.hiddenIds = new Set([HIDDEN]);
+		state.lockAdult = true;
+		restrict(state);
+		useDetail(state, item, [HIDDEN, VISIBLE]);
 
-test("episode category without a show id is denied", async () => {
-	const state = installState();
-	state.show = showDetail([VISIBLE], [EPISODE]);
+		const allowed = await playItem(state, item, VISIBLE);
+		assert.equal(allowed.response.status, 200);
+		assert.equal(state.proxyCalls.length, 1);
+		assert.deepEqual(state.streamUrls[0], {
+			type: item.kind,
+			streamId: item.streamId,
+			extension: "mp4",
+		});
+		assert.equal(state.catalogLoads, 0);
+		assert.ok(
+			state.categoryChecks.some(
+				(check) =>
+					check.kind === item.accessKind &&
+					check.categoryIds.includes(HIDDEN) &&
+					check.categoryIds.includes(VISIBLE) &&
+					check.requiredIds.length === 1 &&
+					check.requiredIds[0] === VISIBLE,
+			),
+		);
 
-	const { response } = await play(state, {
-		kind: "episode",
-		category: VISIBLE,
+		forgetPlayback(state);
+		const denied = await playItem(state, item, HIDDEN);
+		assertDenied(denied.response, denied.text);
+		assertNoUpstream(state);
 	});
 
-	assert.equal(response.status, 404);
-	assert.equal(state.showLoads, 0);
-	assertNoUpstream(state);
-});
+	test(`adult lock sees every real ${item.label} category`, async () => {
+		const state = installState();
+		state.lockAdult = true;
+		restrict(state);
+		useDetail(state, item, [VISIBLE, ADULT]);
 
-test("hidden category is denied before the title is loaded", async () => {
-	const state = installState();
-	state.hiddenIds = new Set([HIDDEN]);
-	syncUnscoped(state);
-	state.movie = movieDetail([HIDDEN]);
+		const { response, text } = await playItem(state, item, VISIBLE);
 
-	const { response } = await play(state, { kind: "movie", category: HIDDEN });
-
-	assert.equal(response.status, 404);
-	assert.equal(state.movieLoads, 0);
-	assertNoUpstream(state);
-});
-
-test("adult lock still sees every real movie category", async () => {
-	const state = installState();
-	state.lockAdult = true;
-	syncUnscoped(state);
-	state.movie = movieDetail([VISIBLE, ADULT]);
-
-	const { response } = await play(state, { kind: "movie", category: VISIBLE });
-
-	assert.equal(response.status, 404);
-	assert.ok(
-		state.categoryChecks.some((check) => check.categoryIds.includes(ADULT)),
-	);
-	assertNoUpstream(state);
-});
-
-test("adult lock still sees every real show category", async () => {
-	const state = installState();
-	state.lockAdult = true;
-	syncUnscoped(state);
-	state.show = showDetail([VISIBLE, ADULT], [EPISODE]);
-
-	const { response } = await play(state, {
-		kind: "episode",
-		category: VISIBLE,
-		show: SHOW,
+		assertDenied(response, text);
+		assert.ok(
+			state.categoryChecks.some(
+				(check) =>
+					check.kind === item.accessKind && check.categoryIds.includes(ADULT),
+			),
+		);
+		assertNoUpstream(state);
 	});
 
-	assert.equal(response.status, 404);
-	assert.ok(
-		state.categoryChecks.some(
-			(check) => check.kind === "series" && check.categoryIds.includes(ADULT),
-		),
-	);
-	assertNoUpstream(state);
-});
+	test(`hidden category denies ${item.article} ${item.label} before the title is loaded`, async () => {
+		const state = installState();
+		state.hiddenIds = new Set([HIDDEN]);
+		restrict(state);
+		useDetail(state, item, [HIDDEN]);
 
-test("requesting an adult category is denied before playback", async () => {
-	const state = installState();
-	state.lockAdult = true;
-	syncUnscoped(state);
-	state.movie = movieDetail([ADULT]);
+		const { response, text } = await playItem(state, item, HIDDEN);
 
-	const { response } = await play(state, { kind: "movie", category: ADULT });
+		assertDenied(response, text);
+		assert.equal(item.loads(state), 0);
+		assert.equal(state.catalogLoads, 0);
+		assertNoUpstream(state);
+	});
 
-	assert.equal(response.status, 404);
-	assert.equal(state.movieLoads, 0);
-	assertNoUpstream(state);
-});
+	test(`an adult category denies ${item.article} ${item.label} before playback`, async () => {
+		const state = installState();
+		state.lockAdult = true;
+		restrict(state);
+		useDetail(state, item, [ADULT]);
 
-test("movie detail without categories can be proved by one category lookup", async () => {
-	const state = installState();
-	state.movie = { id: MOVIE, name: "Heat" };
-	state.findMovie = () => ({ id: MOVIE, categoryId: VISIBLE });
+		const { response, text } = await playItem(state, item, ADULT);
 
-	const allowed = await play(state, { kind: "movie", category: VISIBLE });
-	assert.equal(allowed.response.status, 200);
-	assert.equal(state.movieListLoads, 1);
-	assert.equal(state.movieListLoad?.categoryId, VISIBLE);
-	assert.equal(state.movieListLoad?.movieId, MOVIE);
-	assert.equal(state.proxyCalls.length, 1);
+		assertDenied(response, text);
+		assert.equal(item.loads(state), 0);
+		assertNoUpstream(state);
+	});
 
-	state.findMovie = () => null;
-	state.proxyCalls = [];
-	state.streamUrls = [];
-	state.xtreamClients = 0;
-	const denied = await play(state, { kind: "movie", category: VISIBLE });
-	assert.equal(denied.response.status, 404);
-	assertNoUpstream(state);
-});
+	test(`${item.label} without detail categories uses one category lookup`, async () => {
+		const state = installState();
+		useDetail(state, item, []);
+		state.findCatalog = () => ({
+			id: item.membershipId,
+			categoryId: VISIBLE,
+		});
 
-test("a detail failure falls back to the category lookup and fails closed", async () => {
+		const allowed = await playItem(state, item, VISIBLE);
+		assert.equal(allowed.response.status, 200);
+		assert.equal(state.catalogLoads, 1);
+		assert.equal(state.catalogLoad?.kind, item.accessKind);
+		assert.equal(state.catalogLoad?.categoryId, VISIBLE);
+		assert.equal(state.catalogLoad?.itemId, item.membershipId);
+		assert.equal(state.proxyCalls.length, 1);
+
+		state.findCatalog = () => null;
+		forgetPlayback(state);
+		const denied = await playItem(state, item, VISIBLE);
+		assertDenied(denied.response, denied.text);
+		assertNoUpstream(state);
+	});
+
+	test(`listing row categories still reach the adult lock for ${item.article} ${item.label}`, async () => {
+		const state = installState();
+		state.lockAdult = true;
+		restrict(state);
+		useDetail(state, item, []);
+		state.findCatalog = () => ({
+			id: item.membershipId,
+			categoryId: ADULT,
+		});
+
+		const denied = await playItem(state, item, VISIBLE);
+		assertDenied(denied.response, denied.text);
+		assert.ok(
+			state.categoryChecks.some(
+				(check) =>
+					check.categoryIds.includes(ADULT) &&
+					check.categoryIds.includes(VISIBLE),
+			),
+		);
+		assertNoUpstream(state);
+
+		state.lockAdult = false;
+		restrict(state);
+		forgetPlayback(state);
+		state.categoryChecks = [];
+		const allowed = await playItem(state, item, VISIBLE);
+		assert.equal(allowed.response.status, 200);
+		assert.equal(state.proxyCalls.length, 1);
+	});
+}
+
+test("a movie detail failure uses the category lookup and fails closed", async () => {
 	const state = installState();
 	state.movie = "throw";
-	state.findMovie = () => ({ id: MOVIE, categoryIds: [VISIBLE] });
+	state.findCatalog = () => ({ id: MOVIE, categoryIds: [VISIBLE] });
 
 	const allowed = await play(state, { kind: "movie", category: VISIBLE });
 	assert.equal(allowed.response.status, 200);
@@ -474,96 +443,67 @@ test("a detail failure falls back to the category lookup and fails closed", asyn
 
 	const deniedState = installState();
 	deniedState.movie = "throw";
-	deniedState.findMovie = () => {
+	deniedState.findCatalog = () => {
 		throw new Error("listing unavailable");
 	};
-	const denied = await play(deniedState, {
-		kind: "movie",
-		category: VISIBLE,
-	});
-	assert.equal(denied.response.status, 404);
+	const denied = await play(deniedState, { kind: "movie", category: VISIBLE });
+	assertDenied(denied.response, denied.text);
 	assertNoUpstream(deniedState);
 });
 
-test("listing rows still supply sibling categories to the adult lock", async () => {
+test("episode that is not in the requested show is denied", async () => {
 	const state = installState();
-	state.lockAdult = true;
-	syncUnscoped(state);
-	state.movie = { id: MOVIE, name: "Heat" };
-	state.findMovie = () => ({ id: MOVIE, categoryId: ADULT });
+	state.show = {
+		id: SHOW,
+		categoryIds: [VISIBLE],
+		seasons: [{ episodes: [{ id: "other-episode" }] }],
+	};
 
-	const denied = await play(state, { kind: "movie", category: VISIBLE });
-	assert.equal(denied.response.status, 404);
-	assert.ok(
-		state.categoryChecks.some(
-			(check) =>
-				check.categoryIds.includes(ADULT) &&
-				check.categoryIds.includes(VISIBLE),
-		),
-	);
+	const { response, text } = await play(state, {
+		kind: "episode",
+		category: VISIBLE,
+		show: SHOW,
+	});
+
+	assertDenied(response, text);
+	assert.equal(state.catalogLoads, 0);
 	assertNoUpstream(state);
-
-	state.lockAdult = false;
-	syncUnscoped(state);
-	state.proxyCalls = [];
-	state.streamUrls = [];
-	state.xtreamClients = 0;
-	state.categoryChecks = [];
-	const allowed = await play(state, { kind: "movie", category: VISIBLE });
-	assert.equal(allowed.response.status, 200);
-	assert.equal(state.proxyCalls.length, 1);
 });
 
-test("episode without detail categories uses the show category lookup", async () => {
+test("episode category without a show id is denied", async () => {
 	const state = installState();
-	state.show = showDetail([], [EPISODE]);
-	state.findShow = () => ({ id: SHOW, categoryIds: [VISIBLE] });
+	state.show = playbackKinds[1]?.detail([VISIBLE]);
 
-	const allowed = await play(state, {
+	const { response, text } = await play(state, {
 		kind: "episode",
 		category: VISIBLE,
-		show: SHOW,
 	});
-	assert.equal(allowed.response.status, 200);
-	assert.equal(state.showListLoads, 1);
-	assert.equal(state.showListLoad?.categoryId, VISIBLE);
-	assert.equal(state.showListLoad?.showId, SHOW);
-	assert.equal(state.proxyCalls.length, 1);
 
-	state.findShow = () => null;
-	state.proxyCalls = [];
-	state.streamUrls = [];
-	state.xtreamClients = 0;
-	const denied = await play(state, {
-		kind: "episode",
-		category: VISIBLE,
-		show: SHOW,
-	});
-	assert.equal(denied.response.status, 404);
-	assert.equal(state.proxyCalls.length, 0);
-	assert.equal(state.xtreamClients, 0);
+	assertDenied(response, text);
+	assert.equal(state.showLoads, 0);
+	assertNoUpstream(state);
 });
 
 test("episode playback stops when the show detail cannot be read", async () => {
 	const state = installState();
 	state.show = "throw";
-	state.findShow = () => ({ id: SHOW, categoryIds: [VISIBLE] });
+	state.findCatalog = () => ({ id: SHOW, categoryIds: [VISIBLE] });
 
-	const { response } = await play(state, {
+	const { response, text } = await play(state, {
 		kind: "episode",
 		category: VISIBLE,
 		show: SHOW,
 	});
 
-	assert.equal(response.status, 404);
-	assert.equal(state.showListLoads, 0);
+	assertDenied(response, text);
+	assert.equal(state.catalogLoads, 0);
 	assertNoUpstream(state);
 });
 
 test("another user's playlist never opens upstream", async () => {
 	const state = installState();
 	state.playlist = null;
-	state.movie = movieDetail([VISIBLE]);
+	state.movie = playbackKinds[0]?.detail([VISIBLE]);
 
 	const { response, text } = await play(state, {
 		kind: "movie",
@@ -579,19 +519,22 @@ test("another user's playlist never opens upstream", async () => {
 test("category ownership failure does not open upstream", async () => {
 	const state = installState();
 	state.owned = false;
-	syncUnscoped(state);
-	state.movie = movieDetail([VISIBLE]);
+	restrict(state);
+	state.movie = playbackKinds[0]?.detail([VISIBLE]);
 
-	const { response } = await play(state, { kind: "movie", category: VISIBLE });
+	const { response, text } = await play(state, {
+		kind: "movie",
+		category: VISIBLE,
+	});
 
-	assert.equal(response.status, 404);
+	assertDenied(response, text);
 	assert.equal(state.movieLoads, 0);
 	assertNoUpstream(state);
 });
 
 test("unscoped playback without a category stays available", async () => {
 	const state = installState();
-	state.movie = movieDetail([HIDDEN]);
+	state.movie = playbackKinds[0]?.detail([HIDDEN]);
 
 	const allowed = await play(state, { kind: "movie" });
 	assert.equal(allowed.response.status, 200);
@@ -600,20 +543,17 @@ test("unscoped playback without a category stays available", async () => {
 	assert.equal(state.xtreamClients, 1);
 
 	state.hiddenIds = new Set([HIDDEN]);
-	syncUnscoped(state);
-	state.proxyCalls = [];
-	state.streamUrls = [];
-	state.xtreamClients = 0;
+	restrict(state);
+	forgetPlayback(state);
 	const denied = await play(state, { kind: "movie" });
-	assert.equal(denied.response.status, 404);
-	assert.equal(JSON.parse(denied.text).error, "Category not available.");
+	assertDenied(denied.response, denied.text);
 	assertNoUpstream(state);
 });
 
 test("M3U playback keeps category membership and does not build an Xtream URL", async () => {
 	const state = installState();
 	state.playlist = playlist("M3U");
-	state.movie = movieDetail([VISIBLE]);
+	state.movie = playbackKinds[0]?.detail([VISIBLE]);
 	state.m3uTarget = {
 		url: "http://cdn.example/heat.mp4",
 		kind: "movie",
@@ -628,13 +568,13 @@ test("M3U playback keeps category membership and does not build an Xtream URL", 
 	assert.equal(state.proxyCalls[0]?.url, "http://cdn.example/heat.mp4");
 	assert.equal(state.proxyCalls[0]?.manifest, false);
 
-	state.movie = movieDetail([HIDDEN]);
+	state.movie = playbackKinds[0]?.detail([HIDDEN]);
 	state.hiddenIds = new Set([HIDDEN]);
-	syncUnscoped(state);
+	restrict(state);
 	state.m3uCalls = 0;
-	state.proxyCalls = [];
+	forgetPlayback(state);
 	const denied = await play(state, { kind: "movie", category: VISIBLE });
-	assert.equal(denied.response.status, 404);
+	assertDenied(denied.response, denied.text);
 	assert.equal(state.m3uCalls, 0);
 	assertNoUpstream(state);
 });
