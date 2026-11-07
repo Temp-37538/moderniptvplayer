@@ -8,7 +8,12 @@ import type {
 } from "@iptv/xtream-api/standardized";
 import { cacheLife, cacheTag } from "next/cache";
 import { requireAuthenticatedUserId } from "@/server/auth-utils";
-import type { CategoryKind } from "@/server/category-preference-policy";
+import {
+	type CategoryKind,
+	findMembershipRow,
+	type MembershipRow,
+	toMembershipRows,
+} from "@/server/category-preference-policy";
 import { M3U_MAX_ENTRIES } from "@/server/m3u";
 import {
 	m3uCategories,
@@ -295,35 +300,27 @@ async function loadShow(userId: string, playlistId: string, showId: string) {
 type CatalogKind = Exclude<CategoryKind, "channel">;
 
 /**
- * One full category list, then the matching row. `getMovies` / `getShows`
- * without a page already return the whole Xtream category. M3U listings are
- * capped by the catalog itself, so one slice covers every entry in it.
+ * The whole Xtream category once, reduced to each row's id and categories.
+ * `getMovies` / `getShows` without a page already return the full category,
+ * so every title of that category shares this one cached lookup instead of
+ * each title fetching the listing again.
  */
-async function loadCatalogMembership(
+async function loadXtreamMembershipRows(
 	userId: string,
 	playlistId: string,
 	kind: CatalogKind,
 	categoryId: string,
-	itemId: string,
-) {
+): Promise<MembershipRow[]> {
 	"use cache";
 	cacheLife("hours");
-	cacheTag(`playlist-${playlistId}-${kind}-${itemId}-category-${categoryId}`);
+	cacheTag(`playlist-${playlistId}-${kind}-category-${categoryId}-membership`);
 	cacheTag(getPlaylistParentTag(playlistId));
 	const playlist = await resolvePlaylist(userId, playlistId);
 	const items =
-		playlist.source === "M3U"
-			? kind === "movie"
-				? await m3uMovies(playlist, categoryId, 1, M3U_MAX_ENTRIES)
-				: await m3uShows(playlist, categoryId, 1, M3U_MAX_ENTRIES)
-			: kind === "movie"
-				? ((await createXtreamClient(playlist).getMovies({
-						categoryId,
-					})) as Array<{ id?: string }>)
-				: ((await createXtreamClient(playlist).getShows({
-						categoryId,
-					})) as Array<{ id?: string }>);
-	return items.find((item) => item.id === itemId) ?? null;
+		kind === "movie"
+			? await createXtreamClient(playlist).getMovies({ categoryId })
+			: await createXtreamClient(playlist).getShows({ categoryId });
+	return toMembershipRows(items);
 }
 
 export async function getCachedMovieCategories(
@@ -423,10 +420,24 @@ export async function getCachedCatalogMembership(
 	kind: CatalogKind,
 	categoryId: string,
 	itemId: string,
-) {
+): Promise<MembershipRow | null> {
 	const userId = await requireAuthenticatedUserId();
 	if (!(await categoryContentAllowed(playlistId, kind, categoryId))) {
 		return null;
 	}
-	return loadCatalogMembership(userId, playlistId, kind, categoryId, itemId);
+	const playlist = await resolvePlaylist(userId, playlistId);
+	if (playlist.source === "M3U") {
+		// The parsed M3U catalog already lives in memory, so there is nothing
+		// worth caching again: read the category slice and keep the one row.
+		const items: Array<{ id?: string }> =
+			kind === "movie"
+				? await m3uMovies(playlist, categoryId, 1, M3U_MAX_ENTRIES)
+				: await m3uShows(playlist, categoryId, 1, M3U_MAX_ENTRIES);
+		const found = items.find((item) => item.id === itemId);
+		return found ? (toMembershipRows([found])[0] ?? null) : null;
+	}
+	return findMembershipRow(
+		await loadXtreamMembershipRows(userId, playlistId, kind, categoryId),
+		itemId,
+	);
 }
