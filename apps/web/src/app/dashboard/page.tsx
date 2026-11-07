@@ -74,6 +74,7 @@ async function Page() {
 
 	const safePlaylists: PlaylistCardData[] = playlists.map((p) => ({
 		id: p.id,
+		source: p.source,
 		playlistName: p.playlistName,
 		serverUrl: p.serverUrl,
 		username: p.username,

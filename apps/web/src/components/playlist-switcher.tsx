@@ -34,6 +34,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
+import { playlistAccountLine } from "@/lib/playlist-label";
 import { usePlaylists } from "./playlist-context";
 import type { Playlist } from "./types";
 
@@ -200,7 +201,7 @@ export function PlaylistSwitcher() {
 												{playlist.playlistName}
 											</div>
 											<div className="truncate text-xs text-muted-foreground">
-												{playlist.username} {playlist.serverUrl}
+												{playlistAccountLine(playlist)}
 											</div>
 										</div>
 										<Button
@@ -272,6 +273,7 @@ export function PlaylistSwitcher() {
 					editTarget
 						? {
 								id: editTarget.id,
+								source: editTarget.source,
 								playlistName: editTarget.playlistName,
 								serverUrl: editTarget.serverUrl,
 								username: editTarget.username,

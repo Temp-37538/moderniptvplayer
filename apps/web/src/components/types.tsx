@@ -1,4 +1,3 @@
-import type { StandardXtreamCategory } from "@iptv/xtream-api/standardized";
 import {
 	ClapperboardIcon,
 	FilmIcon,
@@ -8,10 +7,18 @@ import {
 } from "lucide-react";
 import type * as React from "react";
 
+export type ListedCategory = {
+	id: string;
+	name: string;
+	pinned: boolean;
+};
+
 export type CategorySearchProps = {
 	id: string;
 	playlistName: string;
-	categories: StandardXtreamCategory[];
+	categories: ListedCategory[];
+	hiddenCategories: ListedCategory[];
+	lockAdultCategories: boolean;
 };
 
 /**
@@ -20,6 +27,7 @@ export type CategorySearchProps = {
  */
 export interface Playlist {
 	id: string;
+	source: "XTREAM" | "M3U";
 	serverUrl: string;
 	username: string;
 	playlistName: string;
@@ -27,6 +35,14 @@ export interface Playlist {
 	createdAt: string | Date;
 	updatedAt: string | Date;
 }
+
+export type M3uFormState = {
+	errors: { m3uUrl?: string; playlistName?: string };
+	inputs?: { m3uUrl: string; playlistName: string };
+	success: boolean;
+	message?: string;
+	playlistId?: string;
+};
 
 export interface NavItem {
 	title: string;

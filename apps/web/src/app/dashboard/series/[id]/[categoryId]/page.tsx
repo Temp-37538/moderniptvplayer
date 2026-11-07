@@ -4,6 +4,10 @@ import { PaginationNav } from "@/components/pagination-nav";
 import type { IdCategoryPageProps as PageProps } from "@/components/types";
 import { toSafeImageSrc } from "@/lib/image-url";
 import { getCachedShows } from "@/server/cached-content";
+import {
+	assertCategoryAvailable,
+	filterBrowsableItems,
+} from "@/server/category-access";
 import { getPlaylistById } from "@/server/xtream";
 import { Tv } from "lucide-react";
 import type { Metadata } from "next";
@@ -22,6 +26,7 @@ export async function generateMetadata({
 	const { id, categoryId } = await params;
 	const { page: pageParam } = await searchParams;
 	const currentPage = Number(pageParam) || 1;
+	await assertCategoryAvailable(id, "series", categoryId);
 	const context = await getCategoryMetadataContext("series", id, categoryId);
 	const categoryTitle = context?.categoryName ?? "Series";
 	const pageSuffix = currentPage > 1 ? `, page ${currentPage}` : "";
@@ -59,12 +64,20 @@ async function SeriesByCategoryContent({ params, searchParams }: PageProps) {
 		notFound();
 	}
 
+	await assertCategoryAvailable(id, "series", categoryId);
+
 	const shows = await getCachedShows(
 		id,
 		playlist,
 		categoryId,
 		currentPage,
 		ITEMS_PER_PAGE,
+	);
+	const visibleShows = await filterBrowsableItems(
+		id,
+		"series",
+		categoryId,
+		shows,
 	);
 
 	const hasNextPage = shows.length === ITEMS_PER_PAGE;
@@ -80,9 +93,9 @@ async function SeriesByCategoryContent({ params, searchParams }: PageProps) {
 					</div>
 				</div>
 			</div>
-			{shows.length > 0 ? (
+			{visibleShows.length > 0 ? (
 				<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-					{shows.map((show) => {
+					{visibleShows.map((show) => {
 						const safePosterSrc = toSafeImageSrc(show.poster);
 						return (
 							<Link

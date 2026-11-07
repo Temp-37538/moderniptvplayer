@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/sheet";
 import { VideoPlayer } from "@/components/video-player";
 import { useDesktopBridge } from "@/lib/desktop/bridge";
+import { withStreamCategory } from "@/lib/stream-category";
 import { PLAY_EPISODE_EVENT } from "@/lib/play-episode";
 import type { ProgressDetails } from "@/lib/player/types";
 import { seasonWatchActions } from "@/lib/season-watch";
@@ -364,7 +365,11 @@ export function SeasonsList({
 								sources={[
 									{
 										kind: playing.extension === "m3u8" ? "hls" : "native",
-										src: `/api/stream/vod/${encodeURIComponent(playlistId)}/episode/${encodeURIComponent(playing.id)}?ext=${encodeURIComponent(playing.extension)}`,
+										src: withStreamCategory(
+											`/api/stream/vod/${encodeURIComponent(playlistId)}/episode/${encodeURIComponent(playing.id)}?ext=${encodeURIComponent(playing.extension)}`,
+											categoryId,
+											{ showId },
+										),
 									},
 									// Fallback for providers that refuse the server's IP.
 									...(playing.directUrl

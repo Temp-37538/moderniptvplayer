@@ -1,6 +1,10 @@
 import { createPageMetadata, getCategoryMetadataContext } from "@/app/metadata";
 import type { IdCategoryPageProps as PageProps } from "@/components/types";
 import { getCachedChannels } from "@/server/cached-content";
+import {
+	assertCategoryAvailable,
+	filterBrowsableItems,
+} from "@/server/category-access";
 import { getPlaylistById } from "@/server/xtream";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -23,6 +27,7 @@ export async function generateMetadata({
 	const { id, categoryId } = await params;
 	const { page: pageParam } = await searchParams;
 	const currentPage = Number(pageParam) || 1;
+	await assertCategoryAvailable(id, "channel", categoryId);
 	const context = await getCategoryMetadataContext("channels", id, categoryId);
 	const categoryTitle = context?.categoryName ?? "Channels";
 	const pageSuffix = currentPage > 1 ? `, page ${currentPage}` : "";
@@ -60,12 +65,20 @@ async function ChannelsByCategoryContent({ params, searchParams }: PageProps) {
 		notFound();
 	}
 
+	await assertCategoryAvailable(id, "channel", categoryId);
+
 	const channels = await getCachedChannels(
 		id,
 		playlist,
 		categoryId,
 		currentPage,
 		ITEMS_PER_PAGE,
+	);
+	const visibleChannels = await filterBrowsableItems(
+		id,
+		"channel",
+		categoryId,
+		channels,
 	);
 
 	const hasNextPage = channels.length === ITEMS_PER_PAGE;
@@ -81,9 +94,9 @@ async function ChannelsByCategoryContent({ params, searchParams }: PageProps) {
 					</div>
 				</div>
 			</div>
-			{channels.length > 0 ? (
+			{visibleChannels.length > 0 ? (
 				<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-					{channels.map((channel) => {
+					{visibleChannels.map((channel) => {
 						const safeLogoSrc = toSafeImageSrc(channel.logo);
 						return (
 							<Link

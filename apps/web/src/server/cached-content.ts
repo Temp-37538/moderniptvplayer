@@ -8,6 +8,16 @@ import type {
 } from "@iptv/xtream-api/standardized";
 import { cacheLife, cacheTag } from "next/cache";
 import { requireAuthenticatedUserId } from "@/server/auth-utils";
+import type { CategoryKind } from "@/server/category-preference-policy";
+import {
+	m3uCategories,
+	m3uChannel,
+	m3uChannels,
+	m3uMovie,
+	m3uMovies,
+	m3uShow,
+	m3uShows,
+} from "@/server/m3u-catalog";
 import {
 	createXtreamClient,
 	getCachedPlaylistByUserAndId,
@@ -82,8 +92,20 @@ async function resolvePlaylist(userId: string, playlistId: string) {
 	return playlist;
 }
 
-async function resolveClient(userId: string, playlistId: string) {
-	return createXtreamClient(await resolvePlaylist(userId, playlistId));
+async function categoryContentAllowed(
+	playlistId: string,
+	kind: CategoryKind,
+	categoryId: string,
+) {
+	const userId = await requireAuthenticatedUserId();
+	const { isCategoryAvailableForUser } = await import("./category-access");
+	return isCategoryAvailableForUser(
+		userId,
+		playlistId,
+		kind,
+		[categoryId],
+		[categoryId],
+	);
 }
 
 // Cached functions only receive non-secret arguments (user and playlist ids):
@@ -94,8 +116,11 @@ async function loadMovieCategories(userId: string, playlistId: string) {
 	cacheLife("hours");
 	cacheTag(getMovieCategoriesCacheTag(playlistId));
 	cacheTag(getPlaylistParentTag(playlistId));
-	const xtream = await resolveClient(userId, playlistId);
-	const categories = await xtream.getMovieCategories();
+	const playlist = await resolvePlaylist(userId, playlistId);
+	if (playlist.source === "M3U") {
+		return m3uCategories(playlist, "movie");
+	}
+	const categories = await createXtreamClient(playlist).getMovieCategories();
 	return categories as StandardXtreamCategory[];
 }
 
@@ -104,8 +129,11 @@ async function loadSeriesCategories(userId: string, playlistId: string) {
 	cacheLife("hours");
 	cacheTag(getSeriesCategoriesCacheTag(playlistId));
 	cacheTag(getPlaylistParentTag(playlistId));
-	const xtream = await resolveClient(userId, playlistId);
-	const categories = await xtream.getShowCategories();
+	const playlist = await resolvePlaylist(userId, playlistId);
+	if (playlist.source === "M3U") {
+		return m3uCategories(playlist, "series");
+	}
+	const categories = await createXtreamClient(playlist).getShowCategories();
 	return categories as StandardXtreamCategory[];
 }
 
@@ -114,8 +142,11 @@ async function loadChannelCategories(userId: string, playlistId: string) {
 	cacheLife("hours");
 	cacheTag(getChannelCategoriesCacheTag(playlistId));
 	cacheTag(getPlaylistParentTag(playlistId));
-	const xtream = await resolveClient(userId, playlistId);
-	const categories = await xtream.getChannelCategories();
+	const playlist = await resolvePlaylist(userId, playlistId);
+	if (playlist.source === "M3U") {
+		return m3uCategories(playlist, "channel");
+	}
+	const categories = await createXtreamClient(playlist).getChannelCategories();
 	return categories as StandardXtreamCategory[];
 }
 
@@ -130,8 +161,11 @@ async function loadChannels(
 	cacheLife("hours");
 	cacheTag(getChannelsCacheTag(playlistId, categoryId, page));
 	cacheTag(getPlaylistParentTag(playlistId));
-	const xtream = await resolveClient(userId, playlistId);
-	return (await xtream.getChannels({
+	const playlist = await resolvePlaylist(userId, playlistId);
+	if (playlist.source === "M3U") {
+		return m3uChannels(playlist, categoryId, page, limit);
+	}
+	return (await createXtreamClient(playlist).getChannels({
 		categoryId,
 		page,
 		limit,
@@ -148,8 +182,11 @@ async function loadChannel(
 	cacheLife("hours");
 	cacheTag(getChannelCacheTag(playlistId, channelId));
 	cacheTag(getPlaylistParentTag(playlistId));
-	const xtream = await resolveClient(userId, playlistId);
-	return (await xtream.getChannel({
+	const playlist = await resolvePlaylist(userId, playlistId);
+	if (playlist.source === "M3U") {
+		return m3uChannel(playlist, categoryId, channelId);
+	}
+	return (await createXtreamClient(playlist).getChannel({
 		categoryId,
 		channelId,
 	})) as StandardXtreamChannel | null;
@@ -166,8 +203,11 @@ async function loadMovies(
 	cacheLife("hours");
 	cacheTag(getMoviesCacheTag(playlistId, categoryId, page));
 	cacheTag(getPlaylistParentTag(playlistId));
-	const xtream = await resolveClient(userId, playlistId);
-	return (await xtream.getMovies({
+	const playlist = await resolvePlaylist(userId, playlistId);
+	if (playlist.source === "M3U") {
+		return m3uMovies(playlist, categoryId, page, limit);
+	}
+	return (await createXtreamClient(playlist).getMovies({
 		categoryId,
 		page,
 		limit,
@@ -184,7 +224,11 @@ async function loadMovie(
 	cacheTag(getMovieCacheTag(playlistId, movieId));
 	cacheTag(getPlaylistParentTag(playlistId));
 
-	const xtream = await resolveClient(userId, playlistId);
+	const playlist = await resolvePlaylist(userId, playlistId);
+	if (playlist.source === "M3U") {
+		return m3uMovie(playlist, movieId);
+	}
+	const xtream = createXtreamClient(playlist);
 
 	let lastError: unknown;
 	for (let attempt = 1; attempt <= MOVIE_FETCH_MAX_ATTEMPTS; attempt += 1) {
@@ -224,8 +268,11 @@ async function loadShows(
 	cacheLife("hours");
 	cacheTag(getShowsCacheTag(playlistId, categoryId, page));
 	cacheTag(getPlaylistParentTag(playlistId));
-	const xtream = await resolveClient(userId, playlistId);
-	return (await xtream.getShows({
+	const playlist = await resolvePlaylist(userId, playlistId);
+	if (playlist.source === "M3U") {
+		return m3uShows(playlist, categoryId, page, limit);
+	}
+	return (await createXtreamClient(playlist).getShows({
 		categoryId,
 		page,
 		limit,
@@ -238,6 +285,9 @@ async function loadShow(userId: string, playlistId: string, showId: string) {
 	cacheTag(getShowCacheTag(playlistId, showId));
 	cacheTag(getPlaylistParentTag(playlistId));
 	const playlist = await resolvePlaylist(userId, playlistId);
+	if (playlist.source === "M3U") {
+		return m3uShow(playlist, showId);
+	}
 	return (await getShowSafe(playlist, showId)) as StandardXtreamShow;
 }
 
@@ -269,13 +319,11 @@ export async function getCachedChannels(
 	page: number,
 	limit: number,
 ) {
-	return loadChannels(
-		await requireAuthenticatedUserId(),
-		playlistId,
-		categoryId,
-		page,
-		limit,
-	);
+	const userId = await requireAuthenticatedUserId();
+	if (!(await categoryContentAllowed(playlistId, "channel", categoryId))) {
+		return [];
+	}
+	return loadChannels(userId, playlistId, categoryId, page, limit);
 }
 
 export async function getCachedChannel(
@@ -284,12 +332,11 @@ export async function getCachedChannel(
 	categoryId: string,
 	channelId: string,
 ) {
-	return loadChannel(
-		await requireAuthenticatedUserId(),
-		playlistId,
-		categoryId,
-		channelId,
-	);
+	const userId = await requireAuthenticatedUserId();
+	if (!(await categoryContentAllowed(playlistId, "channel", categoryId))) {
+		return null;
+	}
+	return loadChannel(userId, playlistId, categoryId, channelId);
 }
 
 export async function getCachedMovies(
@@ -299,13 +346,11 @@ export async function getCachedMovies(
 	page: number,
 	limit: number,
 ) {
-	return loadMovies(
-		await requireAuthenticatedUserId(),
-		playlistId,
-		categoryId,
-		page,
-		limit,
-	);
+	const userId = await requireAuthenticatedUserId();
+	if (!(await categoryContentAllowed(playlistId, "movie", categoryId))) {
+		return [];
+	}
+	return loadMovies(userId, playlistId, categoryId, page, limit);
 }
 
 export async function getCachedMovie(
@@ -323,13 +368,11 @@ export async function getCachedShows(
 	page: number,
 	limit: number,
 ) {
-	return loadShows(
-		await requireAuthenticatedUserId(),
-		playlistId,
-		categoryId,
-		page,
-		limit,
-	);
+	const userId = await requireAuthenticatedUserId();
+	if (!(await categoryContentAllowed(playlistId, "series", categoryId))) {
+		return [];
+	}
+	return loadShows(userId, playlistId, categoryId, page, limit);
 }
 
 export async function getCachedShow(

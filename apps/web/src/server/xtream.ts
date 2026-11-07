@@ -10,11 +10,15 @@ import { SafeXtream } from "./xtream-client";
 
 const cryptr = new Cryptr(env.SECRET_KEY);
 
-type DecryptedPlaylist = {
+export type DecryptedPlaylist = {
+	id: string;
+	source: "XTREAM" | "M3U";
 	serverUrl: string;
 	username: string;
 	password: string;
 	playlistName: string;
+	/** Decrypted M3U URL. Null for Xtream. Never send this to the client. */
+	m3uUrl: string | null;
 };
 
 // Decrypted credentials live only in this process, for a short time. They are
@@ -58,11 +62,36 @@ export async function getCachedPlaylistByUserAndId(
 		return null;
 	}
 
+	const source = playlist.source === "M3U" ? "M3U" : "XTREAM";
+	let m3uUrl: string | null = null;
+	let password = "";
+	try {
+		if (source === "M3U") {
+			if (!playlist.m3uUrl) {
+				credentialCache.delete(key);
+				return null;
+			}
+			m3uUrl = cryptr.decrypt(playlist.m3uUrl);
+		} else {
+			password = cryptr.decrypt(playlist.password);
+		}
+	} catch (error) {
+		console.warn(
+			"[playlist] decrypt failed:",
+			error instanceof Error ? error.name : "unknown",
+		);
+		credentialCache.delete(key);
+		return null;
+	}
+
 	const value: DecryptedPlaylist = {
+		id: playlist.id,
+		source,
 		serverUrl: playlist.serverUrl,
 		username: playlist.username,
-		password: cryptr.decrypt(playlist.password),
+		password,
 		playlistName: playlist.playlistName,
+		m3uUrl,
 	};
 
 	if (credentialCache.size >= MAX_CACHED_CREDENTIALS) {
@@ -105,6 +134,15 @@ export async function getPlaylistStatus(
 	const playlist = await getPlaylistById(playlistId);
 	if (!playlist) {
 		throw new Error("Playlist not found");
+	}
+
+	if (playlist.source === "M3U") {
+		const value: PlaylistStatus = { status: "M3U", expDate: null };
+		playlistStatusCache.set(playlistId, {
+			expires: now + PLAYLIST_STATUS_TTL_MS,
+			value,
+		});
+		return value;
 	}
 
 	const info = await createXtreamClient(playlist).getAccountInfo();

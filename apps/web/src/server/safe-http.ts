@@ -119,6 +119,58 @@ export function isBlockedAddress(address: string) {
 	return blockedRanges.check(bare, type === 4 ? "ipv4" : "ipv6");
 }
 
+/**
+ * Userinfo is removed before the SSRF checks. When it was present, the
+ * caller receives a Basic authorization header and must not log either value.
+ */
+export function stripUrlUserinfo(raw: string): {
+	url: string;
+	headers: Record<string, string>;
+} {
+	let parsed: URL;
+	try {
+		parsed = new URL(raw);
+	} catch {
+		return { url: raw, headers: {} };
+	}
+	if (!parsed.username && !parsed.password) {
+		return { url: raw, headers: {} };
+	}
+	const user = decodeURIComponent(parsed.username);
+	const pass = decodeURIComponent(parsed.password);
+	parsed.username = "";
+	parsed.password = "";
+	const token = Buffer.from(`${user}:${pass}`, "utf8").toString("base64");
+	return {
+		url: parsed.toString(),
+		headers: { authorization: `Basic ${token}` },
+	};
+}
+
+/**
+ * Authorization is scoped to one origin (scheme, host, and port).
+ * A redirect that leaves that origin drops the header. Same-origin
+ * targets, including relative paths and the default port, keep it.
+ * The caller resolves network-path locations (`//host`) before comparing.
+ * Every other header, including Range, is unchanged.
+ */
+export function headersForRedirect(
+	headers: Record<string, string>,
+	from: URL,
+	to: URL,
+): Record<string, string> {
+	if (from.origin === to.origin) {
+		return headers;
+	}
+	const next: Record<string, string> = {};
+	for (const [name, value] of Object.entries(headers)) {
+		if (name.toLowerCase() !== "authorization") {
+			next[name] = value;
+		}
+	}
+	return next;
+}
+
 /** Synchronous checks that do not need DNS. Throws UnsafeUrlError. */
 export function assertHttpUrl(url: URL, allowPrivateHosts = false) {
 	if (url.protocol !== "http:" && url.protocol !== "https:") {
@@ -376,12 +428,15 @@ export async function safeFetch(
 		const raw = await requestOnce(url, resolved, deadline);
 
 		if (raw.location) {
+			let nextUrl: URL;
 			try {
-				url = new URL(raw.location, url);
+				nextUrl = new URL(raw.location, url);
 			} catch {
 				throw new UnsafeUrlError("Invalid redirect location");
 			}
-			url.hash = "";
+			nextUrl.hash = "";
+			resolved.headers = headersForRedirect(resolved.headers, url, nextUrl);
+			url = nextUrl;
 			continue;
 		}
 

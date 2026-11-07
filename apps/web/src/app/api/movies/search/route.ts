@@ -1,6 +1,9 @@
+import { getCachedMovies } from "@/server/cached-content";
+import { prepareCategorySearch } from "@/server/category-access";
+import { readCategoryIds } from "@/server/category-preference-policy";
 import { searchInCategory } from "@/server/category-search";
 import { searchQuerySchema } from "@/server/search-params-schema";
-import { createXtreamClient, getPlaylistById } from "@/server/xtream";
+import { getPlaylistById } from "@/server/xtream";
 import type { StandardXtreamMovieListing } from "@iptv/xtream-api/standardized";
 import { type NextRequest, NextResponse } from "next/server";
 
@@ -26,22 +29,27 @@ export async function GET(request: NextRequest) {
 		return NextResponse.json({ error: "Playlist not found." }, { status: 404 });
 	}
 
-	const xtream = createXtreamClient(playlist);
+	const gate = await prepareCategorySearch(playlistId, "movie", categoryId);
+	if (!gate.allowed) {
+		return NextResponse.json(
+			{ error: "Category not available." },
+			{ status: 404 },
+		);
+	}
 
 	try {
 		const result = await searchInCategory<StandardXtreamMovieListing>({
 			query: q,
 			limit,
 			maxPages,
-			loadPage: async ({ page, limit: pageLimit }) =>
-				(await xtream.getMovies({
-					categoryId,
-					page,
-					limit: pageLimit,
-				})) as StandardXtreamMovieListing[],
+			loadPage: ({ page, limit: pageLimit }) =>
+				getCachedMovies(playlistId, undefined, categoryId, page, pageLimit),
 			toSearchItem: (movie) => {
 				const id = String(movie.id ?? "");
 				if (!id) {
+					return null;
+				}
+				if (!gate.keep(readCategoryIds(movie))) {
 					return null;
 				}
 
@@ -49,7 +57,7 @@ export async function GET(request: NextRequest) {
 					id,
 					name: String(movie.name ?? ""),
 					poster: movie.poster || undefined,
-					categoryId: String(movie.categoryIds?.[0] ?? categoryId),
+					categoryId,
 				};
 			},
 		});
