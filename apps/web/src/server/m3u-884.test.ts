@@ -149,8 +149,7 @@ test("rejected or unreachable Xtream login stays a server error", async () => {
 		(error: unknown) => {
 			assert.ok(error instanceof M3uPlaylistError);
 			assert.equal(error.code, "server_refused");
-			assert.match(error.message, /HTTP 884/);
-			assert.match(error.message, /not necessarily incorrect/);
+			assert.equal(error.message, "The server rejected the Xtream login.");
 			assertNoCredentialLeak(error.message);
 			return true;
 		},
