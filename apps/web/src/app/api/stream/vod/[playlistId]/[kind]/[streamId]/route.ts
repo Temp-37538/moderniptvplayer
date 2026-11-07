@@ -9,7 +9,7 @@ import {
 } from "@/server/category-access";
 import {
 	parseCategoryQuery,
-	readCategoryIds,
+	provenCategoryIds,
 	readEpisodeIds,
 } from "@/server/category-preference-policy";
 import {
@@ -29,40 +29,6 @@ import type { NextRequest } from "next/server";
 type Context = {
 	params: Promise<{ playlistId: string; kind: string; streamId: string }>;
 };
-
-/**
- * Detail category ids are authoritative when they exist. An empty detail, or
- * a movie detail the serializer cannot read, is membership only when one
- * category-scoped catalog row exists. The returned ids are every real
- * category the adult lock must see. `null` denies the request.
- */
-async function provenCategoryIds(
-	detail: unknown,
-	requestedCategoryId: string,
-	loadListing: () => Promise<unknown>,
-): Promise<readonly string[] | null> {
-	const detailIds = readCategoryIds(detail);
-	if (detailIds.includes(requestedCategoryId)) {
-		return detailIds;
-	}
-	if (detailIds.length > 0) {
-		return null;
-	}
-	let listed: unknown;
-	try {
-		listed = await loadListing();
-	} catch {
-		return null;
-	}
-	if (!listed) {
-		return null;
-	}
-	const listedIds = readCategoryIds(listed);
-	if (listedIds.includes(requestedCategoryId)) {
-		return listedIds;
-	}
-	return [requestedCategoryId, ...listedIds];
-}
 
 async function itemCategoryPermitted(
 	userId: string,
@@ -171,19 +137,23 @@ export async function GET(request: NextRequest, { params }: Context) {
 		if (!categoryAllowed) {
 			return streamError(404, "Category not available.");
 		}
-		// A visible category id in the query is not membership. Prove the film
-		// or show is actually in it, then apply the adult lock to every real
-		// category name. This runs even when nothing is hidden.
-		const itemAllowed = await itemCategoryPermitted(
-			user.userId,
-			playlistId,
-			kind,
-			streamId,
-			requestedCategoryId,
-			show.categoryId,
-		);
-		if (!itemAllowed) {
-			return streamError(404, "Category not available.");
+		// A visible category id in the query is not membership. When the account
+		// hides a category or locks adult ones, prove the film or show is
+		// actually in it, then apply the adult lock to every real category
+		// name. Without any restriction nothing can be bypassed, so playback
+		// does not depend on this lookup.
+		if (restricted) {
+			const itemAllowed = await itemCategoryPermitted(
+				user.userId,
+				playlistId,
+				kind,
+				streamId,
+				requestedCategoryId,
+				show.categoryId,
+			);
+			if (!itemAllowed) {
+				return streamError(404, "Category not available.");
+			}
 		}
 	}
 
