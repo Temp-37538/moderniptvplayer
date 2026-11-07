@@ -1,5 +1,6 @@
 import "server-only";
 import {
+	getCachedCatalogMembership,
 	getCachedChannel,
 	getCachedChannelCategories,
 	getCachedMovie,
@@ -15,6 +16,7 @@ import {
 	categoryTargetFromItemUrl,
 	isCategorySetBlocked,
 	isItemOpenFromCategory,
+	itemOpenAllowed,
 	matchesPreferenceScope,
 	partitionCategories,
 	preferenceScopeWhere,
@@ -173,6 +175,46 @@ export async function assertCategoryAvailable(
 		categoryIds,
 		[categoryId],
 	);
+	if (!allowed) {
+		notFound();
+	}
+}
+
+/**
+ * A film or show page, opened from the category named in its URL. The URL is
+ * not membership: when the account hides a category or locks adult ones, the
+ * title must really be listed in the category it was opened from, and the
+ * adult lock sees every real category of the title. Accounts without any
+ * restriction keep the plain check, since nothing can be bypassed there.
+ */
+export async function assertItemInCategory(
+	playlistId: string,
+	kind: "movie" | "series",
+	categoryId: string,
+	itemId: string,
+	item: unknown,
+) {
+	const userId = await requireAuthenticatedUserId();
+	const restricted = !(await isUnscopedPlaybackAllowed(
+		userId,
+		playlistId,
+		kind,
+	));
+	const allowed = await itemOpenAllowed({
+		restricted,
+		item,
+		categoryId,
+		loadListing: () =>
+			getCachedCatalogMembership(playlistId, kind, categoryId, itemId),
+		isAvailable: (categoryIds, requiredIds) =>
+			isCategoryAvailableForUser(
+				userId,
+				playlistId,
+				kind,
+				categoryIds,
+				requiredIds,
+			),
+	});
 	if (!allowed) {
 		notFound();
 	}
