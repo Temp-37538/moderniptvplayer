@@ -82,30 +82,22 @@ export async function getCachedShow(playlistId, playlist, showId) {
 	return current.show;
 }
 
-export async function getCachedMovies(
+export async function getCachedMovieInCategory(
 	playlistId,
-	playlist,
 	categoryId,
-	page,
-	limit,
+	movieId,
 ) {
 	const current = state();
 	current.movieListLoads += 1;
-	current.movieListLoad = { playlistId, playlist, categoryId, page, limit };
-	return current.moviePage(page, limit);
+	current.movieListLoad = { playlistId, categoryId, movieId };
+	return current.findMovie(categoryId, movieId);
 }
 
-export async function getCachedShows(
-	playlistId,
-	playlist,
-	categoryId,
-	page,
-	limit,
-) {
+export async function getCachedShowInCategory(playlistId, categoryId, showId) {
 	const current = state();
 	current.showListLoads += 1;
-	current.showListLoad = { playlistId, playlist, categoryId, page, limit };
-	return current.showPage(page, limit);
+	current.showListLoad = { playlistId, categoryId, showId };
+	return current.findShow(categoryId, showId);
 }
 
 export async function m3uStreamTarget(playlist, itemId) {

@@ -202,6 +202,21 @@ export async function m3uMovies(
 	return pageSlice(items, page, limit).map(toMovieListing);
 }
 
+export async function m3uMovieInCategory(
+	playlist: { id: string; m3uUrl: string | null },
+	categoryId: string,
+	movieId: string,
+) {
+	const parsed = await readM3uCatalog(playlist);
+	const entry = parsed.movies.find(
+		(item) => item.id === movieId && item.categoryId === categoryId,
+	);
+	if (!entry) {
+		return null;
+	}
+	return toMovieListing(entry);
+}
+
 export async function m3uMovie(
 	playlist: { id: string; m3uUrl: string | null },
 	movieId: string,
@@ -225,6 +240,21 @@ export async function m3uShows(
 		show.categoryIds.includes(categoryId),
 	);
 	return pageSlice(items, page, limit).map((show) => toShowListing(show));
+}
+
+export async function m3uShowInCategory(
+	playlist: { id: string; m3uUrl: string | null },
+	categoryId: string,
+	showId: string,
+) {
+	const parsed = await readM3uCatalog(playlist);
+	const show = parsed.shows.find(
+		(item) => item.id === showId && item.categoryIds.includes(categoryId),
+	);
+	if (!show) {
+		return null;
+	}
+	return toShowListing(show);
 }
 
 export async function m3uShow(

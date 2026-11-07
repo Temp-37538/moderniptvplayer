@@ -1,8 +1,8 @@
 import {
 	getCachedMovie,
-	getCachedMovies,
+	getCachedMovieInCategory,
 	getCachedShow,
-	getCachedShows,
+	getCachedShowInCategory,
 } from "@/server/cached-content";
 import {
 	isCategoryAvailableForUser,
@@ -31,83 +31,16 @@ type Context = {
 	params: Promise<{ playlistId: string; kind: string; streamId: string }>;
 };
 
-// Category listings are cached per page. One page is not proof that an id is
-// absent: walk pages until the title is found or a short page ends the catalog.
-const CATEGORY_LISTING_PAGE_SIZE = 1000;
-const CATEGORY_LISTING_MAX_PAGES = 200;
-
-function uniqueIds(groups: readonly (readonly string[])[]): string[] {
-	const ids: string[] = [];
-	for (const group of groups) {
-		for (const id of group) {
-			if (id && !ids.includes(id)) {
-				ids.push(id);
-			}
-		}
-	}
-	return ids;
-}
-
-function itemIdOf(value: unknown) {
-	if (!value || typeof value !== "object" || !("id" in value)) {
-		return "";
-	}
-	return String((value as { id?: unknown }).id ?? "").trim();
-}
-
-function sameItemId(value: unknown, itemId: string) {
-	const id = itemIdOf(value);
-	return id.length > 0 && id === itemId;
-}
-
-function mismatchedItemId(value: unknown, itemId: string) {
-	const id = itemIdOf(value);
-	return id.length > 0 && id !== itemId;
-}
-
 /**
- * Category ids for a title that was found in one category's cached listing.
- * `null` means the title was not in that category, or the listing could not
- * be read. An empty array means the row was found and carries no category ids.
- */
-async function listedCategoryIds(
-	itemId: string,
-	loadPage: (page: number, limit: number) => Promise<unknown>,
-): Promise<readonly string[] | null> {
-	try {
-		for (let page = 1; page <= CATEGORY_LISTING_MAX_PAGES; page += 1) {
-			const pageItems = await loadPage(page, CATEGORY_LISTING_PAGE_SIZE);
-			if (!Array.isArray(pageItems)) {
-				return null;
-			}
-			for (const item of pageItems) {
-				if (!sameItemId(item, itemId)) {
-					continue;
-				}
-				return readCategoryIds(item);
-			}
-			if (pageItems.length < CATEGORY_LISTING_PAGE_SIZE) {
-				return null;
-			}
-		}
-	} catch {
-		return null;
-	}
-	return null;
-}
-
-/**
- * The query category is membership only when the detail lists it, or when the
- * detail has no category metadata and the category-scoped catalog contains
- * the title. A different category on the detail is not replaced by the query.
- * The returned ids are the title's real categories and are what the adult
- * lock must see. `null` means the requested category is not a real membership.
+ * Detail category ids are authoritative when they exist. An empty detail, or
+ * a movie detail the serializer cannot read, is membership only when one
+ * category-scoped catalog row exists. The returned ids are every real
+ * category the adult lock must see. `null` denies the request.
  */
 async function provenCategoryIds(
 	detail: unknown,
 	requestedCategoryId: string,
-	itemId: string,
-	loadPage: (page: number, limit: number) => Promise<unknown>,
+	loadListing: () => Promise<unknown>,
 ): Promise<readonly string[] | null> {
 	const detailIds = readCategoryIds(detail);
 	if (detailIds.includes(requestedCategoryId)) {
@@ -116,11 +49,20 @@ async function provenCategoryIds(
 	if (detailIds.length > 0) {
 		return null;
 	}
-	const listedIds = await listedCategoryIds(itemId, loadPage);
-	if (listedIds === null) {
+	let listed: unknown;
+	try {
+		listed = await loadListing();
+	} catch {
 		return null;
 	}
-	return uniqueIds([listedIds, [requestedCategoryId]]);
+	if (!listed) {
+		return null;
+	}
+	const listedIds = readCategoryIds(listed);
+	if (listedIds.includes(requestedCategoryId)) {
+		return listedIds;
+	}
+	return [requestedCategoryId, ...listedIds];
 }
 
 async function movieCategoryPermitted(
@@ -133,16 +75,12 @@ async function movieCategoryPermitted(
 	try {
 		movie = await getCachedMovie(playlistId, undefined, streamId);
 	} catch {
-		// Detail serializers omit category metadata on some panels and throw.
-		// Membership then has to come from the category listing.
+		// The movie detail serializer throws when category metadata is absent.
+		// Membership then comes from the category-scoped catalog row.
 		movie = null;
 	}
-	const categoryIds = await provenCategoryIds(
-		movie,
-		requestedCategoryId,
-		streamId,
-		(page, limit) =>
-			getCachedMovies(playlistId, undefined, requestedCategoryId, page, limit),
+	const categoryIds = await provenCategoryIds(movie, requestedCategoryId, () =>
+		getCachedMovieInCategory(playlistId, requestedCategoryId, streamId),
 	);
 	if (!categoryIds) {
 		return false;
@@ -172,15 +110,8 @@ async function episodeCategoryPermitted(
 	if (!series || !readEpisodeIds(series).includes(streamId)) {
 		return false;
 	}
-	if (mismatchedItemId(series, showId)) {
-		return false;
-	}
-	const categoryIds = await provenCategoryIds(
-		series,
-		requestedCategoryId,
-		showId,
-		(page, limit) =>
-			getCachedShows(playlistId, undefined, requestedCategoryId, page, limit),
+	const categoryIds = await provenCategoryIds(series, requestedCategoryId, () =>
+		getCachedShowInCategory(playlistId, requestedCategoryId, showId),
 	);
 	if (!categoryIds) {
 		return false;
