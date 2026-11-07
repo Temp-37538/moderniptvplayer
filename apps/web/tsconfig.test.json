@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "noEmit": true,
+    "verbatimModuleSyntax": true,
+    "allowImportingTsExtensions": true,
+    "skipLibCheck": true,
+    "types": ["node"]
+  },
+  "include": [
+    "src/lib/continue-watching.test.ts",
+    "src/server/category-preference-policy.test.ts",
+    "src/server/m3u.test.ts",
+    "src/server/m3u-884.test.ts",
+    "src/server/safe-redirect.test.ts"
+  ]
+}

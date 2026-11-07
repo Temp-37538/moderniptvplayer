@@ -1,6 +1,9 @@
+import { getCachedChannels } from "@/server/cached-content";
+import { prepareCategorySearch } from "@/server/category-access";
+import { readCategoryIds } from "@/server/category-preference-policy";
 import { searchInCategory } from "@/server/category-search";
 import { searchQuerySchema } from "@/server/search-params-schema";
-import { createXtreamClient, getPlaylistById } from "@/server/xtream";
+import { getPlaylistById } from "@/server/xtream";
 import type { StandardXtreamChannel } from "@iptv/xtream-api/standardized";
 import { type NextRequest, NextResponse } from "next/server";
 
@@ -26,22 +29,27 @@ export async function GET(request: NextRequest) {
 		return NextResponse.json({ error: "Playlist not found." }, { status: 404 });
 	}
 
-	const xtream = createXtreamClient(playlist);
+	const gate = await prepareCategorySearch(playlistId, "channel", categoryId);
+	if (!gate.allowed) {
+		return NextResponse.json(
+			{ error: "Category not available." },
+			{ status: 404 },
+		);
+	}
 
 	try {
 		const result = await searchInCategory<StandardXtreamChannel>({
 			query: q,
 			limit,
 			maxPages,
-			loadPage: async ({ page, limit: pageLimit }) =>
-				(await xtream.getChannels({
-					categoryId,
-					page,
-					limit: pageLimit,
-				})) as StandardXtreamChannel[],
+			loadPage: ({ page, limit: pageLimit }) =>
+				getCachedChannels(playlistId, undefined, categoryId, page, pageLimit),
 			toSearchItem: (channel) => {
 				const id = String(channel.id ?? "");
 				if (!id) {
+					return null;
+				}
+				if (!gate.keep(readCategoryIds(channel))) {
 					return null;
 				}
 
@@ -49,7 +57,7 @@ export async function GET(request: NextRequest) {
 					id,
 					name: String(channel.name ?? ""),
 					logo: channel.logo || undefined,
-					categoryId: String(channel.categoryIds?.[0] ?? categoryId),
+					categoryId,
 				};
 			},
 		});

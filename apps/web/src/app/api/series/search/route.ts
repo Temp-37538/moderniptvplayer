@@ -1,6 +1,9 @@
+import { getCachedShows } from "@/server/cached-content";
+import { prepareCategorySearch } from "@/server/category-access";
+import { readCategoryIds } from "@/server/category-preference-policy";
 import { searchInCategory } from "@/server/category-search";
 import { searchQuerySchema } from "@/server/search-params-schema";
-import { createXtreamClient, getPlaylistById } from "@/server/xtream";
+import { getPlaylistById } from "@/server/xtream";
 import type { StandardXtreamShow } from "@iptv/xtream-api/standardized";
 import { type NextRequest, NextResponse } from "next/server";
 
@@ -26,22 +29,27 @@ export async function GET(request: NextRequest) {
 		return NextResponse.json({ error: "Playlist not found." }, { status: 404 });
 	}
 
-	const xtream = createXtreamClient(playlist);
+	const gate = await prepareCategorySearch(playlistId, "series", categoryId);
+	if (!gate.allowed) {
+		return NextResponse.json(
+			{ error: "Category not available." },
+			{ status: 404 },
+		);
+	}
 
 	try {
 		const result = await searchInCategory<Omit<StandardXtreamShow, "seasons">>({
 			query: q,
 			limit,
 			maxPages,
-			loadPage: async ({ page, limit: pageLimit }) =>
-				(await xtream.getShows({
-					categoryId,
-					page,
-					limit: pageLimit,
-				})) as unknown as Array<Omit<StandardXtreamShow, "seasons">>,
+			loadPage: ({ page, limit: pageLimit }) =>
+				getCachedShows(playlistId, undefined, categoryId, page, pageLimit),
 			toSearchItem: (show) => {
 				const id = String(show.id ?? "");
 				if (!id) {
+					return null;
+				}
+				if (!gate.keep(readCategoryIds(show))) {
 					return null;
 				}
 
@@ -49,7 +57,7 @@ export async function GET(request: NextRequest) {
 					id,
 					name: String(show.name ?? ""),
 					poster: show.poster || undefined,
-					categoryId: String(show.categoryIds?.[0] ?? categoryId),
+					categoryId,
 				};
 			},
 		});

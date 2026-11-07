@@ -1,8 +1,7 @@
 import { createPageMetadata, getPlaylistMetadataContext } from "@/app/metadata";
 import { SearchTvCategorySearch } from "@/components/series-category-search";
 import type { IdPageProps as PageProps } from "@/components/types";
-import { getCachedChannelCategories } from "@/server/cached-content";
-import { getPlaylistById } from "@/server/xtream";
+import { loadCategoryBrowser } from "@/server/category-access";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
@@ -37,19 +36,19 @@ export default function ChannelSearchCategoriesPage({ params }: PageProps) {
 
 async function ChannelSearchCategoriesContent({ params }: PageProps) {
 	const { id } = await params;
-	const playlist = await getPlaylistById(id);
+	const browser = await loadCategoryBrowser(id, "channel");
 
-	if (!playlist) {
+	if (!browser) {
 		notFound();
 	}
-
-	const typedCategories = await getCachedChannelCategories(id, playlist);
 
 	return (
 		<SearchTvCategorySearch
 			id={id}
-			playlistName={playlist.playlistName}
-			categories={typedCategories}
+			playlistName={browser.playlistName}
+			categories={browser.categories}
+			hiddenCategories={browser.hiddenCategories}
+			lockAdultCategories={browser.lockAdultCategories}
 		/>
 	);
 }

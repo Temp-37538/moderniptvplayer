@@ -20,7 +20,7 @@ import { ChevronRightIcon } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type NavItem = {
 	title: string;
@@ -32,6 +32,42 @@ type NavItem = {
 		url: string;
 	}[];
 };
+
+const NAV_OPEN_STORAGE_KEY = "sidebar-nav-open-items";
+
+function readOpenNavItems(): string[] {
+	if (typeof window === "undefined") return [];
+	try {
+		const raw = window.localStorage.getItem(NAV_OPEN_STORAGE_KEY);
+		if (!raw) return [];
+		const parsed = JSON.parse(raw);
+		return Array.isArray(parsed)
+			? parsed.filter((value): value is string => typeof value === "string")
+			: [];
+	} catch {
+		return [];
+	}
+}
+
+function writeOpenNavItems(items: string[]) {
+	if (typeof window === "undefined") return;
+	try {
+		window.localStorage.setItem(NAV_OPEN_STORAGE_KEY, JSON.stringify(items));
+	} catch {
+		// Ignore storage failures.
+	}
+}
+
+function setNavItemOpen(title: string, next: boolean) {
+	const current = readOpenNavItems();
+	if (next) {
+		if (!current.includes(title)) {
+			writeOpenNavItems([...current, title]);
+		}
+	} else {
+		writeOpenNavItems(current.filter((value) => value !== title));
+	}
+}
 
 export function NavMain({ items }: { items: NavItem[] }) {
 	const pathname = usePathname();
@@ -76,29 +112,27 @@ function NavMainItem({
 	openMobile: boolean;
 	setOpenMobile: (open: boolean) => void;
 }) {
-	const isSubItemActive = item.items?.some((subItem) => {
-		const subHref = buildHref(subItem.url);
-		const isSearch = subItem.url.includes("/search");
-		return isSearch
-			? pathname === subHref || pathname.startsWith(`${subHref}/`)
-			: (pathname === subHref || pathname.startsWith(`${subHref}/`)) &&
-					!pathname.includes("/search");
-	});
+	const { state, setOpen: setSidebarOpen } = useSidebar();
 
-	const [prevPathname, setPrevPathname] = useState(pathname);
-	const [open, setOpen] = useState(!!(item.isActive || isSubItemActive));
+	const [open, setOpen] = useState(false);
 
-	if (pathname !== prevPathname) {
-		setPrevPathname(pathname);
-		if (isSubItemActive) {
-			setOpen(true);
-		}
-	}
+	useEffect(() => {
+		setOpen(readOpenNavItems().includes(item.title));
+	}, [item.title]);
 
 	return (
 		<Collapsible
 			open={open}
-			onOpenChange={setOpen}
+			onOpenChange={(next) => {
+				if (state === "collapsed") {
+					setSidebarOpen(true);
+					setOpen(true);
+					setNavItemOpen(item.title, true);
+					return;
+				}
+				setOpen(next);
+				setNavItemOpen(item.title, next);
+			}}
 			className="group/collapsible"
 			render={<SidebarMenuItem />}
 		>

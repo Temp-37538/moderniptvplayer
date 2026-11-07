@@ -8,6 +8,7 @@ import { checkRateLimit } from "./rate-limit";
 import {
 	HttpResponseTooLargeError,
 	HttpTimeoutError,
+	stripUrlUserinfo,
 	UnsafeUrlError,
 } from "./safe-http";
 import { type SafeStreamResponse, safeStream } from "./safe-stream";
@@ -209,15 +210,16 @@ export async function proxyUpstream(
 	{ userId, manifest }: { userId: string; manifest: boolean },
 ) {
 	let host = "unknown";
+	const target = stripUrlUserinfo(upstreamUrl);
 	try {
-		host = new URL(upstreamUrl).hostname;
+		host = new URL(target.url).hostname;
 	} catch {
-		// safeStream rejects it below.
+		host = "unknown";
 	}
 
 	try {
-		const upstream = await safeStream(upstreamUrl, {
-			headers: forwardedHeaders(request),
+		const upstream = await safeStream(target.url, {
+			headers: { ...target.headers, ...forwardedHeaders(request) },
 			signal: request.signal,
 			allowPrivateHosts: env.ALLOW_PRIVATE_PLAYLIST_HOSTS,
 		});

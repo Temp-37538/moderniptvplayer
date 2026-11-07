@@ -1,6 +1,10 @@
 import { createPageMetadata, getCategoryMetadataContext } from "@/app/metadata";
 import type { IdCategoryPageProps as PageProps } from "@/components/types";
 import { getCachedMovies } from "@/server/cached-content";
+import {
+	assertCategoryAvailable,
+	filterBrowsableItems,
+} from "@/server/category-access";
 import { getPlaylistById } from "@/server/xtream";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -23,6 +27,7 @@ export async function generateMetadata({
 	const { id, categoryId } = await params;
 	const { page: pageParam } = await searchParams;
 	const currentPage = Number(pageParam) || 1;
+	await assertCategoryAvailable(id, "movie", categoryId);
 	const context = await getCategoryMetadataContext("movies", id, categoryId);
 	const categoryTitle = context?.categoryName ?? "Movies";
 	const pageSuffix = currentPage > 1 ? `, page ${currentPage}` : "";
@@ -60,12 +65,20 @@ async function MoviesByCategoryContent({ params, searchParams }: PageProps) {
 		notFound();
 	}
 
+	await assertCategoryAvailable(id, "movie", categoryId);
+
 	const movies = await getCachedMovies(
 		id,
 		playlist,
 		categoryId,
 		currentPage,
 		ITEMS_PER_PAGE,
+	);
+	const visibleMovies = await filterBrowsableItems(
+		id,
+		"movie",
+		categoryId,
+		movies,
 	);
 
 	const hasNextPage = movies.length === ITEMS_PER_PAGE;
@@ -81,9 +94,9 @@ async function MoviesByCategoryContent({ params, searchParams }: PageProps) {
 					</div>
 				</div>
 			</div>
-			{movies.length > 0 ? (
+			{visibleMovies.length > 0 ? (
 				<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6  gap-4">
-					{movies.map((movie) => {
+					{visibleMovies.map((movie) => {
 						const safePosterSrc = toSafeImageSrc(movie.poster);
 						return (
 							<Link

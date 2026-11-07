@@ -18,6 +18,7 @@ import { toast } from "sonner";
 
 export type PlaylistCardData = {
 	id: string;
+	source: "XTREAM" | "M3U";
 	playlistName: string;
 	serverUrl: string;
 	username: string;
@@ -30,6 +31,7 @@ type PlaylistCardProps = PlaylistCardData & {
 
 export function PlaylistCard({
 	id,
+	source,
 	playlistName,
 	serverUrl,
 	username,
@@ -66,7 +68,8 @@ export function PlaylistCard({
 							{playlistName}
 						</p>
 						<p className="mt-1 truncate text-xs text-muted-foreground">
-							{serverUrl} - {createdAt}
+							{source === "M3U" ? `M3U - ${serverUrl}` : serverUrl} -{" "}
+							{createdAt}
 						</p>
 						{subscriptionStatus ? (
 							<div className="mt-0.5 truncate text-xs text-muted-foreground">
@@ -115,7 +118,7 @@ export function PlaylistCard({
 				open={editOpen}
 				onOpenChange={setEditOpen}
 				fieldIdPrefix={`card-${id}`}
-				playlist={{ id, playlistName, serverUrl, username }}
+				playlist={{ id, source, playlistName, serverUrl, username }}
 			/>
 			<DeletePlaylistDialog
 				open={deleteOpen}

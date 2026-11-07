@@ -1,6 +1,7 @@
 import { createPageMetadata, getPlaylistMetadataContext } from "@/app/metadata";
 import { SavedItemsList } from "@/components/saved-items-list";
 import { getFavoriteItems, getWatchLaterItems } from "@/server/user-items";
+import { playlistAccountLine } from "@/lib/playlist-label";
 import { getPlaylistById } from "@/server/xtream";
 import { ChevronRight, Clapperboard, Film, Tv } from "lucide-react";
 import type { Metadata, Route } from "next";
@@ -67,7 +68,7 @@ async function PlaylistHomeContent({
 						{playlist.playlistName}
 					</h1>
 					<p className="text-sm text-muted-foreground">
-						{playlist.username} - {playlist.serverUrl}
+						{playlistAccountLine(playlist)}
 					</p>
 				</header>
 

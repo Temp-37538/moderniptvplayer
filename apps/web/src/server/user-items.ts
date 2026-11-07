@@ -3,6 +3,7 @@ import prisma from "@moderniptvplayer/db";
 import { z } from "zod";
 import type { ItemType, UserItemStatus } from "@/components/types";
 import { requireAuthenticatedUserId } from "./auth-utils";
+import { filterListedItems } from "./category-access";
 import { revalidatePath } from "next/cache";
 
 // Server actions receive whatever a client sends: validate before storing.
@@ -194,17 +195,19 @@ export async function toggleFavorite(
 export async function getWatchLaterItems(playlistId: string) {
 	await verifyPlaylistOwnership(playlistId);
 
-	return prisma.watchLater.findMany({
+	const items = await prisma.watchLater.findMany({
 		where: { playlistId },
 		orderBy: { createdAt: "desc" },
 	});
+	return filterListedItems(items);
 }
 
 export async function getFavoriteItems(playlistId: string) {
 	await verifyPlaylistOwnership(playlistId);
 
-	return prisma.favorite.findMany({
+	const items = await prisma.favorite.findMany({
 		where: { playlistId },
 		orderBy: { createdAt: "desc" },
 	});
+	return filterListedItems(items);
 }

@@ -12,8 +12,9 @@ import {
 	readPlayableSeasons,
 	type EpisodeProgressEntry,
 } from "@/lib/series-resume";
-import { getCachedShow } from "./cached-content";
 import { requireAuthenticatedUserId } from "./auth-utils";
+import { getCachedShow } from "./cached-content";
+import { isListedItemVisible } from "./category-access";
 
 // Past this share of the duration the title counts as watched.
 export const COMPLETED_RATIO = 0.92;
@@ -587,6 +588,9 @@ export async function getContinueWatching(
 		);
 		for (const item of resolved) {
 			if (!item) {
+				continue;
+			}
+			if (!(await isListedItemVisible(item.itemUrl))) {
 				continue;
 			}
 			items.push(item);

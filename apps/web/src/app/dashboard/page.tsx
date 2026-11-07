@@ -74,6 +74,7 @@ async function Page() {
 
 	const safePlaylists: PlaylistCardData[] = playlists.map((p) => ({
 		id: p.id,
+		source: p.source,
 		playlistName: p.playlistName,
 		serverUrl: p.serverUrl,
 		username: p.username,
@@ -95,7 +96,7 @@ async function Page() {
 			<div className="w-full space-y-8">
 				<div className="flex items-center justify-between gap-4">
 					<div className="space-y-1">
-						<h1 className="text-3xl font-bold tracking-tight">
+						<h1 className="text-2xl md:text-3xl font-bold tracking-tight">
 							Your playlists
 						</h1>
 						<p className="text-base text-muted-foreground">

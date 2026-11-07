@@ -34,3 +34,37 @@ model WatchProgress {
   @@index([userId, updatedAt])
   @@map("watch_progress")
 }
+
+// Pin and hide for one provider category.
+// A category id is only meaningful inside one playlist and one content kind
+// (live, movie, or series). The same id elsewhere is a different category.
+model CategoryPreference {
+  id         String   @id @default(cuid())
+  categoryId String
+  kind       String
+  pinned     Boolean  @default(false)
+  hidden     Boolean  @default(false)
+  playlistId String
+  playlist   Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([userId, playlistId, kind, categoryId])
+  @@index([userId, playlistId, kind])
+  @@map("category_preference")
+}
+
+// Single account safety switch for adult categories.
+// There is no other parental-control preference to mirror, so this is the
+// only lock. The default is off and existing accounts stay unchanged.
+model UserSafetyPreference {
+  userId              String   @id
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lockAdultCategories Boolean  @default(false)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@map("user_safety_preference")
+}
