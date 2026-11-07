@@ -22,10 +22,10 @@
     "start": "turbo run start"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.3.15",
+    "@biomejs/biome": "2.6.4",
     "@moderniptvplayer/config": "workspace:*",
     "@types/node": "^22.13.14",
-    "turbo": "2.9.14",
+    "turbo": "2.11.10",
     "typescript": "catalog:"
   },
   "pnpm": {
