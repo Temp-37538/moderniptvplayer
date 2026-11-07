@@ -9,6 +9,7 @@ import type {
 import { cacheLife, cacheTag } from "next/cache";
 import { requireAuthenticatedUserId } from "@/server/auth-utils";
 import type { CategoryKind } from "@/server/category-preference-policy";
+import { M3U_MAX_ENTRIES } from "@/server/m3u";
 import {
 	m3uCategories,
 	m3uChannel,
@@ -291,6 +292,40 @@ async function loadShow(userId: string, playlistId: string, showId: string) {
 	return (await getShowSafe(playlist, showId)) as StandardXtreamShow;
 }
 
+type CatalogKind = Exclude<CategoryKind, "channel">;
+
+/**
+ * One full category list, then the matching row. `getMovies` / `getShows`
+ * without a page already return the whole Xtream category. M3U listings are
+ * capped by the catalog itself, so one slice covers every entry in it.
+ */
+async function loadCatalogMembership(
+	userId: string,
+	playlistId: string,
+	kind: CatalogKind,
+	categoryId: string,
+	itemId: string,
+) {
+	"use cache";
+	cacheLife("hours");
+	cacheTag(`playlist-${playlistId}-${kind}-${itemId}-category-${categoryId}`);
+	cacheTag(getPlaylistParentTag(playlistId));
+	const playlist = await resolvePlaylist(userId, playlistId);
+	const items =
+		playlist.source === "M3U"
+			? kind === "movie"
+				? await m3uMovies(playlist, categoryId, 1, M3U_MAX_ENTRIES)
+				: await m3uShows(playlist, categoryId, 1, M3U_MAX_ENTRIES)
+			: kind === "movie"
+				? ((await createXtreamClient(playlist).getMovies({
+						categoryId,
+					})) as Array<{ id?: string }>)
+				: ((await createXtreamClient(playlist).getShows({
+						categoryId,
+					})) as Array<{ id?: string }>);
+	return items.find((item) => item.id === itemId) ?? null;
+}
+
 export async function getCachedMovieCategories(
 	playlistId: string,
 	_playlist?: LegacyPlaylistArgument,
@@ -381,4 +416,17 @@ export async function getCachedShow(
 	showId: string,
 ) {
 	return loadShow(await requireAuthenticatedUserId(), playlistId, showId);
+}
+
+export async function getCachedCatalogMembership(
+	playlistId: string,
+	kind: CatalogKind,
+	categoryId: string,
+	itemId: string,
+) {
+	const userId = await requireAuthenticatedUserId();
+	if (!(await categoryContentAllowed(playlistId, kind, categoryId))) {
+		return null;
+	}
+	return loadCatalogMembership(userId, playlistId, kind, categoryId, itemId);
 }

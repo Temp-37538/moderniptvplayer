@@ -1,4 +1,8 @@
-import { getCachedMovie, getCachedShow } from "@/server/cached-content";
+import {
+	getCachedCatalogMembership,
+	getCachedMovie,
+	getCachedShow,
+} from "@/server/cached-content";
 import {
 	isCategoryAvailableForUser,
 	isUnscopedPlaybackAllowed,
@@ -25,6 +29,94 @@ import type { NextRequest } from "next/server";
 type Context = {
 	params: Promise<{ playlistId: string; kind: string; streamId: string }>;
 };
+
+/**
+ * Detail category ids are authoritative when they exist. An empty detail, or
+ * a movie detail the serializer cannot read, is membership only when one
+ * category-scoped catalog row exists. The returned ids are every real
+ * category the adult lock must see. `null` denies the request.
+ */
+async function provenCategoryIds(
+	detail: unknown,
+	requestedCategoryId: string,
+	loadListing: () => Promise<unknown>,
+): Promise<readonly string[] | null> {
+	const detailIds = readCategoryIds(detail);
+	if (detailIds.includes(requestedCategoryId)) {
+		return detailIds;
+	}
+	if (detailIds.length > 0) {
+		return null;
+	}
+	let listed: unknown;
+	try {
+		listed = await loadListing();
+	} catch {
+		return null;
+	}
+	if (!listed) {
+		return null;
+	}
+	const listedIds = readCategoryIds(listed);
+	if (listedIds.includes(requestedCategoryId)) {
+		return listedIds;
+	}
+	return [requestedCategoryId, ...listedIds];
+}
+
+async function itemCategoryPermitted(
+	userId: string,
+	playlistId: string,
+	kind: "movie" | "episode",
+	streamId: string,
+	requestedCategoryId: string,
+	showId: string | null,
+) {
+	const catalogKind = kind === "movie" ? "movie" : "series";
+	let detail: unknown = null;
+	let membershipId = streamId;
+	if (kind === "episode") {
+		if (!showId) {
+			return false;
+		}
+		membershipId = showId;
+		try {
+			detail = await getCachedShow(playlistId, undefined, showId);
+		} catch {
+			return false;
+		}
+		// The episode id is the upstream stream id. It must belong to this show.
+		if (!detail || !readEpisodeIds(detail).includes(streamId)) {
+			return false;
+		}
+	} else {
+		try {
+			detail = await getCachedMovie(playlistId, undefined, streamId);
+		} catch {
+			// The movie detail serializer throws when category metadata is absent.
+			// Membership then comes from the category listing row.
+			detail = null;
+		}
+	}
+	const categoryIds = await provenCategoryIds(detail, requestedCategoryId, () =>
+		getCachedCatalogMembership(
+			playlistId,
+			catalogKind,
+			requestedCategoryId,
+			membershipId,
+		),
+	);
+	if (!categoryIds) {
+		return false;
+	}
+	return isCategoryAvailableForUser(
+		userId,
+		playlistId,
+		catalogKind,
+		categoryIds,
+		[requestedCategoryId],
+	);
+}
 
 // Films and episodes. Seeking relies on the Range header being relayed.
 export async function GET(request: NextRequest, { params }: Context) {
@@ -62,65 +154,36 @@ export async function GET(request: NextRequest, { params }: Context) {
 		playlistId,
 		categoryKind,
 	));
-	if (!category.categoryId) {
+	const requestedCategoryId = category.categoryId;
+	if (!requestedCategoryId) {
 		if (restricted) {
 			return streamError(404, "Category not available.");
 		}
 	} else {
+		// Hidden and adult names on the opened category apply before any lookup.
 		const categoryAllowed = await isCategoryAvailableForUser(
 			user.userId,
 			playlistId,
 			categoryKind,
-			[category.categoryId],
-			[category.categoryId],
+			[requestedCategoryId],
+			[requestedCategoryId],
 		);
 		if (!categoryAllowed) {
 			return streamError(404, "Category not available.");
 		}
-		if (restricted && kind === "movie") {
-			let movie: unknown;
-			try {
-				movie = await getCachedMovie(playlistId, undefined, streamId);
-			} catch {
-				return streamError(404, "Category not available.");
-			}
-			if (!movie) {
-				return streamError(404, "Category not available.");
-			}
-			const itemAllowed = await isCategoryAvailableForUser(
-				user.userId,
-				playlistId,
-				"movie",
-				[category.categoryId, ...readCategoryIds(movie)],
-				[category.categoryId],
-			);
-			if (!itemAllowed) {
-				return streamError(404, "Category not available.");
-			}
-		}
-		if (restricted && kind === "episode") {
-			if (!show.categoryId) {
-				return streamError(404, "Category not available.");
-			}
-			let series: unknown;
-			try {
-				series = await getCachedShow(playlistId, undefined, show.categoryId);
-			} catch {
-				return streamError(404, "Category not available.");
-			}
-			if (!series || !readEpisodeIds(series).includes(streamId)) {
-				return streamError(404, "Category not available.");
-			}
-			const itemAllowed = await isCategoryAvailableForUser(
-				user.userId,
-				playlistId,
-				"series",
-				[category.categoryId, ...readCategoryIds(series)],
-				[category.categoryId],
-			);
-			if (!itemAllowed) {
-				return streamError(404, "Category not available.");
-			}
+		// A visible category id in the query is not membership. Prove the film
+		// or show is actually in it, then apply the adult lock to every real
+		// category name. This runs even when nothing is hidden.
+		const itemAllowed = await itemCategoryPermitted(
+			user.userId,
+			playlistId,
+			kind,
+			streamId,
+			requestedCategoryId,
+			show.categoryId,
+		);
+		if (!itemAllowed) {
+			return streamError(404, "Category not available.");
 		}
 	}
 
