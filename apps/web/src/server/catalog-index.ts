@@ -27,86 +27,9 @@ type CatalogEntryCandidate = {
 	image: string | null;
 };
 
-type CatalogEntryCreate = CatalogRowInput & {
-	playlistId: string;
-	syncId: string;
-};
-
-type CatalogPrisma = {
-	catalogSync: {
-		upsert(args: {
-			where: { playlistId: string };
-			create: { playlistId: string };
-			update: Record<string, never>;
-		}): Promise<unknown>;
-		updateMany(args: {
-			where: {
-				playlistId: string;
-				OR?: Array<
-					| { status: { not: string } }
-					| { lockedUntil: { lt: Date } }
-				>;
-			};
-			data: {
-				status?: string;
-				lockedUntil?: Date | null;
-				lastAttemptAt?: Date;
-				activeSyncId?: string | null;
-				syncedAt?: Date | null;
-				itemCount?: number;
-				lastError?: string | null;
-			};
-		}): Promise<{ count: number }>;
-		findUnique(args: {
-			where: { playlistId: string };
-		}): Promise<CatalogSyncRecord | null>;
-		update(args: {
-			where: { playlistId: string };
-			data: {
-				activeSyncId?: string | null;
-				status?: string;
-				syncedAt?: Date | null;
-				itemCount?: number;
-				lastError?: string | null;
-				lockedUntil?: Date | null;
-			};
-		}): Promise<unknown>;
-		deleteMany(args: {
-			where: { playlistId: string };
-		}): Promise<unknown>;
-	};
-	catalogEntry: {
-		createMany(args: {
-			data: CatalogEntryCreate[];
-			skipDuplicates: boolean;
-		}): Promise<{ count: number }>;
-		deleteMany(args: {
-			where: { playlistId: string; syncId?: { not: string } };
-		}): Promise<unknown>;
-		findMany(args: {
-			where: {
-				playlistId: string;
-				syncId: string;
-				kind: CatalogKind;
-				AND: Array<{ normalizedName: { contains: string } }>;
-			};
-			select: {
-				itemId: true;
-				name: true;
-				normalizedName: true;
-				categoryIds: true;
-				image: true;
-			};
-			orderBy: { normalizedName: "asc" };
-			take: number;
-		}): Promise<CatalogEntryCandidate[]>;
-	};
-	$transaction(operations: Promise<unknown>[]): Promise<unknown[]>;
-};
-
-// The catalogue tables are introduced by the preceding schema migration PR.
-// Keep the generated Prisma client boundary local until that schema is deployed.
-const catalogPrisma = prisma as unknown as CatalogPrisma;
+type Playlist = NonNullable<
+	Awaited<ReturnType<typeof getCachedPlaylistByUserAndId>>
+>;
 
 class CatalogTooLargeError extends Error {}
 class CatalogSyncTimeoutError extends Error {}
@@ -142,9 +65,7 @@ function errorCode(error: unknown, collecting: boolean): string {
 	return collecting ? "provider" : "unknown";
 }
 
-async function collectCatalogRows(
-	playlist: Awaited<ReturnType<typeof getCachedPlaylistByUserAndId>> & {},
-): Promise<CatalogRowInput[]> {
+async function collectCatalogRows(playlist: Playlist): Promise<CatalogRowInput[]> {
 	if (playlist.source === "M3U") {
 		const parsed = await readM3uCatalog(playlist);
 		return [
@@ -167,6 +88,36 @@ async function collectCatalogRows(
 	];
 }
 
+async function insertCatalogBatch(
+	playlistId: string,
+	syncId: string,
+	rows: readonly CatalogRowInput[],
+): Promise<void> {
+	if (rows.length === 0) {
+		return;
+	}
+
+	const values: unknown[] = [];
+	const valueRows = rows.map((row) => {
+		const first = values.length + 1;
+		values.push(
+			crypto.randomUUID(),
+			playlistId,
+			syncId,
+			row.kind,
+			row.itemId,
+			row.name,
+			row.normalizedName,
+			JSON.stringify(row.categoryIds),
+			row.image,
+		);
+		return `($${first}, $${first + 1}, $${first + 2}, $${first + 3}, $${first + 4}, $${first + 5}, $${first + 6}, ARRAY(SELECT jsonb_array_elements_text($${first + 7}::jsonb)), $${first + 8})`;
+	});
+
+	const sql = `INSERT INTO "catalog_entry" ("id", "playlistId", "syncId", "kind", "itemId", "name", "normalizedName", "categoryIds", "image") VALUES ${valueRows.join(", ")} ON CONFLICT ("playlistId", "syncId", "kind", "itemId") DO NOTHING`;
+	await prisma.$executeRawUnsafe(sql, ...values);
+}
+
 export async function syncCatalog(
 	userId: string,
 	playlistId: string,
@@ -178,45 +129,51 @@ export async function syncCatalog(
 	let total = 0;
 
 	try {
-		await catalogPrisma.catalogSync.upsert({
-			where: { playlistId },
-			create: { playlistId },
-			update: {},
-		});
-
 		const now = new Date();
-		const lock = await catalogPrisma.catalogSync.updateMany({
-			where: {
-				playlistId,
-				OR: [
-					{ status: { not: "syncing" } },
-					{ lockedUntil: { lt: now } },
-				],
-			},
-			data: {
-				status: "syncing",
-				lockedUntil: new Date(now.getTime() + SYNC_LOCK_MS),
-				lastAttemptAt: now,
-			},
-		});
-		if (lock.count !== 1) {
+		await prisma.$executeRawUnsafe(
+			`INSERT INTO "catalog_sync" ("playlistId", "status", "itemCount", "createdAt", "updatedAt")
+			 VALUES ($1, 'idle', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+			 ON CONFLICT ("playlistId") DO NOTHING`,
+			playlistId,
+		);
+
+		const lockUntil = new Date(now.getTime() + SYNC_LOCK_MS);
+		const lockCount = await prisma.$executeRawUnsafe(
+			`UPDATE "catalog_sync"
+			 SET "status" = 'syncing', "lockedUntil" = $2, "lastAttemptAt" = $3, "updatedAt" = $3
+			 WHERE "playlistId" = $1
+			   AND ("status" <> 'syncing' OR "lockedUntil" < $3)`,
+			playlistId,
+			lockUntil,
+			now,
+		);
+		if (lockCount !== 1) {
 			return;
 		}
 		lockAcquired = true;
 
 		const playlist = await getCachedPlaylistByUserAndId(userId, playlistId);
 		if (!playlist) {
-			await catalogPrisma.catalogSync.update({
-				where: { playlistId },
-				data: { status: "idle", lockedUntil: null, lastError: null },
-			});
+			await prisma.$executeRawUnsafe(
+				`UPDATE "catalog_sync"
+				 SET "status" = 'idle', "lockedUntil" = NULL, "lastError" = NULL, "updatedAt" = CURRENT_TIMESTAMP
+				 WHERE "playlistId" = $1`,
+				playlistId,
+			);
 			return;
 		}
 
+		const remainingMs = SYNC_TIMEOUT_MS - (Date.now() - startedAt);
+		if (remainingMs <= 0) {
+			throw new CatalogSyncTimeoutError();
+		}
 		const rows = await withTimeout(
 			collectCatalogRows(playlist),
-			SYNC_TIMEOUT_MS,
+			remainingMs,
 		);
+		if (Date.now() - startedAt > SYNC_TIMEOUT_MS) {
+			throw new CatalogSyncTimeoutError();
+		}
 		total = rows.length;
 		if (total > CATALOG_MAX_ROWS) {
 			throw new CatalogTooLargeError();
@@ -225,28 +182,36 @@ export async function syncCatalog(
 		syncId = crypto.randomUUID();
 		collecting = false;
 		for (let offset = 0; offset < rows.length; offset += CATALOG_INSERT_BATCH) {
-			const batch = rows.slice(offset, offset + CATALOG_INSERT_BATCH);
-			await catalogPrisma.catalogEntry.createMany({
-				data: batch.map((row) => ({ ...row, playlistId, syncId: syncId as string })),
-				skipDuplicates: true,
-			});
+			if (Date.now() - startedAt >= SYNC_TIMEOUT_MS) {
+				throw new CatalogSyncTimeoutError();
+			}
+			await insertCatalogBatch(
+				playlistId,
+				syncId,
+				rows.slice(offset, offset + CATALOG_INSERT_BATCH),
+			);
+		}
+		if (Date.now() - startedAt >= SYNC_TIMEOUT_MS) {
+			throw new CatalogSyncTimeoutError();
 		}
 
-		await catalogPrisma.$transaction([
-			catalogPrisma.catalogSync.update({
-				where: { playlistId },
-				data: {
-					activeSyncId: syncId,
-					status: "ready",
-					syncedAt: new Date(),
-					itemCount: total,
-					lastError: null,
-					lockedUntil: null,
-				},
-			}),
-			catalogPrisma.catalogEntry.deleteMany({
-				where: { playlistId, syncId: { not: syncId } },
-			}),
+		const syncedAt = new Date();
+		await prisma.$transaction([
+			prisma.$executeRawUnsafe(
+				`UPDATE "catalog_sync"
+				 SET "activeSyncId" = $2, "status" = 'ready', "syncedAt" = $3,
+				     "itemCount" = $4, "lastError" = NULL, "lockedUntil" = NULL, "updatedAt" = $3
+				 WHERE "playlistId" = $1`,
+				playlistId,
+				syncId,
+				syncedAt,
+				total,
+			),
+			prisma.$executeRawUnsafe(
+				`DELETE FROM "catalog_entry" WHERE "playlistId" = $1 AND "syncId" <> $2`,
+				playlistId,
+				syncId,
+			),
 		]);
 
 		console.info("[catalog-index] synced", {
@@ -257,23 +222,24 @@ export async function syncCatalog(
 	} catch (error) {
 		if (syncId) {
 			try {
-				await catalogPrisma.catalogEntry.deleteMany({
-					where: { playlistId, syncId },
-				});
+				await prisma.$executeRawUnsafe(
+					`DELETE FROM "catalog_entry" WHERE "playlistId" = $1 AND "syncId" = $2`,
+					playlistId,
+					syncId,
+				);
 			} catch {
 				// Keep the previous active generation intact.
 			}
 		}
 		if (lockAcquired) {
 			try {
-				await catalogPrisma.catalogSync.update({
-					where: { playlistId },
-					data: {
-						status: "failed",
-						lastError: errorCode(error, collecting),
-						lockedUntil: null,
-					},
-				});
+				await prisma.$executeRawUnsafe(
+					`UPDATE "catalog_sync"
+					 SET "status" = 'failed', "lastError" = $2, "lockedUntil" = NULL, "updatedAt" = CURRENT_TIMESTAMP
+					 WHERE "playlistId" = $1`,
+					playlistId,
+					errorCode(error, collecting),
+				);
 			} catch {
 				// The index remains unavailable or the previous generation stays active.
 			}
@@ -294,9 +260,12 @@ export async function ensureCatalog(
 	playlistId: string,
 ): Promise<EnsureCatalogResult> {
 	const now = new Date();
-	const state = await catalogPrisma.catalogSync.findUnique({
-		where: { playlistId },
-	});
+	const rows = await prisma.$queryRawUnsafe<CatalogSyncRecord[]>(
+		`SELECT "status", "activeSyncId", "syncedAt", "lockedUntil", "lastAttemptAt"
+		 FROM "catalog_sync" WHERE "playlistId" = $1 LIMIT 1`,
+		playlistId,
+	);
+	const state = rows[0] ?? null;
 	const decision = decideSync(state, now);
 	const lockIsValid =
 		state?.status === "syncing" &&
@@ -341,27 +310,31 @@ export async function searchCatalog(input: {
 		categoryId: string;
 	}>
 > {
+	if (input.tokens.length === 0 || input.kinds.length === 0) {
+		return [];
+	}
+
 	const resultsByKind = await Promise.all(
 		input.kinds.map(async (kind) => {
-			const candidates = await catalogPrisma.catalogEntry.findMany({
-				where: {
-					playlistId: input.playlistId,
-					syncId: input.activeSyncId,
-					kind,
-					AND: input.tokens.map((token) => ({
-						normalizedName: { contains: token },
-					})),
-				},
-				select: {
-					itemId: true,
-					name: true,
-					normalizedName: true,
-					categoryIds: true,
-					image: true,
-				},
-				orderBy: { normalizedName: "asc" },
-				take: SEARCH_CANDIDATES_PER_KIND,
-			});
+			const tokenClauses = input.tokens.map(
+				(_token, index) => `strpos("normalizedName", $${index + 4}) > 0`,
+			);
+			const sql = `SELECT "itemId", "name", "normalizedName", "categoryIds", "image"
+				FROM "catalog_entry"
+				WHERE "playlistId" = $1 AND "syncId" = $2 AND "kind" = $3
+				  AND ${tokenClauses.join(" AND ")}
+				ORDER BY "normalizedName" ASC
+				LIMIT $${input.tokens.length + 4}`;
+			const candidates = await prisma.$queryRawUnsafe<
+				CatalogEntryCandidate[]
+			>(
+				sql,
+				input.playlistId,
+				input.activeSyncId,
+				kind,
+				...input.tokens,
+				SEARCH_CANDIDATES_PER_KIND,
+			);
 
 			const matches = candidates.flatMap((candidate) => {
 				const categoryId = pickOpenCategory({
@@ -400,13 +373,21 @@ export async function searchCatalog(input: {
 }
 
 export async function forgetCatalogIndex(playlistId: string): Promise<void> {
-	await catalogPrisma.catalogEntry.deleteMany({ where: { playlistId } });
-	await catalogPrisma.catalogSync.deleteMany({ where: { playlistId } });
+	await prisma.$executeRawUnsafe(
+		`DELETE FROM "catalog_entry" WHERE "playlistId" = $1`,
+		playlistId,
+	);
+	await prisma.$executeRawUnsafe(
+		`DELETE FROM "catalog_sync" WHERE "playlistId" = $1`,
+		playlistId,
+	);
 }
 
 export async function markCatalogStale(playlistId: string): Promise<void> {
-	await catalogPrisma.catalogSync.updateMany({
-		where: { playlistId },
-		data: { syncedAt: new Date(0) },
-	});
+	await prisma.$executeRawUnsafe(
+		`UPDATE "catalog_sync" SET "syncedAt" = $2, "updatedAt" = CURRENT_TIMESTAMP
+		 WHERE "playlistId" = $1`,
+		playlistId,
+		new Date(0),
+	);
 }
