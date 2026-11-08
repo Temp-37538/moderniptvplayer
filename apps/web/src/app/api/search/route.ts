@@ -55,11 +55,7 @@ export async function GET(request: NextRequest) {
 	const userId = await requireAuthenticatedUserId();
 
 	try {
-		const rateLimit = checkRateLimit(
-			`catalog-search:${userId}`,
-			30,
-			60_000,
-		);
+		const rateLimit = checkRateLimit(`catalog-search:${userId}`, 30, 60_000);
 		if (!rateLimit.allowed) {
 			return NextResponse.json(
 				{ error: "Too many search requests." },
@@ -118,12 +114,7 @@ export async function GET(request: NextRequest) {
 		});
 		const results = matches.map((result) => ({
 			...result,
-			href: searchHref(
-				result.kind,
-				playlistId,
-				result.categoryId,
-				result.id,
-			),
+			href: searchHref(result.kind, playlistId, result.categoryId, result.id),
 		}));
 
 		return NextResponse.json({

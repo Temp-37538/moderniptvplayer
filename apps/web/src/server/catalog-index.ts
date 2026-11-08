@@ -65,7 +65,9 @@ function errorCode(error: unknown, collecting: boolean): string {
 	return collecting ? "provider" : "unknown";
 }
 
-async function collectCatalogRows(playlist: Playlist): Promise<CatalogRowInput[]> {
+async function collectCatalogRows(
+	playlist: Playlist,
+): Promise<CatalogRowInput[]> {
 	if (playlist.source === "M3U") {
 		const parsed = await readM3uCatalog(playlist);
 		return [
@@ -167,10 +169,7 @@ export async function syncCatalog(
 		if (remainingMs <= 0) {
 			throw new CatalogSyncTimeoutError();
 		}
-		const rows = await withTimeout(
-			collectCatalogRows(playlist),
-			remainingMs,
-		);
+		const rows = await withTimeout(collectCatalogRows(playlist), remainingMs);
 		if (Date.now() - startedAt > SYNC_TIMEOUT_MS) {
 			throw new CatalogSyncTimeoutError();
 		}
@@ -276,8 +275,7 @@ export async function ensureCatalog(
 		(!state?.syncedAt ||
 			now.getTime() - state.syncedAt.getTime() >= CATALOG_TTL_MS);
 	const start =
-		(decision === "build" || decision === "serve-and-refresh") &&
-		!lockIsValid;
+		(decision === "build" || decision === "serve-and-refresh") && !lockIsValid;
 
 	return {
 		status:
@@ -325,9 +323,7 @@ export async function searchCatalog(input: {
 				  AND ${tokenClauses.join(" AND ")}
 				ORDER BY "normalizedName" ASC
 				LIMIT $${input.tokens.length + 4}`;
-			const candidates = await prisma.$queryRawUnsafe<
-				CatalogEntryCandidate[]
-			>(
+			const candidates = await prisma.$queryRawUnsafe<CatalogEntryCandidate[]>(
 				sql,
 				input.playlistId,
 				input.activeSyncId,

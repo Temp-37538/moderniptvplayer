@@ -9,7 +9,10 @@ export const searchQuerySchema = z.object({
 });
 
 export const globalSearchQuerySchema = z.object({
-	playlistId: z.string().trim().regex(/^[\w-]{1,64}$/),
+	playlistId: z
+		.string()
+		.trim()
+		.regex(/^[\w-]{1,64}$/),
 	q: z.string().trim().min(2).max(64),
 	kind: z.enum(["all", "channel", "movie", "series"]).default("all"),
 	limit: z.coerce.number().int().min(1).max(30).default(20),

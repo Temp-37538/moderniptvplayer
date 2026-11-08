@@ -157,16 +157,17 @@ export function pickOpenCategory(input: {
 	if (input.categoryIds.some((id) => input.adultIds.has(id))) {
 		return null;
 	}
-	return (
-		input.categoryIds.find((id) => !input.hiddenIds.has(id)) ?? null
-	);
+	return input.categoryIds.find((id) => !input.hiddenIds.has(id)) ?? null;
 }
 
 export function rankMatch(
 	normalizedName: string,
 	tokens: readonly string[],
 ): number | null {
-	if (tokens.length === 0 || !tokens.every((token) => normalizedName.includes(token))) {
+	if (
+		tokens.length === 0 ||
+		!tokens.every((token) => normalizedName.includes(token))
+	) {
 		return null;
 	}
 	const joined = tokens.join(" ");
@@ -206,7 +207,9 @@ export function searchHref(
 		categoryId,
 		itemId,
 	]
-		.map((segment, index) => (index === 0 ? segment : encodeURIComponent(segment)))
+		.map((segment, index) =>
+			index === 0 ? segment : encodeURIComponent(segment),
+		)
 		.join("/");
 }
 
