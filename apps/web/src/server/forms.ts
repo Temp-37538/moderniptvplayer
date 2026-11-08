@@ -569,7 +569,8 @@ export async function updatePlaylistAction(
 			errors: {},
 			success: true,
 			inputs: savedInputs,
-			message: "Playlist updated.",
+			message: "No changes made.",
+			changed: false,
 		};
 	}
 
@@ -662,7 +663,8 @@ export async function updateM3uPlaylistAction(
 			errors: {},
 			success: true,
 			inputs: { m3uUrl: "", playlistName: parsedName.data },
-			message: "Playlist updated.",
+			message: "No changes made.",
+			changed: false,
 			playlistId,
 		};
 	}
