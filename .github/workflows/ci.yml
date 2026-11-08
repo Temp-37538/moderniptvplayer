@@ -115,6 +115,7 @@ jobs:
       # Integration tests are gated exclusively by this dedicated variable.
       # The ordinary DATABASE_URL remains the harmless workflow-level dummy.
       TEST_DATABASE_URL: postgresql://ci:ci@localhost:5432/catalog_index_test
+      TEST_SHADOW_DATABASE_URL: postgresql://ci:ci@localhost:5432/catalog_index_shadow
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -123,6 +124,14 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes postgresql-client
+      - name: Create shadow database for migration diff
+        env:
+          PGPASSWORD: ci
+        run: createdb --host localhost --username ci catalog_index_shadow
       - name: Validate Prisma schema
         run: pnpm --filter @moderniptvplayer/db exec prisma validate
       - name: Generate Prisma client
@@ -131,10 +140,16 @@ jobs:
         env:
           DATABASE_URL: ${{ env.TEST_DATABASE_URL }}
         run: pnpm --filter @moderniptvplayer/db db:deploy
-      - name: Install PostgreSQL client
-        run: |
-          sudo apt-get update
-          sudo apt-get install --yes postgresql-client
+      - name: Verify SQL migrations match the Prisma schema
+        env:
+          DATABASE_URL: ${{ env.TEST_DATABASE_URL }}
+          TEST_SHADOW_DATABASE_URL: ${{ env.TEST_SHADOW_DATABASE_URL }}
+        run: >
+          pnpm --filter @moderniptvplayer/db exec prisma migrate diff
+          --from-migrations prisma/migrations
+          --to-schema-datamodel prisma/schema
+          --shadow-database-url "$TEST_SHADOW_DATABASE_URL"
+          --exit-code
       - name: Run catalog integration assertions
         run: |
           set -euo pipefail
