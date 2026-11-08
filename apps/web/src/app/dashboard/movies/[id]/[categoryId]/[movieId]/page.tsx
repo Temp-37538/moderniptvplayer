@@ -9,8 +9,10 @@ import { withStreamCategory } from "@/lib/stream-category";
 import { formatTimestamp } from "@/lib/series-resume";
 import { toYoutubeEmbedUrl } from "@/lib/youtube";
 import { getCachedMovie } from "@/server/cached-content";
-import { assertCategoryAvailable } from "@/server/category-access";
-import { readCategoryIds } from "@/server/category-preference-policy";
+import {
+	assertCategoryAvailable,
+	assertItemInCategory,
+} from "@/server/category-access";
 import { getItemStatus } from "@/server/user-items";
 import { getResumeInfo } from "@/server/watch-progress";
 import { createXtreamClient, getPlaylistById } from "@/server/xtream";
@@ -38,12 +40,7 @@ export async function generateMetadata({
 	const { id, categoryId, movieId } = await params;
 	await assertCategoryAvailable(id, "movie", categoryId);
 	const context = await getMovieMetadataContext(id, movieId);
-	await assertCategoryAvailable(
-		id,
-		"movie",
-		categoryId,
-		readCategoryIds(context?.movie),
-	);
+	await assertItemInCategory(id, "movie", categoryId, movieId, context?.movie);
 	const movieTitle = context?.movie?.name ?? "Movie Details";
 	const description = context?.movie?.plot?.trim();
 
@@ -81,12 +78,7 @@ async function MovieDetailContent({ params }: PageProps) {
 		notFound();
 	}
 
-	await assertCategoryAvailable(
-		id,
-		"movie",
-		categoryId,
-		readCategoryIds(movie),
-	);
+	await assertItemInCategory(id, "movie", categoryId, movieId, movie);
 
 	const streamUrl =
 		playlist.source === "M3U"

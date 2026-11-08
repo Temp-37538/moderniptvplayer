@@ -175,6 +175,93 @@ export function readCategoryIds(value: unknown): string[] {
 	return ids;
 }
 
+/**
+ * Detail category ids are authoritative when they exist. An empty detail, or
+ * a detail the serializer cannot read, is membership only when one
+ * category-scoped catalog row exists. The returned ids are every real
+ * category the adult lock must see. `null` denies the request.
+ */
+export async function provenCategoryIds(
+	detail: unknown,
+	requestedCategoryId: string,
+	loadListing: () => Promise<unknown>,
+): Promise<readonly string[] | null> {
+	const detailIds = readCategoryIds(detail);
+	if (detailIds.includes(requestedCategoryId)) {
+		return detailIds;
+	}
+	if (detailIds.length > 0) {
+		return null;
+	}
+	let listed: unknown;
+	try {
+		listed = await loadListing();
+	} catch {
+		return null;
+	}
+	if (!listed) {
+		return null;
+	}
+	const listedIds = readCategoryIds(listed);
+	if (listedIds.includes(requestedCategoryId)) {
+		return listedIds;
+	}
+	return [requestedCategoryId, ...listedIds];
+}
+
+/**
+ * Whether a film or show page may open from the category in its URL. A
+ * restricted account (a hidden category or the adult lock) needs proof that
+ * the title is really listed there, and the adult lock then sees every real
+ * category. Otherwise nothing can be bypassed, so the plain check applies.
+ */
+export async function itemOpenAllowed(input: {
+	restricted: boolean;
+	item: unknown;
+	categoryId: string;
+	loadListing: () => Promise<unknown>;
+	isAvailable: (
+		categoryIds: readonly string[],
+		requiredIds: readonly string[],
+	) => Promise<boolean>;
+}): Promise<boolean> {
+	const { restricted, item, categoryId } = input;
+	const categoryIds = restricted
+		? await provenCategoryIds(item, categoryId, input.loadListing)
+		: [categoryId, ...readCategoryIds(item).filter((id) => id !== categoryId)];
+	if (!categoryIds) {
+		return false;
+	}
+	return input.isAvailable(categoryIds, [categoryId]);
+}
+
+/** What membership needs from one catalog row: its id and its categories. */
+export type MembershipRow = { id: string; categoryIds: string[] };
+
+export function toMembershipRows(items: unknown): MembershipRow[] {
+	if (!Array.isArray(items)) {
+		return [];
+	}
+	const rows: MembershipRow[] = [];
+	for (const item of items) {
+		if (!item || typeof item !== "object") {
+			continue;
+		}
+		const id = String((item as { id?: unknown }).id ?? "").trim();
+		if (id) {
+			rows.push({ id, categoryIds: readCategoryIds(item) });
+		}
+	}
+	return rows;
+}
+
+export function findMembershipRow(
+	rows: readonly MembershipRow[],
+	itemId: string,
+): MembershipRow | null {
+	return rows.find((row) => row.id === itemId) ?? null;
+}
+
 export function readEpisodeIds(value: unknown): string[] {
 	if (!value || typeof value !== "object" || !("seasons" in value)) {
 		return [];
