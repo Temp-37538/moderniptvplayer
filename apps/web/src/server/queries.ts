@@ -5,6 +5,11 @@ import { env } from "@moderniptvplayer/env/server";
 import { revalidatePath } from "next/cache";
 import { requireAuthenticatedUserId } from "./auth-utils";
 import { forgetM3uCatalog } from "./m3u-catalog";
+import {
+	convertM3uRows,
+	M3uConversionTargetMissingError,
+	type SavedItemCounts,
+} from "./m3u-conversion";
 import { parseM3uUrl } from "./m3u";
 import { xtreamIdentityKey } from "./playlist-identity";
 import { safeFetch } from "./safe-http";
@@ -280,8 +285,11 @@ export async function updateM3uPlaylist(
 
 /**
  * Turn an existing M3U row into Xtream without changing its id.
- * Favorites, watch later, progress, and category preferences stay attached.
- * The encrypted M3U URL is cleared so the credential query is not kept.
+ * M3U item and category ids are hashes that the Xtream catalog does not
+ * contain, so favorites, watch later, progress, and category choices saved for
+ * this playlist are removed in the same transaction instead of becoming dead
+ * links. The encrypted M3U URL is cleared so the credential query is not kept.
+ * Returns how many rows were removed.
  */
 export async function replaceM3uPlaylistWithXtream(
 	playlistId: string,
@@ -289,29 +297,46 @@ export async function replaceM3uPlaylistWithXtream(
 	username: string,
 	serverUrl: string,
 	password: string,
-) {
+): Promise<SavedItemCounts> {
 	const userId = await requireAuthenticatedUserId();
 	const normalized = normalizeServerUrl(serverUrl);
-	let updated = false;
+	let cleared: SavedItemCounts;
 	try {
-		const result = await prisma.playlist.updateMany({
-			where: {
-				id: playlistId,
-				userId,
-				source: "M3U",
-			},
-			data: {
-				source: "XTREAM",
-				username,
-				serverUrl: normalized,
-				playlistName,
-				password: cryptr.encrypt(password),
-				m3uUrl: null,
-				identityKey: xtreamIdentityKey(normalized, username),
-			},
-		});
-		updated = result.count > 0;
+		cleared = await prisma.$transaction((tx) =>
+			convertM3uRows({
+				convert: () =>
+					tx.playlist.updateMany({
+						where: {
+							id: playlistId,
+							userId,
+							source: "M3U",
+						},
+						data: {
+							source: "XTREAM",
+							username,
+							serverUrl: normalized,
+							playlistName,
+							password: cryptr.encrypt(password),
+							m3uUrl: null,
+							identityKey: xtreamIdentityKey(normalized, username),
+						},
+					}),
+				clear: {
+					favorites: () =>
+						tx.favorite.deleteMany({ where: { playlistId, userId } }),
+					watchLater: () =>
+						tx.watchLater.deleteMany({ where: { playlistId, userId } }),
+					progress: () =>
+						tx.watchProgress.deleteMany({ where: { playlistId, userId } }),
+					categoryPreferences: () =>
+						tx.categoryPreference.deleteMany({ where: { playlistId, userId } }),
+				},
+			}),
+		);
 	} catch (error) {
+		if (error instanceof M3uConversionTargetMissingError) {
+			throw new Error("Playlist not found");
+		}
 		if (isUniqueViolation(error)) {
 			throw new PlaylistAlreadyExistsError();
 		}
@@ -321,12 +346,10 @@ export async function replaceM3uPlaylistWithXtream(
 		);
 		throw new Error("Failed to update playlist");
 	}
-	if (!updated) {
-		throw new Error("Playlist not found");
-	}
 	forgetPlaylistCredentials(playlistId);
 	forgetM3uCatalog(playlistId);
 	revalidatePath("/dashboard", "layout");
+	return cleared;
 }
 
 export async function deletePlaylist(playlistId: string) {

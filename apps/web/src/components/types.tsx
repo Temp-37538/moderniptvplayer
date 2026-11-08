@@ -42,6 +42,7 @@ export type M3uFormState = {
 	success: boolean;
 	message?: string;
 	playlistId?: string;
+	changed?: boolean;
 };
 
 export interface NavItem {
@@ -140,6 +141,7 @@ export type FormState = {
 	inputs?: xtreamFormData;
 	success: boolean;
 	message?: string;
+	changed?: boolean;
 };
 
 export type PageProps = {

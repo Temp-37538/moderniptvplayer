@@ -17,6 +17,7 @@ import { isM3uSource } from "@/lib/playlist-label";
 import { updateM3uPlaylistAction, updatePlaylistAction } from "@/server/forms";
 import { CheckCircle2, Globe, ListVideo, Lock, User } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { useActionState } from "react";
 
 export type EditablePlaylist = {
@@ -47,8 +48,18 @@ export function EditPlaylistSheet({
 	playlist,
 	fieldIdPrefix,
 }: EditPlaylistSheetProps) {
+	const [notice, setNotice] = useState<{
+		message: string;
+		success: boolean;
+	} | null>(null);
+
+	const handleOpenChange = (next: boolean) => {
+		if (!next) setNotice(null);
+		onOpenChange(next);
+	};
+
 	return (
-		<Sheet open={open} onOpenChange={onOpenChange}>
+		<Sheet open={open} onOpenChange={handleOpenChange}>
 			<SheetContent side="right" className="overflow-y-auto">
 				<SheetHeader className="pr-10">
 					<SheetTitle>Edit playlist</SheetTitle>
@@ -67,6 +78,7 @@ export function EditPlaylistSheet({
 							key={playlist.id}
 							playlist={playlist}
 							fieldIdPrefix={fieldIdPrefix}
+							onNotice={(message, success) => setNotice({ message, success })}
 						/>
 					) : (
 						<EditPlaylistForm
@@ -75,6 +87,22 @@ export function EditPlaylistSheet({
 							fieldIdPrefix={fieldIdPrefix}
 						/>
 					)
+				) : null}
+				{notice ? (
+					<div className="px-4 pb-4">
+						<Alert variant={notice.success ? "default" : "destructive"}>
+							{notice.success ? (
+								<CheckCircle2 color="green" className="size-4" />
+							) : null}
+							<AlertDescription
+								className={cn(
+									notice.success ? "text-green-500" : "text-red-500",
+								)}
+							>
+								{notice.message}
+							</AlertDescription>
+						</Alert>
+					</div>
 				) : null}
 			</SheetContent>
 		</Sheet>
@@ -103,7 +131,7 @@ function EditPlaylistForm({
 	const [state, formAction, isPending] = useActionState(
 		async (previous: FormState, formData: FormData) => {
 			const result = await updatePlaylistAction(previous, formData);
-			if (result.success) {
+			if (result.success && result.changed !== false) {
 				router.refresh();
 			}
 			return result;
@@ -257,9 +285,11 @@ function EditPlaylistForm({
 function EditM3uPlaylistForm({
 	playlist,
 	fieldIdPrefix,
+	onNotice,
 }: {
 	playlist: EditablePlaylist;
 	fieldIdPrefix: string;
+	onNotice?: (message: string, success: boolean) => void;
 }) {
 	const router = useRouter();
 	const initialState: M3uFormState = {
@@ -271,19 +301,37 @@ function EditM3uPlaylistForm({
 	const [state, formAction, isPending] = useActionState(
 		async (previous: M3uFormState, formData: FormData) => {
 			const result = await updateM3uPlaylistAction(previous, formData);
-			if (result.success) {
+			if (result.success && result.changed !== false) {
 				router.refresh();
+			}
+			if (
+				result.success &&
+				result.message?.startsWith(
+					"Playlist updated. It now signs in with Xtream",
+				)
+			) {
+				onNotice?.(result.message, true);
 			}
 			return result;
 		},
 		initialState,
 	);
-	const playlistName = state.inputs?.playlistName ?? playlist.playlistName;
+	const inputs = state.inputs ?? {
+		m3uUrl: "",
+		playlistName: playlist.playlistName,
+	};
+	const formKey = [
+		inputs.m3uUrl,
+		inputs.playlistName,
+		state.message,
+		state.success ? "1" : "0",
+	].join("|");
 	const playlistNameId = `${fieldIdPrefix}-name`;
 	const urlId = `${fieldIdPrefix}-m3u-url`;
 
 	return (
 		<form
+			key={formKey}
 			action={formAction}
 			autoComplete="off"
 			className="flex flex-col gap-4 px-4 pb-4"
@@ -299,7 +347,7 @@ function EditM3uPlaylistForm({
 						required
 						minLength={1}
 						maxLength={100}
-						defaultValue={playlistName}
+						defaultValue={inputs.playlistName}
 						autoComplete="off"
 						placeholder="My Playlist"
 						className={cn("h-10 pl-10", {
@@ -326,6 +374,7 @@ function EditM3uPlaylistForm({
 						type="text"
 						inputMode="url"
 						maxLength={4096}
+						defaultValue={inputs.m3uUrl}
 						autoComplete="off"
 						placeholder="Leave blank to keep the current URL"
 						className={cn("h-10 pl-10", {
