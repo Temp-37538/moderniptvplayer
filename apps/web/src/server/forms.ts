@@ -31,6 +31,10 @@ import {
 	updateM3uPlaylist,
 	updatePlaylist,
 } from "./queries";
+import {
+	conversionSuccessMessage,
+	type SavedItemCounts,
+} from "./m3u-conversion";
 import { checkRateLimit } from "./rate-limit";
 import { forgetPlaylistStatus, getPlaylistById } from "./xtream";
 
@@ -704,8 +708,9 @@ export async function updateM3uPlaylistAction(
 		) {
 			return m3uFailureState(inputs, "You have already added this playlist.");
 		}
+		let cleared: SavedItemCounts;
 		try {
-			await replaceM3uPlaylistWithXtream(
+			cleared = await replaceM3uPlaylistWithXtream(
 				playlistId,
 				imported.playlistName,
 				imported.target.username,
@@ -727,7 +732,7 @@ export async function updateM3uPlaylistAction(
 			errors: {},
 			success: true,
 			inputs: { m3uUrl: "", playlistName: imported.playlistName },
-			message: "Playlist updated.",
+			message: conversionSuccessMessage(cleared),
 			playlistId,
 		};
 	}
