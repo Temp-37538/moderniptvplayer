@@ -2,12 +2,10 @@ import "server-only";
 import prisma from "@moderniptvplayer/db";
 import {
 	CATALOG_INSERT_BATCH,
-	CATALOG_KINDS,
 	CATALOG_MAX_ROWS,
 	CATALOG_TTL_MS,
 	SEARCH_CANDIDATES_PER_KIND,
 	SYNC_LOCK_MS,
-	SYNC_RETRY_COOLDOWN_MS,
 	decideSync,
 	pickOpenCategory,
 	rankMatch,

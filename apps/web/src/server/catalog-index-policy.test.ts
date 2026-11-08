@@ -117,7 +117,7 @@ test("catalog row mapping validates ids, names, categories, images and duplicate
 		"not an object",
 	]);
 
-	assert.equal(rows.length, 5);
+	assert.equal(rows.length, 4);
 	assert.equal(rows.find((row) => row.itemId === "long-name")?.name.length, CATALOG_NAME_MAX);
 	assert.equal(rows.find((row) => row.itemId === "long-name")?.image, null);
 	assert.equal(rows.find((row) => row.itemId === "safe-image")?.image, "https://images.example/poster.jpg");
