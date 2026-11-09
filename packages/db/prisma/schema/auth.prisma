@@ -44,6 +44,8 @@ model Playlist {
   favorites           Favorite[]
   watchProgress       WatchProgress[]
   categoryPreferences CategoryPreference[]
+  catalogSync         CatalogSync?
+  catalogEntries      CatalogEntry[]
 
   @@unique([userId, serverUrl, username])
   @@unique([userId, identityKey])
