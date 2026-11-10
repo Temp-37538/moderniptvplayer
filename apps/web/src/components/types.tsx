@@ -153,6 +153,8 @@ export type FormState = {
 	success: boolean;
 	message?: string;
 	changed?: boolean;
+	/** Id of the playlist a successful add created. */
+	playlistId?: string;
 };
 
 export type PageProps = {
