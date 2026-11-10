@@ -75,17 +75,11 @@ export function ChannelListSkeletonNoSearchBar({
 					</div>
 				</div>
 			</div>
-			<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+			<div className="grid grid-cols-2 gap-x-4 gap-y-6 min-[480px]:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8">
 				{Array.from({ length: count }).map((_, i) => (
-					<div
-						key={i}
-						className="flex items-center gap-4 rounded-xl border border-border/50 p-4"
-					>
-						<Skeleton className="size-12 rounded-lg shrink-0" />
-						<div className="space-y-2 flex-1">
-							<Skeleton className="h-4 w-3/4" />
-							<Skeleton className="h-3 w-1/4" />
-						</div>
+					<div key={i}>
+						<Skeleton className="aspect-video w-full rounded-md" />
+						<Skeleton className="mt-2 h-4 w-2/3" />
 					</div>
 				))}
 			</div>

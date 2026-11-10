@@ -103,43 +103,45 @@ async function ChannelsByCategoryContent({ params, searchParams }: PageProps) {
 				}
 			/>
 			{visibleChannels.length > 0 ? (
-				<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+				// The logo carries the tile: no card, the name and number under it.
+				<ul className="grid grid-cols-2 gap-x-4 gap-y-6 min-[480px]:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8">
 					{visibleChannels.map((channel) => {
 						const safeLogoSrc = toSafeImageSrc(channel.logo);
 						return (
-							<Link
-								key={channel.id}
-								href={`/dashboard/channels/${id}/${categoryId}/${channel.id}`}
-								className="group flex items-center gap-4 rounded-xl border border-border/50 bg-card p-4 transition-all duration-200 hover:border-primary/30 hover:bg-accent/50 hover:shadow-lg hover:shadow-primary/5"
-							>
-								<div className="flex items-center justify-center size-12 rounded-lg bg-muted overflow-hidden shrink-0">
-									{safeLogoSrc ? (
-										<Image
-											src={safeLogoSrc}
-											alt=""
-											width={48}
-											height={48}
-											unoptimized
-											className="size-full object-contain p-1"
-										/>
-									) : (
-										<Radio className="size-5 text-muted-foreground/40" />
-									)}
-								</div>
-								<div className="flex-1 min-w-0">
-									<h3 className="text-sm font-medium leading-tight line-clamp-1 group-hover:text-primary transition-colors">
-										{channel.name}
-									</h3>
-									{channel.number > 0 && (
-										<p className="text-xs text-muted-foreground mt-0.5">
-											Ch. {channel.number}
-										</p>
-									)}
-								</div>
-							</Link>
+							<li key={channel.id}>
+								<Link
+									href={`/dashboard/channels/${id}/${categoryId}/${channel.id}`}
+									className="group block outline-none"
+								>
+									<div className="relative flex aspect-video items-center justify-center overflow-hidden rounded-md bg-muted/40 transition-colors group-hover:bg-muted/80 group-focus-visible:ring-2 group-focus-visible:ring-ring">
+										{safeLogoSrc ? (
+											<Image
+												src={safeLogoSrc}
+												alt=""
+												fill
+												unoptimized
+												sizes="(min-width: 1024px) 200px, 45vw"
+												className="object-contain p-[18%] transition-transform duration-200 group-hover:scale-105"
+											/>
+										) : (
+											<Radio className="size-6 text-muted-foreground/50" />
+										)}
+									</div>
+									<div className="mt-2 flex items-baseline gap-2">
+										<h3 className="min-w-0 flex-1 truncate text-sm font-medium">
+											{channel.name}
+										</h3>
+										{channel.number > 0 && (
+											<span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+												{channel.number}
+											</span>
+										)}
+									</div>
+								</Link>
+							</li>
 						);
 					})}
-				</div>
+				</ul>
 			) : (
 				<EmptyState
 					title={
