@@ -343,9 +343,10 @@ export function SavedItemsListSkeleton({ count = 5 }: { count?: number }) {
 				<Skeleton className="h-12 w-56" />
 				<Skeleton className="h-4 w-40" />
 			</div>
-			<div className="divide-y divide-border/70 overflow-hidden rounded-xl border border-border/70">
+			<div className="divide-y divide-border/50 border-y border-border/50">
 				{Array.from({ length: count }).map((_, i) => (
-					<div key={i} className="flex items-center gap-4 px-4 py-3 sm:px-5">
+					<div key={i} className="flex items-center gap-4 py-3">
+						<Skeleton className="h-15 w-10 shrink-0 rounded-sm" />
 						<div className="flex-1 space-y-2">
 							<Skeleton className="h-4 w-3/4 max-w-xs" />
 							<Skeleton className="h-3 w-1/2 max-w-50" />
