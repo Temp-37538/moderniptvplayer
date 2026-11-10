@@ -4,11 +4,13 @@ import {
 	PlaylistCard,
 	type PlaylistCardData,
 } from "@/components/playlist-card";
-import { ContinueWatchingSkeleton, HomeSkeleton } from "@/components/skeletons";
+import { SectionHeading } from "@/components/section-heading";
+import { HomeSkeleton } from "@/components/skeletons";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ACTIVE_PLAYLIST_COOKIE } from "@/server/active-playlist";
 import { fetchPlaylists } from "@/server/queries";
+import { getContinueWatching } from "@/server/watch-progress";
 import {
 	describeSubscription,
 	type SubscriptionTone,
@@ -64,32 +66,6 @@ async function PlaylistSubscriptionStatus({
 	}
 }
 
-function SectionHeading({
-	id,
-	title,
-	description,
-	action,
-}: {
-	id: string;
-	title: string;
-	description?: string;
-	action?: ReactNode;
-}) {
-	return (
-		<div className="mb-4 flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
-			<div>
-				<h2 id={id} className="font-serif text-2xl tracking-tight">
-					{title}
-				</h2>
-				{description ? (
-					<p className="mt-0.5 text-sm text-muted-foreground">{description}</p>
-				) : null}
-			</div>
-			{action}
-		</div>
-	);
-}
-
 function QuickLink({
 	href,
 	icon,
@@ -136,7 +112,12 @@ function NoPlaylistsHome() {
 }
 
 async function HomeContent() {
-	const playlists = await fetchPlaylists();
+	// Read together so the page renders once: with nothing to continue, the
+	// section is simply absent instead of a heading that appears and goes.
+	const [playlists, continueItems] = await Promise.all([
+		fetchPlaylists(),
+		getContinueWatching(),
+	]);
 
 	if (playlists.length === 0) {
 		return <NoPlaylistsHome />;
@@ -164,7 +145,9 @@ async function HomeContent() {
 					Welcome back
 				</h1>
 				<p className="mt-2 text-base text-muted-foreground">
-					Pick up where you left off, or open one of your playlists.
+					{continueItems.length > 0
+						? "Pick up where you left off, or open one of your playlists."
+						: "Open one of your playlists to start watching."}
 				</p>
 				{/* One row down to 360 px wide (tighter pills under `sm`); wraps below. */}
 				<nav
@@ -186,12 +169,7 @@ async function HomeContent() {
 				</nav>
 			</header>
 
-			<section aria-labelledby="continue-heading">
-				<SectionHeading id="continue-heading" title="Continue watching" />
-				<Suspense fallback={<ContinueWatchingSkeleton />}>
-					<ContinueWatching playlistNames={playlistNames} />
-				</Suspense>
-			</section>
+			<ContinueWatching items={continueItems} playlistNames={playlistNames} />
 
 			<section aria-labelledby="playlists-heading">
 				<SectionHeading

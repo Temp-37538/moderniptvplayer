@@ -1,6 +1,7 @@
 "use client";
 
 import { removeContinueWatchingAction } from "@/app/dashboard/actions";
+import { SectionHeading } from "@/components/section-heading";
 import {
 	AlertDialog,
 	AlertDialogCancel,
@@ -157,12 +158,14 @@ export function ContinueWatchingRail({
 		void remove(item);
 	}
 
+	// Removing the last card removes the whole section, heading included.
 	if (visible.length === 0) {
-		return <ContinueWatchingEmpty />;
+		return null;
 	}
 
 	return (
-		<>
+		<section aria-labelledby="continue-heading">
+			<SectionHeading id="continue-heading" title="Continue watching" />
 			{/* inline-size containment keeps the long rail from widening the page */}
 			<div className="relative [contain:inline-size]">
 				<ul
@@ -290,7 +293,7 @@ export function ContinueWatchingRail({
 					</AlertDialogFooter>
 				</AlertDialogContent>
 			</AlertDialog>
-		</>
+		</section>
 	);
 }
 
@@ -319,21 +322,5 @@ function RailArrow({
 		>
 			<Icon className="size-5" />
 		</Button>
-	);
-}
-
-export function ContinueWatchingEmpty() {
-	return (
-		<div className="flex flex-col items-start gap-1 rounded-xl border border-dashed border-border/80 bg-muted/30 px-5 py-6 sm:flex-row sm:items-center sm:gap-4">
-			<span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-background text-muted-foreground shadow-xs">
-				<PlayIcon className="size-4" />
-			</span>
-			<div>
-				<p className="font-medium">Nothing to continue yet</p>
-				<p className="text-sm text-muted-foreground">
-					Start a movie or an episode and it will wait for you here.
-				</p>
-			</div>
-		</div>
 	);
 }

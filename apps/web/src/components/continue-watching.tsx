@@ -1,15 +1,20 @@
 import { ContinueWatchingRail } from "@/components/continue-watching-rail";
 import { toSafeImageSrc } from "@/lib/image-url";
 import { formatTimeLeft, progressPercent } from "@/lib/watch-progress-format";
-import { getContinueWatching } from "@/server/watch-progress";
+import type { ContinueWatchingItem } from "@/server/watch-progress";
 
-export async function ContinueWatching({
+/** The "Continue watching" section; renders nothing when it is empty. */
+export function ContinueWatching({
+	items,
 	playlistNames,
 }: {
+	items: ContinueWatchingItem[];
 	/** Playlist names by id, shown on each card when there are several. */
 	playlistNames: Record<string, string>;
 }) {
-	const items = await getContinueWatching();
+	if (items.length === 0) {
+		return null;
+	}
 	const showPlaylist = Object.keys(playlistNames).length > 1;
 
 	return (
