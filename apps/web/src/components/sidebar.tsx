@@ -41,6 +41,9 @@ function Sidebar({
 	);
 }
 
+/** Field of the global search page, focused by the shortcut. */
+const SEARCH_INPUT_ID = "global-catalog-search";
+
 /** Ctrl+K (Cmd+K on macOS) opens the global search of the current playlist. */
 function useSearchShortcut() {
 	const router = useRouter();
@@ -57,11 +60,26 @@ function useSearchShortcut() {
 				return;
 			}
 			event.preventDefault();
+			if (document.getElementById(SEARCH_INPUT_ID)) {
+				document.getElementById(SEARCH_INPUT_ID)?.focus();
+				return;
+			}
 			router.push(
 				(playlistId
 					? `/dashboard/search/${playlistId}`
 					: "/dashboard/search") as Route,
 			);
+			// Put the caret in the search field as soon as the page shows it.
+			const deadline = Date.now() + 5000;
+			const focusWhenReady = () => {
+				const input = document.getElementById(SEARCH_INPUT_ID);
+				if (input) {
+					input.focus();
+				} else if (Date.now() < deadline) {
+					requestAnimationFrame(focusWhenReady);
+				}
+			};
+			requestAnimationFrame(focusWhenReady);
 		}
 
 		window.addEventListener("keydown", onKeyDown);
