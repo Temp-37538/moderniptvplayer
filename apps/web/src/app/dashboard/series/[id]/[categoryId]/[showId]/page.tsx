@@ -117,7 +117,7 @@ async function ShowDetailContent({ params }: PageProps) {
 	const trailerUrl = toYoutubeEmbedUrl(show.youtubeId);
 
 	return (
-		<div className="min-h-full overflow-y-auto scrollbar-thin scrollbar-thumb-rounded-lg scrollbar-thumb-border/50 scrollbar-track-border/20">
+		<div className="h-full overflow-y-auto scrollbar-thin scrollbar-thumb-rounded-lg scrollbar-thumb-border/50 scrollbar-track-border/20">
 			<BreadcrumbLabel
 				href={`/dashboard/series/${id}/${categoryId}`}
 				label={categoryContext?.categoryName}
@@ -126,9 +126,9 @@ async function ShowDetailContent({ params }: PageProps) {
 				href={`/dashboard/series/${id}/${categoryId}/${showId}`}
 				label={show.name}
 			/>
-			<div className="w-full px-6 pt-6 pb-10 md:px-10 md:pt-8 md:pb-12">
+			<div className="w-full pb-6">
 				<div className="grid gap-10 md:grid-cols-[19rem_minmax(0,1fr)] md:gap-14">
-					<div className="md:sticky md:top-8 md:self-start space-y-5">
+					<div className="md:sticky md:top-0 md:self-start space-y-5">
 						<div className="relative">
 							{safePosterSrc ? (
 								<Image
