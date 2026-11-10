@@ -55,7 +55,8 @@ function CategorySearchBase({
 	const [pendingId, setPendingId] = useState<string | null>(null);
 	const [lockPending, setLockPending] = useState(false);
 	const [hiddenOpen, setHiddenOpen] = useState(false);
-	// Touch screens have no hover: pin and hide show after "Edit".
+	// Touch screens have no hover, tablets included: pin and hide show after
+	// "Edit".
 	const [editing, setEditing] = useState(false);
 	const hiddenListId = useId();
 
@@ -214,7 +215,7 @@ function CategorySearchBase({
 						<button
 							type="button"
 							aria-pressed={editing}
-							className="-mr-2 cursor-pointer rounded-md px-2 py-1 text-xs font-medium text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring md:hidden"
+							className="-mr-2 cursor-pointer rounded-md px-2 py-1 text-xs font-medium text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring md:hidden md:pointer-coarse:inline"
 							onClick={() => setEditing((value) => !value)}
 						>
 							{editing ? "Done" : "Edit"}
@@ -254,7 +255,7 @@ function CategorySearchBase({
 								) : null}
 							</Link>
 							<div
-								className={`${editing ? "flex" : "hidden"} shrink-0 gap-0.5 bg-background transition-opacity md:absolute md:flex md:top-1/2 md:right-0 md:-translate-y-1/2 md:opacity-0 md:group-focus-within:opacity-100 md:group-hover:opacity-100`}
+								className={`${editing ? "flex md:pointer-coarse:opacity-100" : "hidden md:pointer-coarse:hidden"} shrink-0 gap-0.5 bg-background transition-opacity md:absolute md:flex md:top-1/2 md:right-0 md:-translate-y-1/2 md:opacity-0 md:group-focus-within:opacity-100 md:group-hover:opacity-100`}
 							>
 								<button
 									type="button"
