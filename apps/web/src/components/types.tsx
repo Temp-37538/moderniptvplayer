@@ -195,6 +195,8 @@ export type ItemActionButtonsProps = {
 
 export type PaginationNavProps = {
 	currentPage: number;
+	/** Pages in the whole category, at least 1. */
+	totalPages: number;
 	hasNextPage: boolean;
 	hasPreviousPage: boolean;
 	/** Base URL without `?page=` query param, e.g. `/dashboard/channels/abc/123` */

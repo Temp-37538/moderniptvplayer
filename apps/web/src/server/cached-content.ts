@@ -17,15 +17,18 @@ import {
 	toMembershipRows,
 } from "@/server/category-preference-policy";
 import { M3U_MAX_ENTRIES } from "@/server/m3u";
-import { pageWindow } from "@/server/pagination";
+import { type CatalogPage, slicePage } from "@/server/pagination";
 import {
 	m3uCategories,
 	m3uChannel,
 	m3uChannels,
+	m3uChannelsPage,
 	m3uMovie,
 	m3uMovies,
+	m3uMoviesPage,
 	m3uShow,
 	m3uShows,
+	m3uShowsPage,
 } from "@/server/m3u-catalog";
 import {
 	createXtreamClient,
@@ -117,23 +120,6 @@ async function categoryContentAllowed(
 	);
 }
 
-/**
- * The Xtream client pages by page and limit only. A lookahead reads from the
- * start up to the end of the window, then drops the previous pages.
- */
-async function readXtreamPage<T>(
-	fetchPage: (page: number, limit: number) => Promise<T[]>,
-	page: number,
-	limit: number,
-	lookahead: number,
-) {
-	if (lookahead <= 0) {
-		return fetchPage(page, limit);
-	}
-	const { start, end } = pageWindow(page, limit, lookahead);
-	return (await fetchPage(1, end)).slice(start);
-}
-
 // Cached functions only receive non-secret arguments (user and playlist ids):
 // their arguments are part of the cache key and their results are persisted.
 
@@ -182,7 +168,6 @@ async function loadChannels(
 	categoryId: string,
 	page: number,
 	limit: number,
-	lookahead: number,
 ) {
 	"use cache";
 	cacheLife("hours");
@@ -190,16 +175,13 @@ async function loadChannels(
 	cacheTag(getPlaylistParentTag(playlistId));
 	const playlist = await resolvePlaylist(userId, playlistId);
 	if (playlist.source === "M3U") {
-		return m3uChannels(playlist, categoryId, page, limit, lookahead);
+		return m3uChannels(playlist, categoryId, page, limit);
 	}
-	const client = createXtreamClient(playlist);
-	return (await readXtreamPage(
-		(pageIndex, pageSize) =>
-			client.getChannels({ categoryId, page: pageIndex, limit: pageSize }),
+	return (await createXtreamClient(playlist).getChannels({
+		categoryId,
 		page,
 		limit,
-		lookahead,
-	)) as StandardXtreamChannel[];
+	})) as StandardXtreamChannel[];
 }
 
 async function loadChannel(
@@ -228,7 +210,6 @@ async function loadMovies(
 	categoryId: string,
 	page: number,
 	limit: number,
-	lookahead: number,
 ) {
 	"use cache";
 	cacheLife("hours");
@@ -236,16 +217,13 @@ async function loadMovies(
 	cacheTag(getPlaylistParentTag(playlistId));
 	const playlist = await resolvePlaylist(userId, playlistId);
 	if (playlist.source === "M3U") {
-		return m3uMovies(playlist, categoryId, page, limit, lookahead);
+		return m3uMovies(playlist, categoryId, page, limit);
 	}
-	const client = createXtreamClient(playlist);
-	return (await readXtreamPage(
-		(pageIndex, pageSize) =>
-			client.getMovies({ categoryId, page: pageIndex, limit: pageSize }),
+	return (await createXtreamClient(playlist).getMovies({
+		categoryId,
 		page,
 		limit,
-		lookahead,
-	)) as StandardXtreamMovieListing[];
+	})) as StandardXtreamMovieListing[];
 }
 
 async function loadMovie(
@@ -297,7 +275,6 @@ async function loadShows(
 	categoryId: string,
 	page: number,
 	limit: number,
-	lookahead: number,
 ) {
 	"use cache";
 	cacheLife("hours");
@@ -305,16 +282,81 @@ async function loadShows(
 	cacheTag(getPlaylistParentTag(playlistId));
 	const playlist = await resolvePlaylist(userId, playlistId);
 	if (playlist.source === "M3U") {
-		return m3uShows(playlist, categoryId, page, limit, lookahead);
+		return m3uShows(playlist, categoryId, page, limit);
 	}
-	const client = createXtreamClient(playlist);
-	return (await readXtreamPage(
-		(pageIndex, pageSize) =>
-			client.getShows({ categoryId, page: pageIndex, limit: pageSize }),
+	return (await createXtreamClient(playlist).getShows({
+		categoryId,
 		page,
 		limit,
-		lookahead,
-	)) as unknown as Array<Omit<StandardXtreamShow, "seasons">>;
+	})) as unknown as Array<Omit<StandardXtreamShow, "seasons">>;
+}
+
+// Category pages also need the size of the category. Xtream returns the whole
+// category for get_live_streams, get_vod_streams and get_series and the client
+// only slices it, so reading it unsliced costs no extra provider request. M3U
+// categories are sliced in memory. Only the page and the total are cached.
+
+async function loadChannelsPage(
+	userId: string,
+	playlistId: string,
+	categoryId: string,
+	page: number,
+	limit: number,
+): Promise<CatalogPage<StandardXtreamChannel>> {
+	"use cache";
+	cacheLife("hours");
+	cacheTag(getChannelsCacheTag(playlistId, categoryId, page));
+	cacheTag(getPlaylistParentTag(playlistId));
+	const playlist = await resolvePlaylist(userId, playlistId);
+	if (playlist.source === "M3U") {
+		return m3uChannelsPage(playlist, categoryId, page, limit);
+	}
+	const rows = (await createXtreamClient(playlist).getChannels({
+		categoryId,
+	})) as StandardXtreamChannel[];
+	return slicePage(rows, page, limit);
+}
+
+async function loadMoviesPage(
+	userId: string,
+	playlistId: string,
+	categoryId: string,
+	page: number,
+	limit: number,
+): Promise<CatalogPage<StandardXtreamMovieListing>> {
+	"use cache";
+	cacheLife("hours");
+	cacheTag(getMoviesCacheTag(playlistId, categoryId, page));
+	cacheTag(getPlaylistParentTag(playlistId));
+	const playlist = await resolvePlaylist(userId, playlistId);
+	if (playlist.source === "M3U") {
+		return m3uMoviesPage(playlist, categoryId, page, limit);
+	}
+	const rows = (await createXtreamClient(playlist).getMovies({
+		categoryId,
+	})) as StandardXtreamMovieListing[];
+	return slicePage(rows, page, limit);
+}
+
+async function loadShowsPage(
+	userId: string,
+	playlistId: string,
+	categoryId: string,
+	page: number,
+	limit: number,
+): Promise<CatalogPage<Omit<StandardXtreamShow, "seasons">>> {
+	"use cache";
+	cacheLife("hours");
+	cacheTag(getShowsCacheTag(playlistId, categoryId, page));
+	cacheTag(getPlaylistParentTag(playlistId));
+	const playlist = await resolvePlaylist(userId, playlistId);
+	if (playlist.source === "M3U") {
+		return m3uShowsPage(playlist, categoryId, page, limit);
+	}
+	const rows = (await createXtreamClient(playlist).getShows({
+		categoryId,
+	})) as unknown as Array<Omit<StandardXtreamShow, "seasons">>;
+	return slicePage(rows, page, limit);
 }
 
 async function loadShow(userId: string, playlistId: string, showId: string) {
@@ -382,14 +424,12 @@ export async function getCachedChannels(
 	categoryId: string,
 	page: number,
 	limit: number,
-	/** Extra rows read past the page, to detect a next page. */
-	lookahead = 0,
 ) {
 	const userId = await requireAuthenticatedUserId();
 	if (!(await categoryContentAllowed(playlistId, "channel", categoryId))) {
 		return [];
 	}
-	return loadChannels(userId, playlistId, categoryId, page, limit, lookahead);
+	return loadChannels(userId, playlistId, categoryId, page, limit);
 }
 
 export async function getCachedChannel(
@@ -411,14 +451,12 @@ export async function getCachedMovies(
 	categoryId: string,
 	page: number,
 	limit: number,
-	/** Extra rows read past the page, to detect a next page. */
-	lookahead = 0,
 ) {
 	const userId = await requireAuthenticatedUserId();
 	if (!(await categoryContentAllowed(playlistId, "movie", categoryId))) {
 		return [];
 	}
-	return loadMovies(userId, playlistId, categoryId, page, limit, lookahead);
+	return loadMovies(userId, playlistId, categoryId, page, limit);
 }
 
 export async function getCachedMovie(
@@ -435,14 +473,52 @@ export async function getCachedShows(
 	categoryId: string,
 	page: number,
 	limit: number,
-	/** Extra rows read past the page, to detect a next page. */
-	lookahead = 0,
 ) {
 	const userId = await requireAuthenticatedUserId();
 	if (!(await categoryContentAllowed(playlistId, "series", categoryId))) {
 		return [];
 	}
-	return loadShows(userId, playlistId, categoryId, page, limit, lookahead);
+	return loadShows(userId, playlistId, categoryId, page, limit);
+}
+
+/** A category page for the browse pages, with the size of the category. */
+export async function getCachedChannelsPage(
+	playlistId: string,
+	categoryId: string,
+	page: number,
+	limit: number,
+): Promise<CatalogPage<StandardXtreamChannel>> {
+	const userId = await requireAuthenticatedUserId();
+	if (!(await categoryContentAllowed(playlistId, "channel", categoryId))) {
+		return { items: [], total: 0 };
+	}
+	return loadChannelsPage(userId, playlistId, categoryId, page, limit);
+}
+
+export async function getCachedMoviesPage(
+	playlistId: string,
+	categoryId: string,
+	page: number,
+	limit: number,
+): Promise<CatalogPage<StandardXtreamMovieListing>> {
+	const userId = await requireAuthenticatedUserId();
+	if (!(await categoryContentAllowed(playlistId, "movie", categoryId))) {
+		return { items: [], total: 0 };
+	}
+	return loadMoviesPage(userId, playlistId, categoryId, page, limit);
+}
+
+export async function getCachedShowsPage(
+	playlistId: string,
+	categoryId: string,
+	page: number,
+	limit: number,
+): Promise<CatalogPage<Omit<StandardXtreamShow, "seasons">>> {
+	const userId = await requireAuthenticatedUserId();
+	if (!(await categoryContentAllowed(playlistId, "series", categoryId))) {
+		return { items: [], total: 0 };
+	}
+	return loadShowsPage(userId, playlistId, categoryId, page, limit);
 }
 
 export async function getCachedShow(

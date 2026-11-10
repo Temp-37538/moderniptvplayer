@@ -5,12 +5,12 @@ import { PageContainer, PageHeader } from "@/components/page-container";
 import { PaginationNav } from "@/components/pagination-nav";
 import type { IdCategoryPageProps as PageProps } from "@/components/types";
 import { toSafeImageSrc } from "@/lib/image-url";
-import { getCachedShows } from "@/server/cached-content";
+import { getCachedShowsPage } from "@/server/cached-content";
 import {
 	assertCategoryAvailable,
 	filterBrowsableItems,
 } from "@/server/category-access";
-import { splitPage } from "@/server/pagination";
+import { pageCount } from "@/server/pagination";
 import { getPlaylistById } from "@/server/xtream";
 import { Tv } from "lucide-react";
 import type { Metadata } from "next";
@@ -69,12 +69,13 @@ async function SeriesByCategoryContent({ params, searchParams }: PageProps) {
 
 	await assertCategoryAvailable(id, "series", categoryId);
 
-	const [rows, context] = await Promise.all([
-		getCachedShows(id, playlist, categoryId, currentPage, ITEMS_PER_PAGE, 1),
+	const [{ items: shows, total }, context] = await Promise.all([
+		getCachedShowsPage(id, categoryId, currentPage, ITEMS_PER_PAGE),
 		getCategoryMetadataContext("series", id, categoryId),
 	]);
-	// The next page is known from the raw rows, before the visibility filter.
-	const { items: shows, hasNextPage } = splitPage(rows, ITEMS_PER_PAGE);
+	// Pages count the raw rows, before the visibility filter.
+	const totalPages = pageCount(total, ITEMS_PER_PAGE);
+	const hasNextPage = currentPage < totalPages;
 	const visibleShows = await filterBrowsableItems(
 		id,
 		"series",
@@ -93,7 +94,11 @@ async function SeriesByCategoryContent({ params, searchParams }: PageProps) {
 			/>
 			<PageHeader
 				title={categoryName}
-				description={hasPreviousPage ? `Series, page ${currentPage}` : "Series"}
+				description={
+					totalPages > 1
+						? `Series, page ${currentPage} of ${totalPages}`
+						: "Series"
+				}
 			/>
 			{visibleShows.length > 0 ? (
 				<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
@@ -144,6 +149,7 @@ async function SeriesByCategoryContent({ params, searchParams }: PageProps) {
 			)}
 			<PaginationNav
 				currentPage={currentPage}
+				totalPages={totalPages}
 				hasNextPage={hasNextPage}
 				hasPreviousPage={hasPreviousPage}
 				baseUrl={`/dashboard/series/${id}/${categoryId}`}

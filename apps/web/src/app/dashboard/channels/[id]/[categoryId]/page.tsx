@@ -1,11 +1,11 @@
 import { createPageMetadata, getCategoryMetadataContext } from "@/app/metadata";
 import type { IdCategoryPageProps as PageProps } from "@/components/types";
-import { getCachedChannels } from "@/server/cached-content";
+import { getCachedChannelsPage } from "@/server/cached-content";
 import {
 	assertCategoryAvailable,
 	filterBrowsableItems,
 } from "@/server/category-access";
-import { splitPage } from "@/server/pagination";
+import { pageCount } from "@/server/pagination";
 import { getPlaylistById } from "@/server/xtream";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -70,12 +70,13 @@ async function ChannelsByCategoryContent({ params, searchParams }: PageProps) {
 
 	await assertCategoryAvailable(id, "channel", categoryId);
 
-	const [rows, context] = await Promise.all([
-		getCachedChannels(id, playlist, categoryId, currentPage, ITEMS_PER_PAGE, 1),
+	const [{ items: channels, total }, context] = await Promise.all([
+		getCachedChannelsPage(id, categoryId, currentPage, ITEMS_PER_PAGE),
 		getCategoryMetadataContext("channels", id, categoryId),
 	]);
-	// The next page is known from the raw rows, before the visibility filter.
-	const { items: channels, hasNextPage } = splitPage(rows, ITEMS_PER_PAGE);
+	// Pages count the raw rows, before the visibility filter.
+	const totalPages = pageCount(total, ITEMS_PER_PAGE);
+	const hasNextPage = currentPage < totalPages;
 	const visibleChannels = await filterBrowsableItems(
 		id,
 		"channel",
@@ -95,7 +96,9 @@ async function ChannelsByCategoryContent({ params, searchParams }: PageProps) {
 			<PageHeader
 				title={categoryName}
 				description={
-					hasPreviousPage ? `Channels, page ${currentPage}` : "Channels"
+					totalPages > 1
+						? `Channels, page ${currentPage} of ${totalPages}`
+						: "Channels"
 				}
 			/>
 			{visibleChannels.length > 0 ? (
@@ -152,6 +155,7 @@ async function ChannelsByCategoryContent({ params, searchParams }: PageProps) {
 			)}
 			<PaginationNav
 				currentPage={currentPage}
+				totalPages={totalPages}
 				hasNextPage={hasNextPage}
 				hasPreviousPage={hasPreviousPage}
 				baseUrl={`/dashboard/channels/${id}/${categoryId}`}

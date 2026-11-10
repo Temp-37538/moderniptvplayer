@@ -1,11 +1,11 @@
 import { createPageMetadata, getCategoryMetadataContext } from "@/app/metadata";
 import type { IdCategoryPageProps as PageProps } from "@/components/types";
-import { getCachedMovies } from "@/server/cached-content";
+import { getCachedMoviesPage } from "@/server/cached-content";
 import {
 	assertCategoryAvailable,
 	filterBrowsableItems,
 } from "@/server/category-access";
-import { splitPage } from "@/server/pagination";
+import { pageCount } from "@/server/pagination";
 import { getPlaylistById } from "@/server/xtream";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -70,12 +70,13 @@ async function MoviesByCategoryContent({ params, searchParams }: PageProps) {
 
 	await assertCategoryAvailable(id, "movie", categoryId);
 
-	const [rows, context] = await Promise.all([
-		getCachedMovies(id, playlist, categoryId, currentPage, ITEMS_PER_PAGE, 1),
+	const [{ items: movies, total }, context] = await Promise.all([
+		getCachedMoviesPage(id, categoryId, currentPage, ITEMS_PER_PAGE),
 		getCategoryMetadataContext("movies", id, categoryId),
 	]);
-	// The next page is known from the raw rows, before the visibility filter.
-	const { items: movies, hasNextPage } = splitPage(rows, ITEMS_PER_PAGE);
+	// Pages count the raw rows, before the visibility filter.
+	const totalPages = pageCount(total, ITEMS_PER_PAGE);
+	const hasNextPage = currentPage < totalPages;
 	const visibleMovies = await filterBrowsableItems(
 		id,
 		"movie",
@@ -94,7 +95,11 @@ async function MoviesByCategoryContent({ params, searchParams }: PageProps) {
 			/>
 			<PageHeader
 				title={categoryName}
-				description={hasPreviousPage ? `Movies, page ${currentPage}` : "Movies"}
+				description={
+					totalPages > 1
+						? `Movies, page ${currentPage} of ${totalPages}`
+						: "Movies"
+				}
 			/>
 			{visibleMovies.length > 0 ? (
 				<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6  gap-4">
@@ -145,6 +150,7 @@ async function MoviesByCategoryContent({ params, searchParams }: PageProps) {
 			)}
 			<PaginationNav
 				currentPage={currentPage}
+				totalPages={totalPages}
 				hasNextPage={hasNextPage}
 				hasPreviousPage={hasPreviousPage}
 				baseUrl={`/dashboard/movies/${id}/${categoryId}`}
