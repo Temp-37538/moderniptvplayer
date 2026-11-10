@@ -713,8 +713,8 @@ function WebVideoPlayer({
 				</p>
 			)}
 			{failed && (
-				<div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/85 p-6 text-center text-sm text-white">
-					<AlertCircleIcon className="size-6" />
+				<div className="absolute inset-0 flex flex-col items-center justify-center-safe gap-1.5 overflow-y-auto bg-black/85 p-3 text-center text-xs text-white sm:gap-2 sm:p-6 sm:text-sm">
+					<AlertCircleIcon className="size-5 shrink-0 sm:size-6" />
 					<p>This stream can't be played in the browser.</p>
 					<Button
 						type="button"
@@ -741,7 +741,7 @@ function WebVideoPlayer({
 						codec, even inside formats they support.
 					</p>
 					{detail?.technical && (
-						<p className="max-w-prose break-words font-mono text-[11px] text-white/50">
+						<p className="max-w-prose break-words font-mono text-[11px] text-white/50 max-sm:hidden">
 							{detail.technical}
 						</p>
 					)}
