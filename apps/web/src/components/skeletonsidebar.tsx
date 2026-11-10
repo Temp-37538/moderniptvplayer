@@ -113,7 +113,7 @@ function SkeletonSidebar({ children }: { children: React.ReactNode }) {
 				</SidebarFooter>
 			</Sidebar>
 			<SidebarInset>
-				<header className="flex h-16 z-10 shrink-0 justify-between items-center gap-2 border-b px-4">
+				<header className="flex h-16 z-10 shrink-0 justify-between items-center gap-2 border-b px-6 md:px-8 lg:px-10">
 					<div className="flex items-center gap-2">
 						<Skeleton className="hidden md:block h-4 w-32 rounded" />
 						<Skeleton className="hidden md:block h-4 w-4 rounded" />
@@ -123,7 +123,7 @@ function SkeletonSidebar({ children }: { children: React.ReactNode }) {
 						<Skeleton className="size-8 rounded-md" />
 					</div>
 				</header>
-				<div className="flex flex-1 flex-col gap-4 p-4 overflow-hidden">
+				<div className="flex flex-1 flex-col gap-4 overflow-hidden px-6 pt-6 md:px-8 lg:px-10">
 					{children}
 				</div>
 			</SidebarInset>

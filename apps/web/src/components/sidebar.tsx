@@ -80,7 +80,7 @@ function SidebarContent({ children }: { children: React.ReactNode }) {
 		<>
 			<AppSidebar />
 			<SidebarInset>
-				<header className="flex h-16 z-10 shrink-0 justify-between items-center gap-2 border-b px-4">
+				<header className="flex h-16 z-10 shrink-0 justify-between items-center gap-2 border-b px-6 md:px-8 lg:px-10">
 					<div className="flex min-w-0 items-center gap-2">
 						<SidebarTrigger className="-ml-1 size-8 rounded-lg bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary hover:brightness-90 hover:text-sidebar-primary-foreground dark:hover:bg-sidebar-primary dark:hover:text-sidebar-primary-foreground md:hidden" />
 						<Breadcrumb>
@@ -130,7 +130,7 @@ function SidebarContent({ children }: { children: React.ReactNode }) {
 						</Button>
 					</div>
 				</header>
-				<div className="flex flex-1 flex-col gap-4 p-4 overflow-hidden">
+				<div className="flex flex-1 flex-col gap-4 overflow-hidden px-6 pt-6 md:px-8 lg:px-10">
 					{children}
 				</div>
 			</SidebarInset>
