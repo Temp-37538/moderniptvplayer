@@ -34,9 +34,14 @@ export type LinkedAccountProps = {
 export function LinkedAccount({ account, provider }: LinkedAccountProps) {
 	const { authClient, baseURL, localization } = useAuth();
 
+	// Better Auth 1.7 selects accounts by their Better Auth row id, not the
+	// provider account id. The query stays disabled until an account is linked.
 	const { data: accountInfo, isPending: isLoadingInfo } = useAccountInfo(
 		authClient,
-		{ query: { accountId: account?.accountId } },
+		{
+			query: { accountId: account?.id ?? "" },
+			enabled: account !== undefined,
+		},
 	);
 
 	const { mutate: linkSocial, isPending: isLinking } =
@@ -53,8 +58,8 @@ export function LinkedAccount({ account, provider }: LinkedAccountProps) {
 	const providerName = getProviderName(provider);
 
 	const displayName =
-		accountInfo?.data?.login ||
-		accountInfo?.data?.username ||
+		readStringField(accountInfo?.data, "login") ||
+		readStringField(accountInfo?.data, "username") ||
 		accountInfo?.user?.email ||
 		accountInfo?.user?.name ||
 		account?.accountId;
@@ -96,7 +101,7 @@ export function LinkedAccount({ account, provider }: LinkedAccountProps) {
 						className="ml-auto shrink-0"
 						variant="outline"
 						size="sm"
-						onClick={() => unlinkAccount({ providerId: account.providerId })}
+						onClick={() => unlinkAccount({ accountId: account.id })}
 						disabled={isUnlinking}
 						aria-label={localization.settings.unlinkProvider.replace(
 							"{{provider}}",
@@ -132,4 +137,14 @@ export function LinkedAccount({ account, provider }: LinkedAccountProps) {
 			</CardContent>
 		</Card>
 	);
+}
+
+/**
+ * Read a string field from provider-specific account data, which Better Auth
+ * types as an untyped object because its shape depends on the provider.
+ */
+function readStringField(data: object | undefined, key: string) {
+	if (!data || !(key in data)) return undefined;
+	const value: unknown = Reflect.get(data, key);
+	return typeof value === "string" ? value : undefined;
 }

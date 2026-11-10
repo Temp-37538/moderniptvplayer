@@ -304,12 +304,7 @@ function EditM3uPlaylistForm({
 			if (result.success && result.changed !== false) {
 				router.refresh();
 			}
-			if (
-				result.success &&
-				result.message?.startsWith(
-					"Playlist updated. It now signs in with Xtream",
-				)
-			) {
+			if (result.success && result.convertedToXtream && result.message) {
 				onNotice?.(result.message, true);
 			}
 			return result;
@@ -393,7 +388,7 @@ function EditM3uPlaylistForm({
 			<Button type="submit" disabled={isPending} className="mt-2">
 				{isPending ? "Saving..." : "Save changes"}
 			</Button>
-			{state.message ? (
+			{state.message && !state.convertedToXtream ? (
 				<Alert variant={state.success ? "default" : "destructive"}>
 					{state.success ? (
 						<CheckCircle2 color="green" className="size-4" />
