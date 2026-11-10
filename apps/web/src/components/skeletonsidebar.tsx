@@ -98,7 +98,8 @@ function SkeletonSidebar({ children }: { children: React.ReactNode }) {
 					</div>
 				</SidebarFooter>
 			</Sidebar>
-			<SidebarInset>
+			{/* min-w-0: wide page content must not push the inset past the viewport. */}
+			<SidebarInset className="min-w-0">
 				<header className="flex h-16 z-10 shrink-0 justify-between items-center gap-2 border-b px-6 md:px-8 lg:px-10">
 					<div className="flex items-center gap-2">
 						<Skeleton className="hidden md:block h-4 w-32 rounded" />

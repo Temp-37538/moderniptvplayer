@@ -1,6 +1,7 @@
 "use client";
 import { usePlaylistIdFromPath } from "@/hooks/use-playlist-id";
 import { buildBreadcrumbs } from "@/lib/breadcrumbs";
+import { cn } from "@/lib/utils";
 import { House } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
@@ -79,19 +80,27 @@ function SidebarContent({ children }: { children: React.ReactNode }) {
 	return (
 		<>
 			<AppSidebar />
-			<SidebarInset>
+			{/* min-w-0: wide page content must not push the inset past the viewport. */}
+			<SidebarInset className="min-w-0">
 				<header className="flex h-16 z-10 shrink-0 justify-between items-center gap-2 border-b px-6 md:px-8 lg:px-10">
 					<div className="flex min-w-0 items-center gap-2">
 						<SidebarTrigger className="-ml-1 size-8 rounded-lg bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary hover:brightness-90 hover:text-sidebar-primary-foreground dark:hover:bg-sidebar-primary dark:hover:text-sidebar-primary-foreground md:hidden" />
-						<Breadcrumb>
-							<BreadcrumbList>
+						<Breadcrumb className="min-w-0">
+							{/* One line: the middle crumbs only show from lg up. */}
+							<BreadcrumbList className="flex-nowrap">
 								{crumbs.map((crumb, index) => {
 									const isLast = index === crumbs.length - 1;
 									const isCurrent = isLast && crumb.href === pathname;
+									const isMiddle = index > 0 && index < crumbs.length - 2;
 
 									return (
 										<React.Fragment key={crumb.href}>
-											<BreadcrumbItem className="hidden md:inline-flex">
+											<BreadcrumbItem
+												className={cn(
+													"hidden min-w-0",
+													isMiddle ? "lg:inline-flex" : "md:inline-flex",
+												)}
+											>
 												{isCurrent ? (
 													<BreadcrumbPage className="max-w-48 truncate">
 														{crumb.label}
@@ -110,7 +119,12 @@ function SidebarContent({ children }: { children: React.ReactNode }) {
 												)}
 											</BreadcrumbItem>
 											{!isLast && (
-												<BreadcrumbSeparator className="hidden md:block" />
+												<BreadcrumbSeparator
+													className={cn(
+														"hidden",
+														isMiddle ? "lg:block" : "md:block",
+													)}
+												/>
 											)}
 										</React.Fragment>
 									);
