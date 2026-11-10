@@ -62,7 +62,7 @@ export function NavProjects({ projects }: { projects: Project[] }) {
 								{item.icon}
 								<span>{item.name}</span>
 								{shortcut ? (
-									<kbd className="ml-auto rounded border border-sidebar-border px-1.5 font-sans text-[0.65rem] text-muted-foreground group-data-[collapsible=icon]:hidden">
+									<kbd className="ml-auto rounded border border-sidebar-border px-1.5 font-sans text-[0.65rem] text-muted-foreground group-data-active/menu-button:border-current/40 group-data-active/menu-button:text-current group-data-[collapsible=icon]:hidden">
 										{shortcut}
 									</kbd>
 								) : null}
