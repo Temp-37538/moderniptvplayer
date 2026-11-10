@@ -1,21 +1,19 @@
 "use client";
 
 import { EmptyState } from "@/components/empty-state";
+import {
+	formatRetryWait,
+	SEARCH_POLL_INTERVAL_MS,
+	SEARCH_POLL_WINDOW_MS,
+} from "@/lib/global-search-timing";
 import { toSafeImageSrc } from "@/lib/image-url";
 import { Film, Radio, Search, Tv } from "lucide-react";
 import type { Route } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const SEARCH_DEBOUNCE_MS = 300;
-// Poll for as long as a first sync may run. Mirrors SYNC_TIMEOUT_MS in
-// server/catalog-index-policy.ts, which is not imported here to keep the
-// server policy (and the adult category rules it pulls in) out of the client
-// bundle. 5 s keeps polling at 12 requests a minute, well under the route's
-// limit of 30 per user.
-const SEARCH_POLL_WINDOW_MS = 300_000;
-const SEARCH_POLL_INTERVAL_MS = 5_000;
 const SEARCH_MAX_POLLS =
 	Math.ceil(SEARCH_POLL_WINDOW_MS / SEARCH_POLL_INTERVAL_MS) + 1;
 const SEARCH_LIMIT = 20;
@@ -43,6 +41,8 @@ type SearchPayload = {
 	status?: "ready" | "building" | "unavailable";
 	stale?: boolean;
 	results?: SearchResult[];
+	/** Seconds before "Try again" can start a new sync. */
+	retryAfter?: number;
 	error?: string;
 };
 
@@ -112,6 +112,10 @@ export function GlobalSearch({
 	const [stale, setStale] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [retryCount, setRetryCount] = useState(0);
+	const [retryAfter, setRetryAfter] = useState(0);
+	// The last retry the server has seen. Only the first request after a click
+	// is an explicit retry, so polling never restarts a sync that just failed.
+	const sentRetry = useRef(0);
 
 	const normalizedQuery = query.trim();
 	const queryIsValid = normalizedQuery.length >= 2;
@@ -142,6 +146,7 @@ export function GlobalSearch({
 			setResults([]);
 			setStale(false);
 			setError(null);
+			setRetryAfter(0);
 
 			const params = new URLSearchParams({
 				playlistId,
@@ -152,10 +157,15 @@ export function GlobalSearch({
 
 			try {
 				for (let attempt = 0; attempt < SEARCH_MAX_POLLS; attempt += 1) {
+					if (sentRetry.current !== retryCount) {
+						params.set("retry", "1");
+					}
 					const response = await fetch(`/api/search?${params.toString()}`, {
 						signal: controller.signal,
 						cache: retryCount > 0 ? "reload" : "no-store",
 					});
+					sentRetry.current = retryCount;
+					params.delete("retry");
 					const payload = (await response
 						.json()
 						.catch(() => ({}))) as SearchPayload;
@@ -178,6 +188,9 @@ export function GlobalSearch({
 
 					if (response.status === 503 || payload.status === "unavailable") {
 						setResults([]);
+						setRetryAfter(
+							typeof payload.retryAfter === "number" ? payload.retryAfter : 0,
+						);
 						setStatus("unavailable");
 						return;
 					}
@@ -300,7 +313,10 @@ export function GlobalSearch({
 				) : displayedStatus === "unavailable" ? (
 					<div className="flex flex-col items-start gap-3 py-8">
 						<p className="text-sm text-muted-foreground">
-							The catalogue index could not be built. Please try again.
+							The catalogue index could not be built.{" "}
+							{retryAfter > 0
+								? `You can try again in ${formatRetryWait(retryAfter)}.`
+								: "Please try again."}
 						</p>
 						<button
 							type="button"

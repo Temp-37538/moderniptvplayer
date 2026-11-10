@@ -15,6 +15,8 @@ import {
 	type CatalogKind,
 	type CatalogRowInput,
 	type CatalogSyncPolicyState,
+	type SyncTrigger,
+	syncRetryDelayMs,
 } from "./catalog-index-policy";
 import {
 	CatalogProviderError,
@@ -294,11 +296,14 @@ export type EnsureCatalogResult = {
 	syncedAt: Date | null;
 	activeSyncId: string | null;
 	start: boolean;
+	/** Time left before the "Try again" button can start a new sync. */
+	retryAfterMs: number;
 };
 
 export async function ensureCatalog(
 	_userId: string,
 	playlistId: string,
+	trigger: SyncTrigger = "auto",
 ): Promise<EnsureCatalogResult> {
 	const now = new Date();
 	const rows = await prisma.$queryRawUnsafe<CatalogSyncRecord[]>(
@@ -307,7 +312,7 @@ export async function ensureCatalog(
 		playlistId,
 	);
 	const state = rows[0] ?? null;
-	const decision = decideSync(state, now);
+	const decision = decideSync(state, now, trigger);
 	const lockIsValid =
 		state?.status === "syncing" &&
 		state.lockedUntil !== null &&
@@ -330,6 +335,7 @@ export async function ensureCatalog(
 		syncedAt: state?.syncedAt ?? null,
 		activeSyncId: state?.activeSyncId ?? null,
 		start,
+		retryAfterMs: syncRetryDelayMs(state, now, "retry"),
 	};
 }
 

@@ -7,7 +7,9 @@ import {
 	CATALOG_TTL_MS,
 	SEARCH_MAX_TOKENS,
 	SEARCH_QUERY_MAX,
+	SYNC_FUNCTION_MAX_MS,
 	SYNC_LOCK_MS,
+	SYNC_MANUAL_RETRY_MIN_MS,
 	SYNC_RETRY_COOLDOWN_MS,
 	SYNC_TIMEOUT_MS,
 	buildCatalogSearchQuery,
@@ -17,6 +19,7 @@ import {
 	pickOpenCategory,
 	rankMatch,
 	searchHref,
+	syncRetryDelayMs,
 	toCatalogRows,
 } from "./catalog-index-policy.ts";
 
@@ -354,8 +357,83 @@ test("decides when to build, serve, refresh, or report unavailable", () => {
 	);
 });
 
-test("the sync lock outlives the sync timeout", () => {
-	assert.ok(SYNC_LOCK_MS > SYNC_TIMEOUT_MS);
+test("the sync stops before the function is killed and the lock outlives both", () => {
+	assert.ok(SYNC_TIMEOUT_MS < SYNC_FUNCTION_MAX_MS);
+	assert.ok(SYNC_LOCK_MS > SYNC_FUNCTION_MAX_MS);
+	// A killed sync must not keep the index locked much longer than the
+	// invocation could have lived.
+	assert.ok(SYNC_LOCK_MS - SYNC_FUNCTION_MAX_MS <= 60_000);
+});
+
+test("an explicit retry skips the failure cooldown but not a live lock", () => {
+	const now = new Date("2026-11-08T12:00:00.000Z");
+	const failed = (ageMs: number) => ({
+		status: "failed",
+		activeSyncId: null,
+		syncedAt: null,
+		lockedUntil: null,
+		lastAttemptAt: new Date(now.getTime() - ageMs),
+	});
+
+	const recent = failed(SYNC_MANUAL_RETRY_MIN_MS + 1_000);
+	assert.equal(decideSync(recent, now), "unavailable");
+	assert.equal(decideSync(recent, now, "auto"), "unavailable");
+	assert.equal(decideSync(recent, now, "retry"), "build");
+	assert.equal(
+		syncRetryDelayMs(recent, now),
+		SYNC_RETRY_COOLDOWN_MS - SYNC_MANUAL_RETRY_MIN_MS - 1_000,
+	);
+	assert.equal(syncRetryDelayMs(recent, now, "retry"), 0);
+
+	// Repeated clicks right after a failure still wait a little.
+	const justFailed = failed(10_000);
+	assert.equal(decideSync(justFailed, now, "retry"), "unavailable");
+	assert.equal(
+		syncRetryDelayMs(justFailed, now, "retry"),
+		SYNC_MANUAL_RETRY_MIN_MS - 10_000,
+	);
+
+	// A stale index with a failed refresh refreshes on retry.
+	assert.equal(
+		decideSync(
+			{ ...recent, activeSyncId: "active", syncedAt: new Date(0) },
+			now,
+			"retry",
+		),
+		"serve-and-refresh",
+	);
+
+	// A running sync keeps its lock: the retry only waits for it.
+	const running = {
+		status: "syncing",
+		activeSyncId: null,
+		syncedAt: null,
+		lockedUntil: new Date(now.getTime() + SYNC_LOCK_MS),
+		lastAttemptAt: now,
+	};
+	assert.equal(decideSync(running, now, "retry"), "build");
+	assert.equal(syncRetryDelayMs(running, now, "retry"), 0);
+	assert.equal(
+		decideSync({ ...running, activeSyncId: "active" }, now, "retry"),
+		"serve",
+	);
+
+	// The lock of a killed sync expires on its own, then any search rebuilds.
+	assert.equal(
+		decideSync(
+			{
+				...running,
+				activeSyncId: "active",
+				syncedAt: new Date(0),
+				lockedUntil: new Date(now.getTime() - 1),
+			},
+			now,
+		),
+		"serve-and-refresh",
+	);
+
+	assert.equal(syncRetryDelayMs(null, now, "retry"), 0);
+	assert.equal(syncRetryDelayMs(failed(-1_000), now), 0);
 });
 
 test("one id set deduplicates a listing across chunks", () => {

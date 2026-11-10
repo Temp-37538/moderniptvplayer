@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { register } from "node:module";
 import test, { mock } from "node:test";
 import { pathToFileURL } from "node:url";
+import { SYNC_FUNCTION_MAX_MS } from "./catalog-index-policy.ts";
 
 register(new URL("./search-route-loader.mjs", import.meta.url).href, {
 	parentURL: pathToFileURL(import.meta.dirname).href,
@@ -14,7 +15,10 @@ const routeSpecifier: string = new URL(
 
 type RouteGet = (request: { nextUrl: URL }) => Promise<Response>;
 
-const { GET } = (await import(routeSpecifier)) as { GET: RouteGet };
+const { GET, maxDuration } = (await import(routeSpecifier)) as {
+	GET: RouteGet;
+	maxDuration: number;
+};
 
 const USER = "user-1";
 const PLAYLIST = "playlist1";
@@ -52,13 +56,14 @@ type RouteState = {
 		syncedAt: Date | null;
 		activeSyncId: string | null;
 		start: boolean;
+		retryAfterMs: number;
 	};
 	searchError: Error | null;
 	searchResults: (input: SearchInput) => SearchResult[];
 	afterTasks: Array<() => unknown>;
 	rateLimitCalls: Array<{ key: string; limit: number; windowMs: number }>;
 	rulesLoads: string[];
-	ensureCalls: Array<{ userId: string; playlistId: string }>;
+	ensureCalls: Array<{ userId: string; playlistId: string; trigger: string }>;
 	syncCalls: Array<{ userId: string; playlistId: string }>;
 	searchCalls: SearchInput[];
 };
@@ -86,6 +91,7 @@ function installState(): RouteState {
 			syncedAt: SYNCED_AT,
 			activeSyncId: "sync-1",
 			start: false,
+			retryAfterMs: 0,
 		},
 		searchError: null,
 		searchResults: () => [],
@@ -125,6 +131,7 @@ test("invalid parameters are rejected with 400", async () => {
 		{ playlistId: PLAYLIST, q: "matrix", kind: "music" },
 		{ playlistId: PLAYLIST, q: "matrix", limit: "0" },
 		{ playlistId: PLAYLIST, q: "matrix", limit: "31" },
+		{ playlistId: PLAYLIST, q: "matrix", retry: "true" },
 	];
 	for (const params of cases) {
 		const state = installState();
@@ -200,6 +207,7 @@ test("a catalogue being built answers 202 and schedules one sync", async () => {
 		syncedAt: null,
 		activeSyncId: null,
 		start: true,
+		retryAfterMs: 0,
 	};
 
 	const { response, body } = await search({
@@ -213,7 +221,9 @@ test("a catalogue being built answers 202 and schedules one sync", async () => {
 		syncedAt: null,
 		results: [],
 	});
-	assert.deepEqual(state.ensureCalls, [{ userId: USER, playlistId: PLAYLIST }]);
+	assert.deepEqual(state.ensureCalls, [
+		{ userId: USER, playlistId: PLAYLIST, trigger: "auto" },
+	]);
 	assert.equal(state.searchCalls.length, 0);
 	assert.equal(state.afterTasks.length, 1);
 	assert.equal(state.syncCalls.length, 0, "the sync runs after the response");
@@ -230,6 +240,7 @@ test("a build already in progress is not scheduled again", async () => {
 		syncedAt: null,
 		activeSyncId: null,
 		start: false,
+		retryAfterMs: 0,
 	};
 
 	const { response } = await search({ playlistId: PLAYLIST, q: "matrix" });
@@ -245,6 +256,7 @@ test("an unavailable catalogue answers 503", async () => {
 		syncedAt: null,
 		activeSyncId: null,
 		start: false,
+		retryAfterMs: 0,
 	};
 
 	const { response, body } = await search({
@@ -257,9 +269,58 @@ test("an unavailable catalogue answers 503", async () => {
 		stale: false,
 		syncedAt: null,
 		results: [],
+		retryAfter: 0,
 	});
+	assert.equal(response.headers.get("Retry-After"), null);
 	assert.equal(state.searchCalls.length, 0);
 	assert.equal(state.afterTasks.length, 0);
+});
+
+test("an unavailable catalogue reports when it can be retried", async () => {
+	const state = installState();
+	state.catalog = {
+		status: "unavailable",
+		stale: false,
+		syncedAt: null,
+		activeSyncId: null,
+		start: false,
+		retryAfterMs: 125_400,
+	};
+
+	const { response, body } = await search({
+		playlistId: PLAYLIST,
+		q: "matrix",
+	});
+	assert.equal(response.status, 503);
+	assert.equal(body.retryAfter, 126);
+	assert.equal(response.headers.get("Retry-After"), "126");
+});
+
+test("retry=1 asks the catalogue for an explicit retry", async () => {
+	const state = installState();
+	state.catalog = {
+		status: "building",
+		stale: false,
+		syncedAt: null,
+		activeSyncId: null,
+		start: true,
+		retryAfterMs: 0,
+	};
+
+	const { response } = await search({
+		playlistId: PLAYLIST,
+		q: "matrix",
+		retry: "1",
+	});
+	assert.equal(response.status, 202);
+	assert.deepEqual(state.ensureCalls, [
+		{ userId: USER, playlistId: PLAYLIST, trigger: "retry" },
+	]);
+	assert.equal(state.afterTasks.length, 1);
+});
+
+test("the route may run as long as the sync it schedules", () => {
+	assert.equal(maxDuration * 1000, SYNC_FUNCTION_MAX_MS);
 });
 
 test("a ready state without an active generation answers 503", async () => {
