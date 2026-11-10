@@ -177,7 +177,9 @@ async function MovieDetailContent({ params }: PageProps) {
 
 						<MovieWatchSection
 							className="rounded-2xl border-border/40 shadow-2xl shadow-black/50"
-							poster={safePosterSrc}
+							// The wide backdrop fits the 16:9 frame; the portrait poster
+							// is the fallback when the provider has none.
+							poster={toSafeImageSrc(movie.cover) ?? safePosterSrc}
 							resumeAt={resumeAt}
 							completed={resume?.completed ?? false}
 							progress={{
