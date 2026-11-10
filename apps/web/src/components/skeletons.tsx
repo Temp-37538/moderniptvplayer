@@ -3,7 +3,69 @@ import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
 import { Shield, User2 } from "lucide-react";
+
+/** Same box as PageContainer: the layout pads, the page scrolls. */
+function SkeletonPage({
+	children,
+	narrow = false,
+	className,
+}: {
+	children: React.ReactNode;
+	narrow?: boolean;
+	className?: string;
+}) {
+	return (
+		<div className="h-full overflow-hidden">
+			<div
+				className={cn(
+					"w-full space-y-6 pb-6",
+					narrow && "max-w-4xl",
+					className,
+				)}
+			>
+				{children}
+			</div>
+		</div>
+	);
+}
+
+/**
+ * PageHeader: the serif title line (2.25rem, 3rem from md, at 1.05 line
+ * height) and a 20 px description line, so content below does not move.
+ */
+function PageHeaderSkeleton({
+	titleWidth = "w-56",
+	descriptionWidth = "w-40",
+}: {
+	titleWidth?: string;
+	descriptionWidth?: string | null;
+}) {
+	return (
+		<header className="space-y-2">
+			<div className="flex h-[2.3625rem] items-center md:h-[3.15rem]">
+				<Skeleton className={cn("h-8 md:h-10", titleWidth)} />
+			</div>
+			{descriptionWidth ? (
+				<div className="flex h-5 items-center">
+					<Skeleton className={cn("h-3.5", descriptionWidth)} />
+				</div>
+			) : null}
+		</header>
+	);
+}
+
+/** One line of text at a given line height, for rows that mirror real text. */
+function TextLine({ line, className }: { line: string; className: string }) {
+	return (
+		<div className={cn("flex items-center", line)}>
+			<Skeleton className={className} />
+		</div>
+	);
+}
+
+const NAME_WIDTHS = ["w-24", "w-32", "w-20", "w-28", "w-36", "w-16"];
 
 export function MediaGridSkeletonNoSearchBar({
 	count = 12,
@@ -11,50 +73,31 @@ export function MediaGridSkeletonNoSearchBar({
 	count?: number;
 }) {
 	return (
-		<div className="h-full overflow-y-auto scrollbar-none">
-			<div className="flex items-center justify-between mb-6">
-				<div className="flex items-center gap-3">
-					<div className="space-y-2">
-						<Skeleton className="h-6 w-24" />
-						<Skeleton className="h-4 w-16" />
-					</div>
-				</div>
-			</div>
+		<SkeletonPage>
+			<PageHeaderSkeleton titleWidth="w-64" descriptionWidth="w-36" />
 			<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
 				{Array.from({ length: count }).map((_, i) => (
-					<div key={i} className="space-y-2">
+					<div key={i}>
 						<Skeleton className="aspect-2/3 rounded-xl" />
+						<TextLine
+							line="mt-2 h-[1.09375rem]"
+							className={cn("h-3", NAME_WIDTHS[i % NAME_WIDTHS.length])}
+						/>
 					</div>
 				))}
 			</div>
-		</div>
+		</SkeletonPage>
 	);
 }
 
+/** Per-category search: title, a short line, the field, then the hint. */
 export function ChannelCategorySearchSkeleton() {
 	return (
 		<div className="h-full flex flex-col gap-4">
 			<div className="flex flex-col gap-3">
-				<div className="flex items-center gap-3">
-					<div className="space-y-2">
-						<Skeleton className="h-7 w-32" />
-						<Skeleton className="h-4 w-48" />
-					</div>
-				</div>
-				<div className="relative w-full max-w-3xl">
-					<Skeleton className="h-12 w-full rounded-md" />
-				</div>
-				<Skeleton className="h-4 w-48" />
-			</div>
-
-			<div className="flex-1 overflow-y-auto scrollbar-none pb-10">
-				<div className="flex justify-center items-center gap-3">
-					<div className="flex flex-col  items-center justify-center py-20 animate-pulse">
-						<div className="mb-4 size-12 rounded-md bg-muted  " />
-						<div className="h-5 w-40 rounded-md bg-muted mb-2  " />
-						<div className="h-4 w-56 rounded-md bg-muted  " />
-					</div>
-				</div>
+				<PageHeaderSkeleton titleWidth="w-56" descriptionWidth="w-48" />
+				<Skeleton className="h-12 w-full max-w-3xl rounded-md" />
+				<div className="min-h-5" />
 			</div>
 		</div>
 	);
@@ -66,60 +109,54 @@ export function ChannelListSkeletonNoSearchBar({
 	count?: number;
 }) {
 	return (
-		<div className="h-full overflow-y-auto scrollbar-none">
-			<div className="flex items-center justify-between mb-6">
-				<div className="flex items-center gap-3">
-					<div className="space-y-2">
-						<Skeleton className="h-6 w-24" />
-						<Skeleton className="h-4 w-16" />
-					</div>
-				</div>
-			</div>
+		<SkeletonPage>
+			<PageHeaderSkeleton titleWidth="w-40" descriptionWidth="w-20" />
 			<div className="grid grid-cols-2 gap-x-4 gap-y-6 min-[480px]:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8">
 				{Array.from({ length: count }).map((_, i) => (
 					<div key={i}>
 						<Skeleton className="aspect-video w-full rounded-md" />
-						<Skeleton className="mt-2 h-4 w-2/3" />
+						<TextLine
+							line="mt-2 h-5"
+							className={cn("h-3.5", NAME_WIDTHS[i % NAME_WIDTHS.length])}
+						/>
 					</div>
 				))}
 			</div>
-			<div className="flex items-center justify-center gap-2 mt-8 pb-4">
-				<Skeleton className="h-8 w-24" />
-				<Skeleton className="h-5 w-16" />
-				<Skeleton className="h-8 w-20" />
-			</div>
-		</div>
+		</SkeletonPage>
 	);
 }
 
+/** The typographic category index: title, lock and search, name columns. */
 export function CategoryGridSkeleton({ count = 35 }: { count?: number }) {
 	return (
-		<div className="h-full flex flex-col gap-4">
-			<div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-				<div className="flex items-center justify-between gap-2.5 md:gap-3 min-w-0">
-					<div className="space-y-2">
-						<Skeleton className="h-7 w-22 md:w-32" />
-						<Skeleton className="h-4 w-22 md:w-48 " />
+		<div className="h-full flex flex-col gap-3 md:gap-4">
+			<div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+				<div className="space-y-2">
+					<div className="flex h-[2.6125rem] items-center pb-1 md:h-[3.4rem]">
+						<Skeleton className="h-8 w-40 md:h-10" />
 					</div>
-					<Skeleton className="h-5 w-28 md:hidden rounded-md shrink-0" />
+					<TextLine line="h-4 md:h-5" className="h-3 w-44 md:h-3.5" />
 				</div>
-				<div className="flex flex-col gap-2 md:items-end">
-					<Skeleton className="h-8 w-full md:w-70 rounded-md" />
-					<Skeleton className="hidden md:block h-4 w-40 rounded-md" />
+				<div className="flex flex-col gap-3 md:flex-row-reverse md:items-center md:gap-5">
+					<Skeleton className="h-8 w-full rounded-md md:w-70" />
+					<div className="flex items-center justify-between gap-3">
+						<TextLine line="h-6" className="h-4 w-40 md:w-44" />
+						<Skeleton className="h-4 w-8 md:hidden" />
+					</div>
 				</div>
 			</div>
-			<div className="flex-1 overflow-y-auto scrollbar-none">
-				<div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+			<div className="-m-1 flex-1 overflow-hidden">
+				<div className="columns-1 gap-x-10 p-1 min-[520px]:columns-2 lg:columns-3 2xl:columns-4">
 					{Array.from({ length: count }).map((_, i) => (
 						<div
 							key={i}
-							className="relative flex flex-col items-center justify-center rounded-xl border border-border/50 bg-card p-3 pt-9 pb-10 md:p-5 md:pt-10 md:pb-12"
+							className="flex break-inside-avoid items-center justify-between gap-3 border-b border-border/40 py-2.5"
 						>
-							<div className="absolute top-2 right-2 z-10 flex gap-1">
-								<Skeleton className="size-7 rounded-md" />
-								<Skeleton className="size-7 rounded-md" />
-							</div>
-							<Skeleton className="h-4 w-24 rounded" />
+							<TextLine
+								line="h-[1.40625rem]"
+								className={cn("h-3.5", NAME_WIDTHS[i % NAME_WIDTHS.length])}
+							/>
+							<Skeleton className="h-3 w-5" />
 						</div>
 					))}
 				</div>
@@ -130,15 +167,14 @@ export function CategoryGridSkeleton({ count = 35 }: { count?: number }) {
 
 export function MediaDetailSkeleton() {
 	return (
-		<div className="min-h-full">
-			<div className="w-full px-6 pt-6 pb-10 md:px-10 md:pt-8 md:pb-12">
+		<div className="h-full overflow-hidden">
+			<div className="w-full pb-6">
 				<div className="grid gap-10 md:grid-cols-[19rem_minmax(0,1fr)] md:gap-14">
-					<div className="md:sticky md:top-8 md:self-start space-y-5">
+					<div className="md:self-start space-y-5">
 						<Skeleton className="aspect-2/3 w-full rounded-2xl" />
-						<div className="mt-5 flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
-							<Skeleton className="h-4 w-10" />
-							<Skeleton className="h-4 w-12" />
-							<Skeleton className="h-4 w-10" />
+						<div className="mt-5 flex h-4 flex-wrap items-center justify-center gap-x-6 gap-y-2">
+							<Skeleton className="h-3 w-14" />
+							<Skeleton className="h-3 w-10" />
 						</div>
 						<div className="mt-5 flex items-center justify-center gap-2 border-t border-border/50 pt-5">
 							<Skeleton className="h-8 w-8 rounded-md" />
@@ -148,35 +184,27 @@ export function MediaDetailSkeleton() {
 						</div>
 					</div>
 
-					<div className="min-w-0">
-						<Skeleton className="h-10 w-3/4 max-w-md" />
-						<Skeleton className="mt-2 h-4 w-32" />
-						<Skeleton className="mt-4 h-4 w-24" />
-						<div className="mt-6 space-y-2">
-							<Skeleton className="h-4 w-full max-w-2xl" />
-							<Skeleton className="h-4 w-full max-w-xl" />
-							<Skeleton className="h-4 w-full max-w-2xl" />
+					<div className="min-w-0 max-w-4xl">
+						<div className="flex h-[2.3625rem] items-center md:h-[3.15rem]">
+							<Skeleton className="h-8 w-3/4 max-w-md md:h-10" />
+						</div>
+						<TextLine line="mt-4 h-4" className="h-3 w-36" />
+						<div className="mt-6 max-w-prose">
+							<TextLine line="h-[1.584rem]" className="h-3.5 w-full" />
+							<TextLine line="h-[1.584rem]" className="h-3.5 w-full" />
+							<TextLine line="h-[1.584rem]" className="h-3.5 w-2/3" />
 						</div>
 						<section className="mt-10 space-y-3">
-							<div className="flex flex-wrap items-baseline justify-between gap-2">
-								<Skeleton className="h-7 w-16" />
-								<Skeleton className="h-4 w-24" />
-							</div>
+							<TextLine line="h-8" className="h-6 w-20" />
 							<Skeleton className="aspect-video w-full rounded-2xl" />
 						</section>
 						<div className="mt-8 grid gap-x-8 gap-y-4 border-y border-border/50 py-6 sm:grid-cols-2">
-							<div className="space-y-1.5">
-								<Skeleton className="h-3 w-16" />
-								<Skeleton className="h-4 w-40" />
-							</div>
-							<div className="space-y-1.5">
-								<Skeleton className="h-3 w-12" />
-								<Skeleton className="h-4 w-48" />
-							</div>
-						</div>
-						<div className="mt-10 space-y-3">
-							<Skeleton className="h-7 w-20" />
-							<Skeleton className="aspect-video w-full rounded-2xl" />
+							{["w-40", "w-56", "w-32"].map((width, i) => (
+								<div key={i}>
+									<TextLine line="h-6" className="h-4 w-16" />
+									<TextLine line="mt-1.5 h-5" className={cn("h-3.5", width)} />
+								</div>
+							))}
 						</div>
 					</div>
 				</div>
@@ -208,10 +236,10 @@ export function ChannelDetailSkeleton() {
 
 export function ShowDetailSkeleton() {
 	return (
-		<div className="min-h-full">
-			<div className="w-full px-6 pt-6 pb-10 md:px-10 md:pt-8 md:pb-12">
+		<div className="h-full overflow-hidden">
+			<div className="w-full pb-6">
 				<div className="grid gap-10 md:grid-cols-[19rem_minmax(0,1fr)] md:gap-14">
-					<div className="md:sticky md:top-8 md:self-start">
+					<div className="md:self-start">
 						<div className="relative">
 							<Skeleton className="aspect-2/3 w-full rounded-2xl border border-border/40" />
 							<div className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-inset ring-white/10" />
@@ -241,10 +269,12 @@ export function ShowDetailSkeleton() {
 						<Skeleton className="h-px w-full" />
 					</div>
 
-					<div className="min-w-0">
+					<div className="min-w-0 max-w-4xl">
 						<header>
-							<Skeleton className="h-11 w-4/5 md:h-12" />
-							<Skeleton className="mt-4 h-3 w-24" />
+							<div className="flex h-[2.3625rem] items-center md:h-[3.15rem]">
+								<Skeleton className="h-8 w-3/5 md:h-10" />
+							</div>
+							<TextLine line="mt-4 h-4" className="h-3 w-28" />
 						</header>
 
 						<div className="mt-6 max-w-prose space-y-2">
@@ -332,23 +362,30 @@ export function ContinueWatchingSkeleton({ count = 6 }: { count?: number }) {
 
 export function SavedItemsListSkeleton({ count = 5 }: { count?: number }) {
 	return (
-		<div className="max-w-4xl space-y-6">
-			<div className="space-y-2">
-				<Skeleton className="h-12 w-56" />
-				<Skeleton className="h-4 w-40" />
-			</div>
-			<div className="divide-y divide-border/50 border-y border-border/50">
-				{Array.from({ length: count }).map((_, i) => (
-					<div key={i} className="flex items-center gap-4 py-3">
-						<Skeleton className="h-15 w-10 shrink-0 rounded-sm" />
-						<div className="flex-1 space-y-2">
-							<Skeleton className="h-4 w-3/4 max-w-xs" />
-							<Skeleton className="h-3 w-1/2 max-w-50" />
-						</div>
-						<Skeleton className="size-8 rounded-md shrink-0" />
+		<SkeletonPage narrow>
+			<PageHeaderSkeleton titleWidth="w-56" descriptionWidth="w-40" />
+			<SavedRowsSkeleton count={count} />
+		</SkeletonPage>
+	);
+}
+
+/** Rows of SavedItemsList: thumbnail, name and meta line, remove button. */
+function SavedRowsSkeleton({ count }: { count: number }) {
+	return (
+		<div className="divide-y divide-border/50 border-y border-border/50">
+			{Array.from({ length: count }).map((_, i) => (
+				<div key={i} className="flex items-center gap-4 py-3">
+					<Skeleton className="h-15 w-10 shrink-0 rounded-sm" />
+					<div className="min-w-0 flex-1">
+						<TextLine
+							line="h-[1.40625rem]"
+							className={cn("h-3.5", NAME_WIDTHS[i % NAME_WIDTHS.length])}
+						/>
+						<TextLine line="mt-0.5 h-4" className="h-3 w-40" />
 					</div>
-				))}
-			</div>
+					<Skeleton className="size-8 rounded-md shrink-0" />
+				</div>
+			))}
 		</div>
 	);
 }
@@ -519,59 +556,39 @@ function SavedItemsSectionSkeleton() {
 	return (
 		<div className="space-y-4">
 			<div className="flex items-baseline justify-between gap-4">
-				<Skeleton className="h-7 w-32" />
-				<Skeleton className="h-5 w-12" />
+				<TextLine line="h-7" className="h-5 w-32" />
+				<TextLine line="h-5" className="h-3.5 w-12" />
 			</div>
-			<div className="space-y-2">
-				{Array.from({ length: 3 }).map((_, i) => (
-					<div
-						key={i}
-						className="ml-4 flex items-center gap-4 py-3 border-b border-border/40 last:border-b-0"
-					>
-						<div className="flex-1 space-y-1.5">
-							<Skeleton className="h-4 w-3/4" />
-							<Skeleton className="h-3 w-1/3" />
-						</div>
-					</div>
-				))}
-			</div>
+			<SavedRowsSkeleton count={3} />
 		</div>
 	);
 }
 
 export function PlaylistHomeSkeleton() {
 	return (
-		<div className="flex h-full flex-col overflow-y-auto scrollbar-none p-6">
-			<div className="w-full max-w-4xl space-y-10">
-				<header className="space-y-1">
-					<Skeleton className="h-9 w-48" />
-					<Skeleton className="h-5 w-64" />
-				</header>
+		<SkeletonPage narrow className="space-y-10">
+			<PageHeaderSkeleton titleWidth="w-64" descriptionWidth="w-56" />
 
-				<div className="grid gap-x-8 sm:grid-cols-3">
-					{Array.from({ length: 3 }).map((_, i) => (
-						<div
-							key={i}
-							className="flex min-h-32 flex-col justify-between py-5"
-						>
-							<div className="flex items-center justify-between">
-								<Skeleton className="size-5" />
-								<Skeleton className="size-4" />
-							</div>
-							<div className="space-y-2">
-								<Skeleton className="h-7 w-24" />
-								<Skeleton className="h-5 w-32" />
-							</div>
+			<div className="grid gap-x-8 sm:grid-cols-4">
+				{Array.from({ length: 4 }).map((_, i) => (
+					<div key={i} className="flex min-h-32 flex-col justify-between py-5">
+						<div className="flex items-center justify-between">
+							<Skeleton className="size-5" />
+							<Skeleton className="size-4" />
 						</div>
-					))}
-				</div>
-
-				<div className="grid gap-10 md:grid-cols-2">
-					<SavedItemsSectionSkeleton />
-					<SavedItemsSectionSkeleton />
-				</div>
+						<div>
+							<TextLine line="h-7" className="h-5 w-24" />
+							<TextLine line="mt-1 h-5" className="h-3.5 w-36" />
+						</div>
+					</div>
+				))}
 			</div>
-		</div>
+
+			<div className="grid gap-10 md:grid-cols-2">
+				<SavedItemsSectionSkeleton />
+				<SavedItemsSectionSkeleton />
+			</div>
+		</SkeletonPage>
 	);
 }
 
