@@ -19,7 +19,7 @@ import {
 import { getItemStatus } from "@/server/user-items";
 import { getEpisodeProgress } from "@/server/watch-progress";
 import { getPlaylistById } from "@/server/xtream";
-import { PlayIcon, Tv } from "lucide-react";
+import { PlayIcon, RotateCcwIcon, Tv } from "lucide-react";
 import type { Metadata } from "next";
 import Image from "next/image";
 import { notFound } from "next/navigation";
@@ -193,6 +193,16 @@ async function ShowDetailContent({ params }: PageProps) {
 										/>
 									</span>
 								)}
+							</ResumeEpisodeButton>
+						)}
+						{resumeEntry && resumeTarget?.kind === "resume" && (
+							<ResumeEpisodeButton
+								episodeId={resumeEntry.id}
+								fromStart
+								className="-mt-3 flex w-full items-center justify-center gap-1.5 rounded-md py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
+							>
+								<RotateCcwIcon className="size-3.5" />
+								Start over
 							</ResumeEpisodeButton>
 						)}
 					</div>

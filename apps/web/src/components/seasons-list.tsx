@@ -15,14 +15,39 @@ import {
 import { VideoPlayer } from "@/components/video-player";
 import { useDesktopBridge } from "@/lib/desktop/bridge";
 import { withStreamCategory } from "@/lib/stream-category";
-import { PLAY_EPISODE_EVENT } from "@/lib/play-episode";
+import {
+	PLAY_EPISODE_EVENT,
+	type PlayEpisodeRequest,
+} from "@/lib/play-episode";
+import {
+	readAutoNext,
+	subscribeAutoNext,
+	writeAutoNext,
+} from "@/lib/player/preferences";
 import type { ProgressDetails } from "@/lib/player/types";
 import { seasonWatchActions } from "@/lib/season-watch";
-import type { EpisodeProgressEntry } from "@/lib/series-resume";
+import {
+	type EpisodeProgressEntry,
+	formatTimestamp,
+} from "@/lib/series-resume";
 import { setEpisodeWatched, setSeasonWatched } from "@/server/episode-watch";
-import { CheckIcon, ChevronDown, Clock, PlayIcon, XIcon } from "lucide-react";
+import {
+	CheckIcon,
+	ChevronDown,
+	ChevronLeftIcon,
+	ChevronRightIcon,
+	Clock,
+	PlayIcon,
+	RotateCcwIcon,
+	XIcon,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import {
+	useEffect,
+	useState,
+	useSyncExternalStore,
+	useTransition,
+} from "react";
 import { toast } from "sonner";
 
 type Episode = {
@@ -150,19 +175,25 @@ export function SeasonsList({
 	const [progress, setProgress] = useState(serverProgress);
 	const [progressSource, setProgressSource] = useState(serverProgress);
 	const [playingId, setPlayingId] = useState<string | null>(null);
+	// The episode asked to play from the beginning, saved position ignored.
+	const [fromStartId, setFromStartId] = useState<string | null>(null);
 	const [openSeasons, setOpenSeasons] = useState<Set<string>>(
 		() => new Set(seasons.map((season) => season.id)),
 	);
 	const [isDesktop, setIsDesktop] = useState(true);
-	const [autoNext, setAutoNext] = useState(() => {
-		if (typeof window === "undefined") {
-			return true;
-		}
-		return localStorage.getItem("iptv:auto-next") !== "false";
-	});
-	useEffect(() => {
-		localStorage.setItem("iptv:auto-next", String(autoNext));
-	}, [autoNext]);
+	// The server renders the default and the stored choice follows after
+	// hydration, so both renders agree.
+	const autoNext = useSyncExternalStore(
+		subscribeAutoNext,
+		readAutoNext,
+		() => true,
+	);
+	const setAutoNext = writeAutoNext;
+
+	function play(episodeId: string, fromStart = false) {
+		setPlayingId(episodeId);
+		setFromStartId(fromStart ? episodeId : null);
+	}
 
 	useEffect(() => {
 		const query = window.matchMedia(MOBILE_BREAKPOINT);
@@ -187,6 +218,7 @@ export function SeasonsList({
 			const id = /^#episode-(.+)$/.exec(window.location.hash)?.[1];
 			if (id) {
 				setPlayingId(decodeURIComponent(id));
+				setFromStartId(null);
 			}
 		};
 		openFromHash();
@@ -197,9 +229,10 @@ export function SeasonsList({
 	// The resume button, which is outside this list, asks for an episode to play.
 	useEffect(() => {
 		const onPlayEpisode = (event: Event) => {
-			const id = (event as CustomEvent<string>).detail;
-			if (typeof id === "string") {
-				setPlayingId(id);
+			const request = (event as CustomEvent<PlayEpisodeRequest>).detail;
+			if (typeof request?.episodeId === "string") {
+				setPlayingId(request.episodeId);
+				setFromStartId(request.fromStart ? request.episodeId : null);
 			}
 		};
 		window.addEventListener(PLAY_EPISODE_EVENT, onPlayEpisode);
@@ -253,6 +286,8 @@ export function SeasonsList({
 	);
 	const playing = playingIndex === -1 ? null : (playable[playingIndex] ?? null);
 	const nextEpisode = playing ? playable[playingIndex + 1] : undefined;
+	const previousEpisode =
+		playing && playingIndex > 0 ? playable[playingIndex - 1] : undefined;
 
 	// In the desktop app an episode plays in mpv, in the player's own modal,
 	// without the Sheet: a second dialog would keep the focus and the clicks
@@ -271,19 +306,30 @@ export function SeasonsList({
 		: undefined;
 	const playNext = () => {
 		if (autoNext && nextEpisode) {
-			setPlayingId(nextEpisode.id);
+			play(nextEpisode.id);
 		}
 	};
 
 	// (resume CTA moved to the series page, under the poster)
 
-	function startAt(episodeId: string) {
+	function savedPosition(episodeId: string) {
 		const entry = progress[episodeId];
 		return entry && !entry.completed ? entry.positionSec : 0;
 	}
 
+	function startAt(episodeId: string) {
+		return fromStartId === episodeId ? 0 : savedPosition(episodeId);
+	}
+
+	// Remounts the player when "Start over" is pressed, in the web player and
+	// in mpv alike.
+	const playerKey = playing
+		? `${playing.id}:${fromStartId === playing.id ? "start" : "resume"}`
+		: "";
+
 	function closePlayer() {
 		setPlayingId(null);
+		setFromStartId(null);
 		// "Continue watching" links here with #episode-<id>. Leaving the hash in
 		// the address would make the same link do nothing the next time.
 		if (window.location.hash.startsWith("#episode-")) {
@@ -335,6 +381,38 @@ export function SeasonsList({
 								{playing?.name}
 							</SheetTitle>
 							<div className="flex shrink-0 items-center gap-3">
+								<div className="flex items-center">
+									<Button
+										type="button"
+										variant="ghost"
+										size="icon-sm"
+										disabled={!previousEpisode}
+										aria-label={
+											previousEpisode
+												? `Previous episode: ${previousEpisode.label}`
+												: "No previous episode"
+										}
+										title={previousEpisode?.label ?? undefined}
+										onClick={() => previousEpisode && play(previousEpisode.id)}
+									>
+										<ChevronLeftIcon />
+									</Button>
+									<Button
+										type="button"
+										variant="ghost"
+										size="icon-sm"
+										disabled={!nextEpisode}
+										aria-label={
+											nextEpisode
+												? `Next episode: ${nextEpisode.label}`
+												: "No next episode"
+										}
+										title={nextEpisode?.label ?? undefined}
+										onClick={() => nextEpisode && play(nextEpisode.id)}
+									>
+										<ChevronRightIcon />
+									</Button>
+								</div>
 								<label
 									htmlFor="episode-auto-next"
 									className="flex cursor-pointer items-center gap-2 leading-none text-xs text-muted-foreground"
@@ -357,7 +435,7 @@ export function SeasonsList({
 					{playing && (
 						<div className="space-y-3 px-4">
 							<VideoPlayer
-								key={playing.id}
+								key={playerKey}
 								autoPlay
 								poster={posterSrc}
 								startAt={startAt(playing.id)}
@@ -378,18 +456,37 @@ export function SeasonsList({
 								]}
 								onEnded={playNext}
 							/>
-							{nextEpisode && (
-								<p className="text-xs text-muted-foreground">
-									Up next: {nextEpisode.label} (starts when this one ends)
-								</p>
-							)}
+							<div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+								{startAt(playing.id) > 0 ? (
+									<span className="inline-flex items-center gap-2 tabular-nums">
+										Resumed at {formatTimestamp(startAt(playing.id))}
+										<Button
+											type="button"
+											variant="ghost"
+											size="xs"
+											onClick={() => play(playing.id, true)}
+										>
+											<RotateCcwIcon />
+											Start over
+										</Button>
+									</span>
+								) : (
+									<span />
+								)}
+								{nextEpisode && (
+									<span>
+										Up next: {nextEpisode.label}
+										{autoNext ? " (starts when this one ends)" : ""}
+									</span>
+								)}
+							</div>
 						</div>
 					)}
 				</SheetContent>
 			</Sheet>
 			{bridge && playing && desktopUrl ? (
 				<DesktopPlayer
-					key={playing.id}
+					key={playerKey}
 					bridge={bridge}
 					url={desktopUrl}
 					title={playing.name}
@@ -401,6 +498,41 @@ export function SeasonsList({
 					onEnded={playNext}
 					topBarExtra={
 						<>
+							{startAt(playing.id) > 0 && (
+								<button
+									type="button"
+									className="text-xs text-white/80 hover:text-white"
+									onClick={() => play(playing.id, true)}
+								>
+									Start over
+								</button>
+							)}
+							<button
+								type="button"
+								disabled={!previousEpisode}
+								aria-label={
+									previousEpisode
+										? `Previous episode: ${previousEpisode.label}`
+										: "No previous episode"
+								}
+								className="text-white/80 hover:text-white disabled:opacity-40"
+								onClick={() => previousEpisode && play(previousEpisode.id)}
+							>
+								<ChevronLeftIcon className="size-4" />
+							</button>
+							<button
+								type="button"
+								disabled={!nextEpisode}
+								aria-label={
+									nextEpisode
+										? `Next episode: ${nextEpisode.label}`
+										: "No next episode"
+								}
+								className="text-white/80 hover:text-white disabled:opacity-40"
+								onClick={() => nextEpisode && play(nextEpisode.id)}
+							>
+								<ChevronRightIcon className="size-4" />
+							</button>
 							{nextEpisode && (
 								<span className="hidden text-xs text-white/60 sm:inline">
 									Up next: {nextEpisode.label}
@@ -504,7 +636,9 @@ export function SeasonsList({
 											<li
 												key={episode.id}
 												id={`episode-${episode.id}`}
-												className="group flex items-start gap-3.5 border-b border-border/40 p-4 transition-colors duration-200 ease-out sm:border-r sm:even:border-r-0 hover:bg-muted/40"
+												className={`group relative flex items-start gap-3.5 border-b border-border/40 p-4 transition-colors duration-200 ease-out sm:border-r sm:even:border-r-0 hover:bg-muted/40 ${
+													episode.url ? "cursor-pointer" : ""
+												}`}
 											>
 												<span className="mt-0.5 text-xs font-medium tracking-wider text-muted-foreground/70 tabular-nums">
 													{String(episode.number).padStart(2, "0")}
@@ -512,7 +646,26 @@ export function SeasonsList({
 
 												<div className="min-w-0 flex-1">
 													<h3 className="text-sm leading-snug font-medium">
-														{episode.title}
+														{episode.url ? (
+															// Its ::after covers the whole row, so the row plays
+															// the episode; the other buttons sit above it.
+															<button
+																type="button"
+																className="text-left outline-none after:absolute after:inset-0 after:content-[''] focus-visible:after:ring-2 focus-visible:after:ring-ring focus-visible:after:ring-inset"
+																aria-label={`${
+																	progress[episode.id]?.completed
+																		? "Watch again"
+																		: savedPosition(episode.id) > 0
+																			? "Resume"
+																			: "Play"
+																} episode ${episode.number}: ${episode.title}`}
+																onClick={() => play(episode.id)}
+															>
+																{episode.title}
+															</button>
+														) : (
+															episode.title
+														)}
 													</h3>
 													{episode.plot && (
 														<p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
@@ -555,7 +708,7 @@ export function SeasonsList({
 												</div>
 
 												{episode.url && (
-													<div className="flex shrink-0 items-center gap-0.5">
+													<div className="relative z-10 flex shrink-0 items-center gap-0.5">
 														<EpisodeWatchButton
 															completed={
 																progress[episode.id]?.completed ?? false
@@ -575,25 +728,13 @@ export function SeasonsList({
 																);
 															}}
 														/>
-														<Button
-															variant="ghost"
-															size="icon-sm"
-															aria-label={
-																progress[episode.id]?.completed
-																	? "Watch episode again"
-																	: "Play episode"
-															}
-															title={
-																progress[episode.id]?.completed
-																	? "Watch again"
-																	: startAt(episode.id) > 0
-																		? "Resume"
-																		: "Play"
-															}
-															onClick={() => setPlayingId(episode.id)}
+														{/* The row is the play button: this icon only shows it. */}
+														<span
+															aria-hidden
+															className="pointer-events-none inline-flex size-8 items-center justify-center text-muted-foreground transition-colors group-hover:text-foreground"
 														>
 															<PlayIcon className="size-4" />
-														</Button>
+														</span>
 														<div className="flex items-center gap-0.5 opacity-0 transition-opacity duration-200 ease-out group-hover:opacity-100 focus-within:opacity-100">
 															<CopyStreamButton url={episode.url} />
 															<ExternalStreamLink
