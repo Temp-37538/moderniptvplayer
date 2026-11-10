@@ -9,7 +9,12 @@ const PLAYLIST_SECTIONS = [
 	"watchlater",
 	"favorites",
 ] as const;
-const NON_PLAYLIST_ROUTES = ["addplaylist", "account", "settings"] as const;
+const NON_PLAYLIST_ROUTES = [
+	"addplaylist",
+	"account",
+	"settings",
+	"search",
+] as const;
 const SEARCH_SUB_ROUTES = ["search"] as const;
 
 type ParsedPlaylistPath = {
@@ -40,6 +45,11 @@ export function usePlaylistIdFromPath() {
 
 function parsePlaylistFromPath(pathname: string): ParsedPlaylistPath {
 	const parts = pathname.split("/").filter(Boolean);
+
+	// The global search lives at /dashboard/search/<playlistId>.
+	if (parts[1] === "search") {
+		return { section: null, playlistId: parts[2] ?? null };
+	}
 
 	if (parts.length >= 3 && isPlaylistSection(parts[1])) {
 		if (parts[2] && isSearchSubRoute(parts[2])) {

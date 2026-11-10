@@ -1,4 +1,9 @@
-import { createPageMetadata, getMovieMetadataContext } from "@/app/metadata";
+import {
+	createPageMetadata,
+	getCategoryMetadataContext,
+	getMovieMetadataContext,
+} from "@/app/metadata";
+import { BreadcrumbLabel } from "@/components/breadcrumb-labels";
 import { CopyStreamButton } from "@/components/copy-stream-button";
 import { ExternalStreamLink } from "@/components/external-stream-link";
 import { ItemActionButtons } from "@/components/item-action-buttons";
@@ -79,6 +84,11 @@ async function MovieDetailContent({ params }: PageProps) {
 	}
 
 	await assertItemInCategory(id, "movie", categoryId, movieId, movie);
+	const categoryContext = await getCategoryMetadataContext(
+		"movies",
+		id,
+		categoryId,
+	);
 
 	const streamUrl =
 		playlist.source === "M3U"
@@ -102,6 +112,14 @@ async function MovieDetailContent({ params }: PageProps) {
 	const trailerUrl = toYoutubeEmbedUrl(movie.youtubeId);
 	return (
 		<div className="min-h-full overflow-y-auto scrollbar-thin scrollbar-thumb-rounded-lg scrollbar-thumb-border/50 scrollbar-track-border/20">
+			<BreadcrumbLabel
+				href={`/dashboard/movies/${id}/${categoryId}`}
+				label={categoryContext?.categoryName}
+			/>
+			<BreadcrumbLabel
+				href={`/dashboard/movies/${id}/${categoryId}/${movieId}`}
+				label={movie.name}
+			/>
 			<div className="w-full px-6 pt-6 pb-10 md:px-10 md:pt-8 md:pb-12">
 				<div className="grid gap-10 md:grid-cols-[19rem_minmax(0,1fr)] md:gap-14">
 					<div className="md:sticky md:top-8 md:self-start space-y-5">

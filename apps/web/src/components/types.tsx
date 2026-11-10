@@ -3,6 +3,7 @@ import {
 	FilmIcon,
 	HeartIcon,
 	HistoryIcon,
+	SearchIcon,
 	TvIcon,
 } from "lucide-react";
 import type * as React from "react";
@@ -59,6 +60,8 @@ export interface Project {
 	name: string;
 	url: string;
 	icon: React.ReactNode;
+	/** Letter of the Ctrl/Cmd shortcut shown next to the entry. */
+	shortcut?: string;
 }
 
 export const sidebarData = {
@@ -97,6 +100,12 @@ export const sidebarData = {
 	] as NavItem[],
 
 	projects: [
+		{
+			name: "Search",
+			url: "/dashboard/search",
+			icon: <SearchIcon />,
+			shortcut: "K",
+		},
 		{
 			name: "Watch Later",
 			url: "/dashboard/watchlater",

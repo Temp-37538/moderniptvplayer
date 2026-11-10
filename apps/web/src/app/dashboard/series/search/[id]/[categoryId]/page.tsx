@@ -1,4 +1,5 @@
 import { createPageMetadata, getCategoryMetadataContext } from "@/app/metadata";
+import { BreadcrumbLabel } from "@/components/breadcrumb-labels";
 import { CategoryItemSearch } from "@/components/category-item-search";
 import { assertCategoryAvailable } from "@/server/category-access";
 import { getPlaylistById } from "@/server/xtream";
@@ -42,12 +43,19 @@ async function SeriesCategorySearchContent({ params }: PageProps) {
 	}
 
 	await assertCategoryAvailable(id, "series", categoryId);
+	const context = await getCategoryMetadataContext("series", id, categoryId);
 
 	return (
-		<CategoryItemSearch
-			section="series"
-			playlistId={id}
-			categoryId={categoryId}
-		/>
+		<>
+			<BreadcrumbLabel
+				href={`/dashboard/series/search/${id}/${categoryId}`}
+				label={context?.categoryName}
+			/>
+			<CategoryItemSearch
+				section="series"
+				playlistId={id}
+				categoryId={categoryId}
+			/>
+		</>
 	);
 }

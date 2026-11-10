@@ -1,11 +1,16 @@
 "use client";
-import { authClient } from "@/lib/auth-client";
+import { usePlaylistIdFromPath } from "@/hooks/use-playlist-id";
+import { buildBreadcrumbs } from "@/lib/breadcrumbs";
 import { House } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import React from "react";
+import React, { useEffect } from "react";
 import { AppSidebar } from "./app-sidebar";
+import {
+	BreadcrumbLabelsProvider,
+	useBreadcrumbLabels,
+} from "./breadcrumb-labels";
 import { PlaylistProvider, usePlaylists } from "./playlist-context";
 import type { Playlist } from "./types";
 import {
@@ -28,79 +33,88 @@ function Sidebar({
 }) {
 	return (
 		<PlaylistProvider playlists={playlists}>
-			<SidebarContent>{children}</SidebarContent>
+			<BreadcrumbLabelsProvider>
+				<SidebarContent>{children}</SidebarContent>
+			</BreadcrumbLabelsProvider>
 		</PlaylistProvider>
 	);
+}
+
+/** Ctrl+K (Cmd+K on macOS) opens the global search of the current playlist. */
+function useSearchShortcut() {
+	const router = useRouter();
+	const { playlistId } = usePlaylistIdFromPath();
+
+	useEffect(() => {
+		function onKeyDown(event: KeyboardEvent) {
+			if (
+				event.key.toLowerCase() !== "k" ||
+				!(event.metaKey || event.ctrlKey) ||
+				event.altKey ||
+				event.shiftKey
+			) {
+				return;
+			}
+			event.preventDefault();
+			router.push(
+				(playlistId
+					? `/dashboard/search/${playlistId}`
+					: "/dashboard/search") as Route,
+			);
+		}
+
+		window.addEventListener("keydown", onKeyDown);
+		return () => window.removeEventListener("keydown", onKeyDown);
+	}, [playlistId, router]);
 }
 
 function SidebarContent({ children }: { children: React.ReactNode }) {
 	const playlists = usePlaylists();
 	const pathname = usePathname();
-	const router = useRouter();
-	const { data: session } = authClient.useSession();
+	const labels = useBreadcrumbLabels();
+	const crumbs = buildBreadcrumbs(pathname, playlists, labels);
 
-	const handleLogout = async () => {
-		await authClient.signOut();
-		router.push("/");
-	};
+	useSearchShortcut();
 
 	return (
 		<>
 			<AppSidebar />
 			<SidebarInset>
 				<header className="flex h-16 z-10 shrink-0 justify-between items-center gap-2 border-b px-4">
-					<div className="flex items-center gap-2">
+					<div className="flex min-w-0 items-center gap-2">
 						<SidebarTrigger className="-ml-1 size-8 rounded-lg bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary hover:brightness-90 hover:text-sidebar-primary-foreground dark:hover:bg-sidebar-primary dark:hover:text-sidebar-primary-foreground md:hidden" />
 						<Breadcrumb>
 							<BreadcrumbList>
-								{pathname
-									.split("/")
-									.filter(Boolean)
-									.map((segment, index, array) => {
-										const href = `/${array.slice(0, index + 1).join("/")}`;
-										const isLast = index === array.length - 1;
-										let label = segment;
+								{crumbs.map((crumb, index) => {
+									const isLast = index === crumbs.length - 1;
+									const isCurrent = isLast && crumb.href === pathname;
 
-										if (segment === "dashboard") label = "Home";
-										if (segment === "channels") label = "Channels";
-										if (segment === "movies") label = "Movies";
-										if (segment === "series") label = "Series";
-
-										const playlist = playlists?.find((p) => p.id === segment);
-
-										if (playlist) {
-											label = playlist.playlistName;
-										} else if (index > 0) {
-											const prevSegment = array[index - 1];
-											const prevPlaylist = playlists?.find(
-												(p) => p.id === prevSegment,
-											);
-											if (prevPlaylist) {
-												label = `Category ${segment}`;
-											}
-										}
-
-										label = label.charAt(0).toUpperCase() + label.slice(1);
-
-										return (
-											<React.Fragment key={href}>
-												<BreadcrumbItem className="hidden md:block">
-													{!isLast ? (
-														<BreadcrumbLink
-															render={<Link href={href as Route} />}
-														>
-															{label}
-														</BreadcrumbLink>
-													) : (
-														<BreadcrumbPage>{label}</BreadcrumbPage>
-													)}
-												</BreadcrumbItem>
-												{!isLast && (
-													<BreadcrumbSeparator className="hidden md:block" />
+									return (
+										<React.Fragment key={crumb.href}>
+											<BreadcrumbItem className="hidden md:inline-flex">
+												{isCurrent ? (
+													<BreadcrumbPage className="max-w-48 truncate">
+														{crumb.label}
+													</BreadcrumbPage>
+												) : crumb.link ? (
+													<BreadcrumbLink
+														className="max-w-48 truncate"
+														render={<Link href={crumb.href as Route} />}
+													>
+														{crumb.label}
+													</BreadcrumbLink>
+												) : (
+													<span className="max-w-48 truncate">
+														{crumb.label}
+													</span>
 												)}
-											</React.Fragment>
-										);
-									})}
+											</BreadcrumbItem>
+											{!isLast && (
+												<BreadcrumbSeparator className="hidden md:block" />
+											)}
+										</React.Fragment>
+									);
+								})}
 							</BreadcrumbList>
 						</Breadcrumb>
 					</div>
@@ -114,15 +128,6 @@ function SidebarContent({ children }: { children: React.ReactNode }) {
 						>
 							<House className="size-4" />
 						</Button>
-						{session && (
-							<Button
-								onClick={handleLogout}
-								size="sm"
-								className="hover:bg-sidebar-accent/50 bg-accent text-accent-foreground w-fit"
-							>
-								Logout
-							</Button>
-						)}
 					</div>
 				</header>
 				<div className="flex flex-1 flex-col gap-4 p-4 overflow-hidden">

@@ -120,8 +120,7 @@ function SkeletonSidebar({ children }: { children: React.ReactNode }) {
 						<Skeleton className="h-4 w-24 rounded" />
 					</div>
 					<div className="flex items-center gap-2">
-						<Skeleton className="h-8 w-12 rounded-md" />
-						<Skeleton className="h-8 w-17 rounded-md" />
+						<Skeleton className="size-8 rounded-md" />
 					</div>
 				</header>
 				<div className="flex flex-1 flex-col gap-4 p-4 overflow-hidden">

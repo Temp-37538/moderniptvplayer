@@ -1,4 +1,9 @@
-import { createPageMetadata, getShowMetadataContext } from "@/app/metadata";
+import {
+	createPageMetadata,
+	getCategoryMetadataContext,
+	getShowMetadataContext,
+} from "@/app/metadata";
+import { BreadcrumbLabel } from "@/components/breadcrumb-labels";
 import { ItemActionButtons } from "@/components/item-action-buttons";
 import { ResumeEpisodeButton } from "@/components/resume-episode-button";
 import { SeasonsList } from "@/components/seasons-list";
@@ -75,6 +80,11 @@ async function ShowDetailContent({ params }: PageProps) {
 	}
 
 	await assertItemInCategory(id, "series", categoryId, showId, show);
+	const categoryContext = await getCategoryMetadataContext(
+		"series",
+		id,
+		categoryId,
+	);
 
 	const itemStatus = await getItemStatus(id, showId, "series");
 	const safePosterSrc = toSafeImageSrc(show.poster);
@@ -108,6 +118,14 @@ async function ShowDetailContent({ params }: PageProps) {
 
 	return (
 		<div className="min-h-full overflow-y-auto scrollbar-thin scrollbar-thumb-rounded-lg scrollbar-thumb-border/50 scrollbar-track-border/20">
+			<BreadcrumbLabel
+				href={`/dashboard/series/${id}/${categoryId}`}
+				label={categoryContext?.categoryName}
+			/>
+			<BreadcrumbLabel
+				href={`/dashboard/series/${id}/${categoryId}/${showId}`}
+				label={show.name}
+			/>
 			<div className="w-full px-6 pt-6 pb-10 md:px-10 md:pt-8 md:pb-12">
 				<div className="grid gap-10 md:grid-cols-[19rem_minmax(0,1fr)] md:gap-14">
 					<div className="md:sticky md:top-8 md:self-start space-y-5">
