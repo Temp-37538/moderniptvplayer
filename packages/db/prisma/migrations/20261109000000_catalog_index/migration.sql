@@ -10,6 +10,7 @@ CREATE TABLE "catalog_sync" (
     "lastError" TEXT,
     "lastAttemptAt" TIMESTAMP(3),
     "lockedUntil" TIMESTAMP(3),
+    "lockToken" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 

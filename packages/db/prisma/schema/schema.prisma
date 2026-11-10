@@ -72,6 +72,9 @@ model UserSafetyPreference {
 
 // A playlist-scoped, persistent snapshot of channels, movies, and series.
 // Stream URLs and provider credentials are deliberately not stored here.
+// `lockToken` is a fencing token: only the sync that holds it may activate
+// its generation or change the status, so a sync started before a playlist
+// edit cannot overwrite the state of a newer one.
 model CatalogSync {
   playlistId    String   @id
   playlist      Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
@@ -82,6 +85,7 @@ model CatalogSync {
   lastError     String?
   lastAttemptAt DateTime?
   lockedUntil   DateTime?
+  lockToken     String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
