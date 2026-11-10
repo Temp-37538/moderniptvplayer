@@ -9,6 +9,7 @@ import {
 	SEARCH_QUERY_MAX,
 	SYNC_LOCK_MS,
 	SYNC_RETRY_COOLDOWN_MS,
+	SYNC_TIMEOUT_MS,
 	decideSync,
 	normalizeSearchText,
 	parseSearchTokens,
@@ -350,4 +351,8 @@ test("decides when to build, serve, refresh, or report unavailable", () => {
 		),
 		"serve-and-refresh",
 	);
+});
+
+test("the sync lock outlives the sync timeout", () => {
+	assert.ok(SYNC_LOCK_MS > SYNC_TIMEOUT_MS);
 });

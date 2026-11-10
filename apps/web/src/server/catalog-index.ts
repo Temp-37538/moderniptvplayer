@@ -6,6 +6,7 @@ import {
 	CATALOG_TTL_MS,
 	SEARCH_CANDIDATES_PER_KIND,
 	SYNC_LOCK_MS,
+	SYNC_TIMEOUT_MS,
 	decideSync,
 	pickOpenCategory,
 	rankMatch,
@@ -41,8 +42,6 @@ class CatalogSyncTimeoutError extends Error {}
  * another provider, while this sync ran.
  */
 class CatalogLockLostError extends Error {}
-
-const SYNC_TIMEOUT_MS = 50_000;
 
 function withTimeout<T>(work: Promise<T>, timeoutMs: number): Promise<T> {
 	return new Promise((resolve, reject) => {

@@ -6,12 +6,16 @@ import {
 export const CATALOG_KINDS = ["channel", "movie", "series"] as const;
 export type CatalogKind = (typeof CATALOG_KINDS)[number];
 
-export const CATALOG_MAX_ROWS = 200_000;
+export const CATALOG_MAX_ROWS = 300_000;
 export const CATALOG_NAME_MAX = 300;
 export const CATALOG_IMAGE_MAX = 2048;
 export const CATALOG_INSERT_BATCH = 2_000;
 export const CATALOG_TTL_MS = 6 * 60 * 60 * 1000;
-export const SYNC_LOCK_MS = 120_000;
+// A sync gives up after SYNC_TIMEOUT_MS. The lock must outlive it, otherwise
+// a second sync could start while the first one is still writing. The search
+// box polls for the same window (SEARCH_POLL_WINDOW_MS in global-search.tsx).
+export const SYNC_TIMEOUT_MS = 300_000;
+export const SYNC_LOCK_MS = 360_000;
 export const SYNC_RETRY_COOLDOWN_MS = 5 * 60 * 1000;
 export const SEARCH_QUERY_MIN = 2;
 export const SEARCH_QUERY_MAX = 64;
