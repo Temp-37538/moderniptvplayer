@@ -213,21 +213,35 @@ function CategorySearchBase({
 			<div
 				className={`-m-1 flex-1 overflow-y-auto ${lockPending ? "pointer-events-none opacity-60" : ""}`}
 			>
-				<div className="grid grid-cols-1 gap-2 p-1 min-[420px]:grid-cols-2 sm:gap-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
+				{/* A typographic index: names in columns, item counts on the
+				    right, pin and hide revealed on hover or focus (always on
+				    touch screens). */}
+				<ul className="columns-1 gap-x-10 p-1 min-[520px]:columns-2 lg:columns-3 2xl:columns-4">
 					{filteredCategories.map((category) => (
-						<div
+						<li
 							key={category.id}
-							className="group relative flex min-h-16 items-center rounded-xl border border-border/60 bg-card transition-colors hover:border-border hover:bg-muted/50"
+							className="group relative flex break-inside-avoid items-center gap-2 border-b border-border/40"
 						>
 							<Link
 								href={buildCategoryHref(category.id)}
-								className="flex min-h-16 flex-1 items-center rounded-xl py-3 pr-18 pl-4 outline-none focus-visible:ring-3 focus-visible:ring-ring/60"
+								className="flex min-w-0 flex-1 items-baseline gap-3 rounded-sm py-2.5 outline-none focus-visible:ring-2 focus-visible:ring-ring"
 							>
-								<span className="line-clamp-2 text-sm font-medium leading-snug">
+								{category.pinned ? (
+									<Pin
+										aria-hidden
+										className="size-3 shrink-0 self-center fill-current text-muted-foreground"
+									/>
+								) : null}
+								<span className="min-w-0 flex-1 truncate text-[0.9375rem] decoration-muted-foreground/50 underline-offset-4 group-hover:underline">
 									{category.name}
 								</span>
+								{category.count !== undefined ? (
+									<span className="shrink-0 text-xs tabular-nums text-muted-foreground transition-opacity md:group-focus-within:opacity-0 md:group-hover:opacity-0">
+										{category.count.toLocaleString("en")}
+									</span>
+								) : null}
 							</Link>
-							<div className="absolute top-1/2 right-2 z-10 flex -translate-y-1/2 gap-0.5">
+							<div className="flex shrink-0 gap-0.5 bg-background transition-opacity md:absolute md:top-1/2 md:right-0 md:-translate-y-1/2 md:opacity-0 md:group-focus-within:opacity-100 md:group-hover:opacity-100">
 								<button
 									type="button"
 									aria-pressed={category.pinned}
@@ -237,26 +251,26 @@ function CategorySearchBase({
 											: `Pin ${category.name}`
 									}
 									disabled={pendingId === category.id}
-									className={`inline-flex size-7 cursor-pointer items-center justify-center rounded-md text-muted-foreground outline-none transition-opacity hover:bg-background hover:text-foreground focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 md:group-hover:opacity-100 md:group-focus-within:opacity-100 ${category.pinned ? "" : "md:opacity-0"}`}
+									className="inline-flex size-7 cursor-pointer items-center justify-center rounded-md text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
 									onClick={() => onTogglePin(category)}
 								>
 									<Pin
-										className={`size-3.5 ${category.pinned ? "fill-current text-primary" : ""}`}
+										className={`size-3.5 ${category.pinned ? "fill-current" : ""}`}
 									/>
 								</button>
 								<button
 									type="button"
 									aria-label={`Hide ${category.name}`}
 									disabled={pendingId === category.id}
-									className="inline-flex size-7 cursor-pointer items-center justify-center rounded-md text-muted-foreground outline-none transition-opacity hover:bg-background hover:text-foreground focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100"
+									className="inline-flex size-7 cursor-pointer items-center justify-center rounded-md text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
 									onClick={() => onHide(category)}
 								>
 									<EyeOff className="size-3.5" />
 								</button>
 							</div>
-						</div>
+						</li>
 					))}
-				</div>
+				</ul>
 				{filteredCategories.length === 0 && (
 					<div className="flex flex-col items-center h-full justify-center py-20 text-center text-muted-foreground">
 						<FolderOpen className="size-12 mb-4 opacity-30" />
@@ -277,7 +291,7 @@ function CategorySearchBase({
 					</div>
 				)}
 				{hidden.length > 0 && (
-					<div className="mt-4 rounded-xl border border-border/50 bg-card px-4 py-3">
+					<div className="mx-1 mt-8 border-t border-border/40 pt-4">
 						<button
 							type="button"
 							className="flex w-full cursor-pointer items-center justify-between rounded-md text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring"

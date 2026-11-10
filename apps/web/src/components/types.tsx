@@ -12,6 +12,8 @@ export type ListedCategory = {
 	id: string;
 	name: string;
 	pinned: boolean;
+	/** Items in the category, when the search index already knows it. */
+	count?: number;
 };
 
 export type CategorySearchProps = {
