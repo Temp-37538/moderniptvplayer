@@ -26,3 +26,41 @@ export function pageCount(total: number, limit: number) {
 	}
 	return Math.ceil(total / limit);
 }
+
+/**
+ * The `?page=` search param as a page number: 1 when absent, null when it is
+ * not a plain whole number of at least 1 (`0`, `-1`, `1.5`, `abc`, empty).
+ * A repeated param reads its first value.
+ */
+export function parsePageParam(
+	raw: string | string[] | undefined,
+): number | null {
+	if (raw === undefined) {
+		return 1;
+	}
+	const value = (Array.isArray(raw) ? raw[0] : raw)?.trim() ?? "";
+	if (!/^\d+$/.test(value)) {
+		return null;
+	}
+	const page = Number(value);
+	return Number.isSafeInteger(page) && page >= 1 ? page : null;
+}
+
+/**
+ * The page a request should be redirected to, or null when it can stay:
+ * malformed or repeated params go to page 1, pages past the end go to the
+ * last page.
+ */
+export function pageRedirectTarget(
+	raw: string | string[] | undefined,
+	totalPages: number,
+): number | null {
+	const requested = parsePageParam(raw);
+	if (requested === null) {
+		return 1;
+	}
+	if (requested > totalPages) {
+		return Math.max(1, totalPages);
+	}
+	return Array.isArray(raw) ? requested : null;
+}

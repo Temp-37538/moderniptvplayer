@@ -5,11 +5,15 @@ import {
 	assertCategoryAvailable,
 	filterBrowsableItems,
 } from "@/server/category-access";
-import { pageCount } from "@/server/pagination";
+import {
+	pageCount,
+	pageRedirectTarget,
+	parsePageParam,
+} from "@/server/pagination";
 import { getPlaylistById } from "@/server/xtream";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { BreadcrumbLabel } from "@/components/breadcrumb-labels";
 import { EmptyState } from "@/components/empty-state";
@@ -30,7 +34,7 @@ export async function generateMetadata({
 }: PageProps): Promise<Metadata> {
 	const { id, categoryId } = await params;
 	const { page: pageParam } = await searchParams;
-	const currentPage = Number(pageParam) || 1;
+	const currentPage = parsePageParam(pageParam) ?? 1;
 	await assertCategoryAvailable(id, "channel", categoryId);
 	const context = await getCategoryMetadataContext("channels", id, categoryId);
 	const categoryTitle = context?.categoryName ?? "Channels";
@@ -61,7 +65,7 @@ export default function ChannelsByCategoryPage({
 async function ChannelsByCategoryContent({ params, searchParams }: PageProps) {
 	const { id, categoryId } = await params;
 	const { page: pageParam } = await searchParams;
-	const currentPage = Number(pageParam) || 1;
+	const currentPage = parsePageParam(pageParam) ?? 1;
 
 	const playlist = await getPlaylistById(id);
 
@@ -77,6 +81,12 @@ async function ChannelsByCategoryContent({ params, searchParams }: PageProps) {
 	]);
 	// Pages count the raw rows, before the visibility filter.
 	const totalPages = pageCount(total, ITEMS_PER_PAGE);
+	const redirectPage = pageRedirectTarget(pageParam, totalPages);
+	if (redirectPage !== null) {
+		redirect(
+			`/dashboard/channels/${id}/${categoryId}${redirectPage > 1 ? `?page=${redirectPage}` : ""}`,
+		);
+	}
 	const hasNextPage = currentPage < totalPages;
 	const visibleChannels = await filterBrowsableItems(
 		id,

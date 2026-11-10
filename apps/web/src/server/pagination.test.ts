@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { pageCount, pageWindow, slicePage } from "./pagination.ts";
+import {
+	pageCount,
+	pageRedirectTarget,
+	pageWindow,
+	parsePageParam,
+	slicePage,
+} from "./pagination.ts";
 
 test("a page window starts after the previous pages", () => {
 	assert.deepEqual(pageWindow(1, 24), { start: 0, end: 24 });
@@ -31,4 +37,33 @@ test("an exact multiple of the page size has no extra empty page", () => {
 test("an empty category still reads as one page", () => {
 	assert.equal(pageCount(0, 24), 1);
 	assert.equal(pageCount(Number.NaN, 24), 1);
+});
+
+test("a page param reads plain whole numbers and defaults to 1", () => {
+	assert.equal(parsePageParam(undefined), 1);
+	assert.equal(parsePageParam("1"), 1);
+	assert.equal(parsePageParam("12"), 12);
+	assert.equal(parsePageParam(["3", "4"]), 3);
+});
+
+test("a page param rejects anything else", () => {
+	for (const raw of ["", " ", "0", "-1", "1.5", "abc", "2abc", "1e3", []]) {
+		assert.equal(parsePageParam(raw), null, JSON.stringify(raw));
+	}
+});
+
+test("valid pages in range need no redirect", () => {
+	assert.equal(pageRedirectTarget(undefined, 1), null);
+	assert.equal(pageRedirectTarget("2", 2), null);
+});
+
+test("malformed pages go to page 1 and late pages to the last one", () => {
+	assert.equal(pageRedirectTarget("abc", 5), 1);
+	assert.equal(pageRedirectTarget("0", 5), 1);
+	assert.equal(pageRedirectTarget("999", 5), 5);
+	assert.equal(pageRedirectTarget("2", 1), 1);
+});
+
+test("a repeated page param collapses to its first value", () => {
+	assert.equal(pageRedirectTarget(["2", "3"], 5), 2);
 });
