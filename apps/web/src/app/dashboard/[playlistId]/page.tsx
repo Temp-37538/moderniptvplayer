@@ -3,7 +3,7 @@ import { SavedItemsList } from "@/components/saved-items-list";
 import { getFavoriteItems, getWatchLaterItems } from "@/server/user-items";
 import { playlistAccountLine } from "@/lib/playlist-label";
 import { getPlaylistById } from "@/server/xtream";
-import { ChevronRight, Clapperboard, Film, Tv } from "lucide-react";
+import { ChevronRight, Clapperboard, Film, Search, Tv } from "lucide-react";
 import type { Metadata, Route } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -74,7 +74,7 @@ async function PlaylistHomeContent({
 
 				<nav
 					aria-label="Playlist library"
-					className="grid gap-x-8 sm:grid-cols-3"
+					className="grid gap-x-8 sm:grid-cols-4"
 				>
 					<Link
 						href={`/dashboard/channels/${playlistId}` as Route}
@@ -121,6 +121,23 @@ async function PlaylistHomeContent({
 								Series
 							</h2>
 							<p className="mt-1 text-sm text-muted-foreground">Episodic TV</p>
+						</div>
+					</Link>
+					<Link
+						href={`/dashboard/search/${playlistId}` as Route}
+						className="group flex min-h-32 flex-col justify-between py-5 outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+					>
+						<div className="flex items-center justify-between">
+							<Search className="size-5 text-muted-foreground transition-colors group-hover:text-primary" />
+							<ChevronRight className="size-4 text-muted-foreground/60 transition-transform group-hover:translate-x-1 group-hover:text-foreground" />
+						</div>
+						<div>
+							<h2 className="text-xl font-semibold tracking-tight transition-colors group-hover:text-primary">
+								Search
+							</h2>
+							<p className="mt-1 text-sm text-muted-foreground">
+								Find anything in this playlist
+							</p>
 						</div>
 					</Link>
 				</nav>
