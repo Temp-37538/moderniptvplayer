@@ -161,8 +161,8 @@ async function ChannelDetailContent({ params }: PageProps) {
 						<Radio className="size-6 text-muted-foreground/60" />
 					)}
 				</div>
-				<div className="min-w-0 space-y-1">
-					<h1 className="truncate text-xl font-semibold tracking-tight">
+				<div className="min-w-0 space-y-2">
+					<h1 className="font-serif text-4xl leading-[1.05] tracking-tight text-balance break-words md:text-5xl">
 						{channel.name}
 					</h1>
 					<p className="truncate text-sm text-muted-foreground">

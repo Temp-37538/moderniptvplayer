@@ -211,8 +211,10 @@ export function CategoryItemSearch({
 		<div className="h-full flex flex-col gap-4">
 			<div className="flex flex-col gap-3">
 				<div className="flex items-center gap-3">
-					<div>
-						<h1 className="text-2xl font-bold tracking-tight">{title}</h1>
+					<div className="space-y-2">
+						<h1 className="font-serif text-4xl leading-[1.05] tracking-tight text-balance break-words md:text-5xl">
+							{title}
+						</h1>
 						<p className="text-sm text-muted-foreground">
 							Search through this category only
 						</p>
