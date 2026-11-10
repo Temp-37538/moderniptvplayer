@@ -195,14 +195,18 @@ export function ChannelDetailSkeleton() {
 	return (
 		<div className="w-full max-w-[100rem] space-y-5">
 			<div className="flex items-center gap-4">
-				<Skeleton className="size-14 shrink-0 rounded-lg" />
-				<div className="space-y-2">
-					<Skeleton className="h-6 w-48" />
-					<Skeleton className="h-4 w-32" />
+				<Skeleton className="size-14 shrink-0 rounded-md" />
+				<div className="min-w-0 space-y-2">
+					<div className="flex h-[2.3625rem] items-center md:h-[3.15rem]">
+						<Skeleton className="h-8 w-56 md:h-10" />
+					</div>
+					<div className="flex h-5 items-center">
+						<Skeleton className="h-3.5 w-36" />
+					</div>
 				</div>
 			</div>
 			<div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_20rem]">
-				<div className="space-y-5">
+				<div className="min-w-0 space-y-5">
 					<Skeleton className="aspect-video w-full rounded-lg" />
 					<div className="flex flex-wrap items-center justify-end gap-2">
 						<Skeleton className="h-8 w-8 rounded-md" />
@@ -220,12 +224,37 @@ export function ChannelDetailSkeleton() {
 /** The previous/next buttons and the channel list beside the player. */
 export function ChannelSwitcherSkeleton() {
 	return (
-		<div className="space-y-3">
-			<div className="flex justify-between">
-				<Skeleton className="h-8 w-24 rounded-md" />
-				<Skeleton className="h-8 w-20 rounded-md" />
+		<div>
+			<div className="flex items-center justify-between gap-2 border-b border-border/50 pb-2">
+				<Skeleton className="h-8 w-22 rounded-md" />
+				<Skeleton className="h-3 w-12" />
+				<Skeleton className="h-8 w-16 rounded-md" />
 			</div>
-			<Skeleton className="h-96 w-full rounded-lg" />
+			<div className="max-h-96 overflow-hidden py-1 xl:max-h-[min(70svh,40rem)]">
+				{[
+					"w-20",
+					"w-28",
+					"w-16",
+					"w-24",
+					"w-32",
+					"w-20",
+					"w-28",
+					"w-16",
+					"w-24",
+					"w-32",
+					"w-20",
+					"w-28",
+					"w-16",
+					"w-24",
+					"w-32",
+				].map((width, i) => (
+					<div key={i} className="flex items-center gap-3 py-1.5">
+						<Skeleton className="size-8 shrink-0 rounded-sm" />
+						<Skeleton className={`h-3.5 ${width}`} />
+						<Skeleton className="ml-auto h-3 w-4" />
+					</div>
+				))}
+			</div>
 		</div>
 	);
 }
