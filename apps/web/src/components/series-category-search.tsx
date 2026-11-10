@@ -167,7 +167,8 @@ function CategorySearchBase({
 					<div className="min-w-0 space-y-2">
 						<h1 className={`${PAGE_TITLE_CLASS} truncate pb-1`}>{title}</h1>
 						<p className="text-xs md:text-sm text-muted-foreground truncate">
-							{playlistName} {filteredCategories.length} categories
+							{playlistName} · {filteredCategories.length}{" "}
+							{filteredCategories.length === 1 ? "category" : "categories"}
 						</p>
 					</div>
 					<label
