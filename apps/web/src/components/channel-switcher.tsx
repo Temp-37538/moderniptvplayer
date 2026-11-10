@@ -76,10 +76,26 @@ export function ChannelSwitcher({
 	useEffect(() => {
 		const item = currentRef.current;
 		const list = item?.closest("ul");
-		if (item && list) {
-			list.scrollTop =
-				item.offsetTop - list.clientHeight / 2 + item.clientHeight / 2;
+		if (!item || !list) {
+			return;
 		}
+		// Scrolls by whole rows so the top of the list starts on a row edge
+		// rather than a sliver of the row above, with the current channel
+		// near the middle.
+		const top =
+			item.getBoundingClientRect().top -
+			list.getBoundingClientRect().top +
+			list.scrollTop;
+		const next = item.closest("li")?.nextElementSibling;
+		const step = next
+			? next.getBoundingClientRect().top - item.getBoundingClientRect().top
+			: item.offsetHeight;
+		const padding = Number.parseFloat(getComputedStyle(list).paddingTop) || 0;
+		const rowsAbove = Math.max(
+			0,
+			Math.floor((list.clientHeight / step - 1) / 2),
+		);
+		list.scrollTop = Math.max(0, top - padding - rowsAbove * step);
 	}, [currentId]);
 
 	if (channels.length === 0) {
