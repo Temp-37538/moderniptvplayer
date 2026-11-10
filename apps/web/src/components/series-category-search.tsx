@@ -80,7 +80,25 @@ function CategorySearchBase({
 	const buildCategoryHref = (categoryId: string) =>
 		`${hrefPrefix}/${id}/${categoryId}` as Route;
 
+	// A focused button that gets disabled, or whose row moves or goes away,
+	// drops keyboard focus to the page: put it back on the matching control.
+	function refocus(selector: string | null, hadFocus: boolean) {
+		if (!hadFocus || !selector) {
+			return;
+		}
+		requestAnimationFrame(() =>
+			document.querySelector<HTMLElement>(selector)?.focus(),
+		);
+	}
+
+	const focusedIn = (attribute: string, categoryId: string) =>
+		document.activeElement?.getAttribute(attribute) === categoryId;
+
+	const selectorFor = (attribute: string, categoryId: string | undefined) =>
+		categoryId ? `[${attribute}="${CSS.escape(categoryId)}"]` : null;
+
 	async function onTogglePin(category: ListedCategory) {
+		const hadFocus = focusedIn("data-pin", category.id);
 		const previous = visible;
 		setPendingId(category.id);
 		setVisible((current) =>
@@ -98,10 +116,17 @@ function CategorySearchBase({
 			toast.error(`Unable to update pin for ${category.name}`);
 		} finally {
 			setPendingId(null);
+			refocus(selectorFor("data-pin", category.id), hadFocus);
 		}
 	}
 
 	async function onHide(category: ListedCategory) {
+		const hadFocus = focusedIn("data-hide", category.id);
+		const index = filteredCategories.findIndex(
+			(item) => item.id === category.id,
+		);
+		const neighbour =
+			filteredCategories[index + 1] ?? filteredCategories[index - 1];
 		const previousVisible = visible;
 		const previousHidden = hidden;
 		setPendingId(category.id);
@@ -122,10 +147,12 @@ function CategorySearchBase({
 			toast.error(`Unable to hide ${category.name}`);
 		} finally {
 			setPendingId(null);
+			refocus(selectorFor("data-category-link", neighbour?.id), hadFocus);
 		}
 	}
 
 	async function onUnhide(category: ListedCategory) {
+		const hadFocus = focusedIn("data-show", category.id);
 		const previousVisible = visible;
 		const previousHidden = hidden;
 		setPendingId(category.id);
@@ -145,6 +172,7 @@ function CategorySearchBase({
 			toast.error(`Unable to show ${category.name}`);
 		} finally {
 			setPendingId(null);
+			refocus(selectorFor("data-category-link", category.id), hadFocus);
 		}
 	}
 
@@ -236,6 +264,7 @@ function CategorySearchBase({
 							className="group relative flex break-inside-avoid items-center gap-2 border-b border-border/40"
 						>
 							<Link
+								data-category-link={category.id}
 								href={buildCategoryHref(category.id)}
 								className="flex min-w-0 flex-1 items-baseline gap-3 rounded-sm py-2.5 outline-none focus-visible:ring-2 focus-visible:ring-ring"
 							>
@@ -263,6 +292,7 @@ function CategorySearchBase({
 							>
 								<button
 									type="button"
+									data-pin={category.id}
 									aria-pressed={category.pinned}
 									aria-label={
 										category.pinned
@@ -279,6 +309,7 @@ function CategorySearchBase({
 								</button>
 								<button
 									type="button"
+									data-hide={category.id}
 									aria-label={`Hide ${category.name}`}
 									disabled={pendingId === category.id}
 									className="inline-flex size-7 cursor-pointer items-center justify-center rounded-md text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
@@ -346,6 +377,7 @@ function CategorySearchBase({
 											</span>
 											<button
 												type="button"
+												data-show={category.id}
 												aria-label={`Show ${category.name}`}
 												disabled={pendingId === category.id}
 												className="inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-xs hover:bg-muted disabled:opacity-50 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-ring"

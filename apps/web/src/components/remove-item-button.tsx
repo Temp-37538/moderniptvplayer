@@ -8,7 +8,7 @@ import {
 import type { RemoveItemButtonProps } from "@/components/types";
 import { toggleWatchLater, toggleFavorite } from "@/server/user-items";
 import { Trash2 } from "lucide-react";
-import { useTransition } from "react";
+import { type MouseEvent, useTransition } from "react";
 import { toast } from "sonner";
 
 export function RemoveItemButton({
@@ -34,10 +34,19 @@ export function RemoveItemButton({
 		toggle().catch(() => toast.error(`Unable to restore ${itemName}`));
 	}
 
-	function handleRemove() {
+	function handleRemove(event: MouseEvent<HTMLButtonElement>) {
+		// The row goes away: keep keyboard focus in the list on the next one.
+		const hadFocus = document.activeElement === event.currentTarget;
+		const row = event.currentTarget.closest("li");
+		const neighbour = (
+			row?.nextElementSibling ?? row?.previousElementSibling
+		)?.querySelector<HTMLElement>("[data-remove-item]");
 		startTransition(async () => {
 			try {
 				await toggle();
+				if (hadFocus && neighbour) {
+					requestAnimationFrame(() => neighbour.focus());
+				}
 				toast.success(`Removed ${itemName} from ${listName}`, {
 					action: { label: "Undo", onClick: handleUndo },
 				});
@@ -53,11 +62,8 @@ export function RemoveItemButton({
 				render={
 					<button
 						type="button"
-						aria-label={
-							variant === "watchlater"
-								? "Remove from Watch Later"
-								: "Remove from Favorites"
-						}
+						data-remove-item=""
+						aria-label={`Remove ${itemName} from ${listName}`}
 						disabled={isPending}
 						className="inline-flex cursor-pointer items-center justify-center size-8 rounded-[min(var(--radius-md),10px)] text-muted-foreground hover:bg-muted hover:text-destructive focus-visible:text-destructive transition-colors disabled:opacity-50 shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-ring"
 						onClick={handleRemove}
