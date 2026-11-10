@@ -735,7 +735,7 @@ export function SeasonsList({
 														>
 															<PlayIcon className="size-4" />
 														</span>
-														<div className="flex items-center gap-0.5 opacity-0 transition-opacity duration-200 ease-out group-hover:opacity-100 focus-within:opacity-100">
+														<div className="flex items-center gap-0.5 opacity-0 transition-opacity duration-200 ease-out group-hover:opacity-100 focus-within:opacity-100 pointer-coarse:opacity-100">
 															<CopyStreamButton url={episode.url} />
 															<ExternalStreamLink
 																href={episode.url}
