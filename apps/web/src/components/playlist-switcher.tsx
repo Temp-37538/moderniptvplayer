@@ -162,17 +162,24 @@ export function PlaylistSwitcher() {
 								<ListVideoIcon />
 							</div>
 							<div className="grid flex-1 text-left text-sm leading-tight">
-								<span className="truncate font-medium">
+								<span
+									dir="auto"
+									title={activePlaylist.playlistName}
+									className="truncate font-medium"
+								>
 									{activePlaylist.playlistName}
 								</span>
-								<span className="truncate text-xs text-muted-foreground group-hover/menu-button:text-sidebar-accent-foreground">
+								<span
+									title={activePlaylist.serverUrl}
+									className="truncate text-xs text-muted-foreground group-hover/menu-button:text-sidebar-accent-foreground"
+								>
 									{activePlaylist.serverUrl}
 								</span>
 							</div>
 							<ChevronsUpDownIcon className="ml-auto" />
 						</DropdownMenuTrigger>
 						<DropdownMenuContent
-							className="min-w-80 rounded-lg"
+							className="min-w-80 max-w-[min(26rem,calc(100vw-2rem))] rounded-lg"
 							align="start"
 							side={isMobile ? "bottom" : "right"}
 							sideOffset={4}
@@ -197,10 +204,17 @@ export function PlaylistSwitcher() {
 										className="gap-2 p-2 cursor-pointer hover:bg-secondary hover:text-secondary-foreground"
 									>
 										<div className="flex-1 min-w-0">
-											<div className="truncate font-medium">
+											<div
+												dir="auto"
+												title={playlist.playlistName}
+												className="truncate font-medium"
+											>
 												{playlist.playlistName}
 											</div>
-											<div className="truncate text-xs text-muted-foreground">
+											<div
+												title={playlistAccountLine(playlist)}
+												className="truncate text-xs text-muted-foreground"
+											>
 												{playlistAccountLine(playlist)}
 											</div>
 										</div>
