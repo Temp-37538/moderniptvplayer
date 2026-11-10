@@ -21,14 +21,17 @@ describe("isExpiringSoon", () => {
 		assert.equal(isExpiringSoon(NOW + 7 * DAY, NOW), true);
 	});
 
-	it("is false past 7 days", () => {
-		assert.equal(isExpiringSoon(NOW + 7 * DAY + 1000, NOW), false);
+	it("is false from the 8th calendar day", () => {
+		assert.equal(isExpiringSoon(NOW + 7 * DAY + 1000, NOW), true);
+		assert.equal(isExpiringSoon(NOW + 8 * DAY - 12 * 3600_000, NOW), false);
 		assert.equal(isExpiringSoon(NOW + 30 * DAY, NOW), false);
 	});
 });
 
 describe("daysUntilExpiry", () => {
-	it("counts whole days left and returns null once passed", () => {
+	it("counts calendar days left and returns null once passed", () => {
+		assert.equal(daysUntilExpiry(NOW + 7 * DAY - 3600_000, NOW), 7);
+		assert.equal(daysUntilExpiry(NOW + 13 * 3600_000, NOW), 1);
 		assert.equal(daysUntilExpiry(NOW + 3 * DAY + 5000, NOW), 3);
 		assert.equal(daysUntilExpiry(NOW + 5000, NOW), 0);
 		assert.equal(daysUntilExpiry(NOW, NOW), null);
@@ -63,6 +66,30 @@ describe("describeSubscription", () => {
 			tone: "ok",
 			text: "Expires Nov 18, 2026",
 		});
+	});
+
+	it("flags banned and disabled accounts as a problem", () => {
+		assert.deepEqual(
+			describeSubscription(
+				{ status: "Banned", expDate: (NOW + 90 * DAY) / 1000 },
+				NOW,
+			),
+			{ tone: "problem", text: "Account banned" },
+		);
+		assert.deepEqual(
+			describeSubscription({ status: "Disabled", expDate: null }, NOW),
+			{ tone: "problem", text: "Account disabled" },
+		);
+	});
+
+	it("shows Active when there is no expiry date", () => {
+		assert.deepEqual(
+			describeSubscription({ status: "Active", expDate: null }, NOW),
+			{
+				tone: "ok",
+				text: "Active",
+			},
+		);
 	});
 
 	it("flags expired subscriptions as a problem", () => {

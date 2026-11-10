@@ -10,20 +10,40 @@ const dateFormatter = new Intl.DateTimeFormat("en", {
 	timeZone: "UTC",
 });
 
-/** Whole days left before `expiresAtMs`, or null when it has passed. */
+/** Midnight UTC of the day `ms` falls on; dates are shown in UTC too. */
+function utcDay(ms: number): number {
+	const d = new Date(ms);
+	return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+}
+
+/**
+ * Calendar days left before `expiresAtMs` (0 is today, 1 tomorrow), or null
+ * when it has passed. Counting days, not 24 h blocks, keeps the text in step
+ * with the date shown next to it.
+ */
 export function daysUntilExpiry(
 	expiresAtMs: number,
 	nowMs: number,
 ): number | null {
-	const left = expiresAtMs - nowMs;
-	return left > 0 ? Math.floor(left / DAY_MS) : null;
+	if (expiresAtMs <= nowMs) {
+		return null;
+	}
+	return Math.round((utcDay(expiresAtMs) - utcDay(nowMs)) / DAY_MS);
 }
 
-/** True when the subscription ends within the next 7 days. */
+/** True when the subscription ends within the next 7 calendar days. */
 export function isExpiringSoon(expiresAtMs: number, nowMs: number): boolean {
-	const left = expiresAtMs - nowMs;
-	return left > 0 && left <= EXPIRY_WARNING_DAYS * DAY_MS;
+	const days = daysUntilExpiry(expiresAtMs, nowMs);
+	return days !== null && days <= EXPIRY_WARNING_DAYS;
 }
+
+/** Account states from the provider that block playback. */
+const BLOCKED_STATUSES = new Set([
+	"banned",
+	"disabled",
+	"inactive",
+	"suspended",
+]);
 
 function expiresInText(days: number) {
 	if (days === 0) {
@@ -49,6 +69,9 @@ export function describeSubscription(
 	const expiry =
 		expiresAtMs !== null ? dateFormatter.format(new Date(expiresAtMs)) : null;
 
+	if (BLOCKED_STATUSES.has(lower)) {
+		return { tone: "problem", text: `Account ${lower}` };
+	}
 	if (lower === "expired" || (expiresAtMs !== null && expiresAtMs <= nowMs)) {
 		return { tone: "problem", text: expiry ? `Expired ${expiry}` : "Expired" };
 	}
