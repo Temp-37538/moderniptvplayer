@@ -55,6 +55,8 @@ function CategorySearchBase({
 	const [pendingId, setPendingId] = useState<string | null>(null);
 	const [lockPending, setLockPending] = useState(false);
 	const [hiddenOpen, setHiddenOpen] = useState(false);
+	// Touch screens have no hover: pin and hide show after "Edit".
+	const [editing, setEditing] = useState(false);
 	const hiddenListId = useId();
 
 	useEffect(() => {
@@ -195,19 +197,29 @@ function CategorySearchBase({
 							},
 						}}
 					/>
-					<label
-						htmlFor="adult-category-lock"
-						className="flex items-center gap-2 whitespace-nowrap text-xs text-muted-foreground md:text-sm"
-					>
-						<Switch
-							id="adult-category-lock"
-							size="sm"
-							checked={adultLocked}
-							disabled={lockPending}
-							onCheckedChange={onLockChange}
-						/>
-						Lock adult categories
-					</label>
+					<div className="flex items-center justify-between gap-3 md:contents">
+						<label
+							htmlFor="adult-category-lock"
+							className="flex items-center gap-2 whitespace-nowrap text-xs text-muted-foreground md:text-sm"
+						>
+							<Switch
+								id="adult-category-lock"
+								size="sm"
+								checked={adultLocked}
+								disabled={lockPending}
+								onCheckedChange={onLockChange}
+							/>
+							Lock adult categories
+						</label>
+						<button
+							type="button"
+							aria-pressed={editing}
+							className="-mr-2 cursor-pointer rounded-md px-2 py-1 text-xs font-medium text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring md:hidden"
+							onClick={() => setEditing((value) => !value)}
+						>
+							{editing ? "Done" : "Edit"}
+						</button>
+					</div>
 				</div>
 			</div>
 			<div
@@ -241,7 +253,9 @@ function CategorySearchBase({
 									</span>
 								) : null}
 							</Link>
-							<div className="flex shrink-0 gap-0.5 bg-background transition-opacity md:absolute md:top-1/2 md:right-0 md:-translate-y-1/2 md:opacity-0 md:group-focus-within:opacity-100 md:group-hover:opacity-100">
+							<div
+								className={`${editing ? "flex" : "hidden"} shrink-0 gap-0.5 bg-background transition-opacity md:absolute md:flex md:top-1/2 md:right-0 md:-translate-y-1/2 md:opacity-0 md:group-focus-within:opacity-100 md:group-hover:opacity-100`}
+							>
 								<button
 									type="button"
 									aria-pressed={category.pinned}
