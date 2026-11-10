@@ -91,22 +91,36 @@ export function buildBreadcrumbs(
 		return crumbs;
 	}
 
-	if (SEARCHABLE_SECTIONS.has(section) && parts[2] === "search") {
-		crumbs.push({ href: hrefAt(2), label: "Search", link: true });
+	// `/<section>/search/<playlistId>[/<categoryId>]` reads as the browse path
+	// it searches in, with "Search" last: Movies > My TV > Drama > Search.
+	const isSearch = SEARCHABLE_SECTIONS.has(section) && parts[2] === "search";
+	if (isSearch) {
 		index = 3;
 	}
+	const browseHref = (at: number) =>
+		isSearch
+			? `/${[...parts.slice(0, 2), ...parts.slice(3, at + 1)].join("/")}`
+			: hrefAt(at);
 
 	const name = playlistName(parts[index]);
 	if (!name) {
 		return crumbs;
 	}
-	crumbs.push({ href: hrefAt(index), label: name, link: true });
+	crumbs.push({ href: browseHref(index), label: name, link: true });
 
 	for (let next = index + 1; next < parts.length; next += 1) {
-		const label = labels[hrefAt(next)];
+		const label = labels[hrefAt(next)] ?? labels[browseHref(next)];
 		if (label) {
-			crumbs.push({ href: hrefAt(next), label, link: true });
+			crumbs.push({ href: browseHref(next), label, link: true });
 		}
+	}
+
+	if (isSearch) {
+		crumbs.push({
+			href: hrefAt(parts.length - 1),
+			label: "Search",
+			link: true,
+		});
 	}
 
 	return crumbs;

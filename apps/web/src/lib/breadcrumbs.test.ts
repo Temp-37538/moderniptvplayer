@@ -47,8 +47,26 @@ test("per-category search keeps the playlist and category names", () => {
 		labelsOf("/dashboard/series/search/pl1/9", {
 			"/dashboard/series/search/pl1/9": "Drama",
 		}),
-		["Home", "Series", "Search", "My TV", "Drama"],
+		["Home", "Series", "My TV", "Drama", "Search"],
 	);
+	assert.deepEqual(
+		buildBreadcrumbs("/dashboard/series/search/pl1/9", playlists, {
+			"/dashboard/series/search/pl1/9": "Drama",
+		}).map((crumb) => crumb.href),
+		[
+			"/dashboard",
+			"/dashboard/series",
+			"/dashboard/series/pl1",
+			"/dashboard/series/pl1/9",
+			"/dashboard/series/search/pl1/9",
+		],
+	);
+	assert.deepEqual(labelsOf("/dashboard/movies/search/pl1"), [
+		"Home",
+		"Movies",
+		"My TV",
+		"Search",
+	]);
 });
 
 test("settings has no index page, so its crumb is plain text", () => {
