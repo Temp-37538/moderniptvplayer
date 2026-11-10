@@ -16,7 +16,7 @@ import { Eye, EyeOff, Film, FolderOpen, Pin, Radio, Tv } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { toast } from "sonner";
 
 function toLowerCaseSafe(value: unknown) {
@@ -54,6 +54,7 @@ function CategorySearchBase({
 	const [pendingId, setPendingId] = useState<string | null>(null);
 	const [lockPending, setLockPending] = useState(false);
 	const [hiddenOpen, setHiddenOpen] = useState(false);
+	const hiddenListId = useId();
 
 	useEffect(() => {
 		setQuery(searchParams.get("q") ?? "");
@@ -229,7 +230,7 @@ function CategorySearchBase({
 					{filteredCategories.map((category) => (
 						<div
 							key={category.id}
-							className="group relative flex flex-col rounded-xl border border-border/50 bg-card transition-all duration-200 hover:border-primary/30 hover:bg-accent/50 hover:shadow-lg hover:shadow-primary/5 hover:translate-y-1"
+							className="group relative flex flex-col rounded-xl border border-border/50 bg-card transition-all duration-200 hover:border-primary/30 hover:bg-accent/50 hover:shadow-lg hover:shadow-primary/5"
 						>
 							<div className="absolute top-2 right-2 z-10 flex gap-1">
 								<button
@@ -241,7 +242,7 @@ function CategorySearchBase({
 											: `Pin ${category.name}`
 									}
 									disabled={pendingId === category.id}
-									className="inline-flex size-7 items-center justify-center rounded-md bg-background/80 text-muted-foreground hover:text-foreground disabled:opacity-50 cursor-pointer"
+									className="inline-flex size-7 items-center justify-center rounded-md bg-background/80 text-muted-foreground hover:text-foreground disabled:opacity-50 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-ring"
 									onClick={() => onTogglePin(category)}
 								>
 									<Pin
@@ -252,7 +253,7 @@ function CategorySearchBase({
 									type="button"
 									aria-label={`Hide ${category.name}`}
 									disabled={pendingId === category.id}
-									className="inline-flex size-7 items-center justify-center rounded-md bg-background/80 text-muted-foreground hover:text-foreground disabled:opacity-50 cursor-pointer"
+									className="inline-flex size-7 items-center justify-center rounded-md bg-background/80 text-muted-foreground hover:text-foreground disabled:opacity-50 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-ring"
 									onClick={() => onHide(category)}
 								>
 									<EyeOff className="size-3.5" />
@@ -260,7 +261,7 @@ function CategorySearchBase({
 							</div>
 							<Link
 								href={buildCategoryHref(category.id)}
-								className="flex flex-col items-center justify-center gap-2 md:gap-3 p-3 pt-9 pb-10 md:p-5 md:pt-10 md:pb-12"
+								className="flex flex-col items-center justify-center gap-2 md:gap-3 rounded-xl p-3 pt-9 pb-10 md:p-5 md:pt-10 md:pb-12 outline-none focus-visible:ring-2 focus-visible:ring-ring"
 							>
 								<span className="text-xs md:text-sm font-medium text-center leading-tight line-clamp-2">
 									{category.name}
@@ -270,19 +271,32 @@ function CategorySearchBase({
 					))}
 				</div>
 				{filteredCategories.length === 0 && (
-					<div className="flex flex-col items-center h-full justify-center py-20 text-muted-foreground">
+					<div className="flex flex-col items-center h-full justify-center py-20 text-center text-muted-foreground">
 						<FolderOpen className="size-12 mb-4 opacity-30" />
-						<p className="text-base md:text-lg font-medium">{emptyTitle}</p>
-						<p className="text-xs md:text-sm">{emptyDescription}</p>
+						<p className="text-base md:text-lg font-medium">
+							{normalized
+								? "No matching categories"
+								: hidden.length > 0
+									? "All categories are hidden"
+									: emptyTitle}
+						</p>
+						<p className="text-xs md:text-sm">
+							{normalized
+								? `No category name contains "${query.trim()}".`
+								: hidden.length > 0
+									? "Show a hidden category below to browse it."
+									: emptyDescription}
+						</p>
 					</div>
 				)}
 				{hidden.length > 0 && (
 					<div className="mt-4 rounded-xl border border-border/50 bg-card px-4 py-3">
 						<button
 							type="button"
-							className="flex w-full cursor-pointer items-center justify-between text-sm font-medium"
+							className="flex w-full cursor-pointer items-center justify-between rounded-md text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring"
 							onClick={() => setHiddenOpen((open) => !open)}
 							aria-expanded={hiddenOpen}
+							aria-controls={hiddenListId}
 						>
 							<span>Hidden ({hidden.length})</span>
 							<span
@@ -292,6 +306,8 @@ function CategorySearchBase({
 							</span>
 						</button>
 						<div
+							id={hiddenListId}
+							inert={!hiddenOpen}
 							className={`grid transition-all duration-200 ease-out ${
 								hiddenOpen
 									? "grid-rows-[1fr] opacity-100"
@@ -312,7 +328,7 @@ function CategorySearchBase({
 												type="button"
 												aria-label={`Show ${category.name}`}
 												disabled={pendingId === category.id}
-												className="inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-xs hover:bg-muted disabled:opacity-50 cursor-pointer"
+												className="inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-xs hover:bg-muted disabled:opacity-50 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-ring"
 												onClick={() => onUnhide(category)}
 											>
 												<Eye className="size-3.5" />

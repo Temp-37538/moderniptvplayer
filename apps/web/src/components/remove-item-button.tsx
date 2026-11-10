@@ -59,7 +59,7 @@ export function RemoveItemButton({
 								: "Remove from Favorites"
 						}
 						disabled={isPending}
-						className="inline-flex cursor-pointer items-center justify-center size-8 rounded-[min(var(--radius-md),10px)] hover:bg-muted transition-colors disabled:opacity-50 shrink-0"
+						className="inline-flex cursor-pointer items-center justify-center size-8 rounded-[min(var(--radius-md),10px)] hover:bg-muted transition-colors disabled:opacity-50 shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-ring"
 						onClick={handleRemove}
 					>
 						<Trash2
