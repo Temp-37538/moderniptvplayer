@@ -13,6 +13,7 @@
   "include": [
     "src/lib/continue-watching.test.ts",
     "src/lib/global-search-timing.test.ts",
+    "src/lib/subscription-status.test.ts",
     "src/lib/watch-progress-format.test.ts",
     "src/server/category-membership.test.ts",
     "src/server/category-preference-policy.test.ts",

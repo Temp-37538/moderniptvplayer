@@ -9,7 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ACTIVE_PLAYLIST_COOKIE } from "@/server/active-playlist";
 import { fetchPlaylists } from "@/server/queries";
-import { getPlaylistStatus, type PlaylistStatus } from "@/server/xtream";
+import {
+	describeSubscription,
+	type SubscriptionTone,
+} from "@/lib/subscription-status";
+import { getPlaylistStatus } from "@/server/xtream";
 import { BookmarkIcon, HeartIcon, PlusIcon, SearchIcon } from "lucide-react";
 import type { Metadata, Route } from "next";
 import { cookies } from "next/headers";
@@ -28,24 +32,27 @@ export const metadata: Metadata = createPageMetadata({
 
 const dateFormatter = new Intl.DateTimeFormat("en", { dateStyle: "medium" });
 
-function formatSubscriptionStatus(status: PlaylistStatus) {
-	const label = status.status || "Unknown";
-	const lower = label.toLowerCase();
-	const isExpired = lower === "expired";
-	const expiry = status.expDate
-		? dateFormatter.format(new Date(status.expDate * 1000))
-		: null;
+const toneClasses = {
+	warning: "text-amber-600 dark:text-amber-400",
+	problem: "text-red-600 dark:text-red-400",
+} as const;
 
-	if (isExpired) {
-		return { isProblem: true, text: expiry ? `Expired ${expiry}` : "Expired" };
+function StatusText({
+	tone,
+	children,
+}: {
+	tone: SubscriptionTone;
+	children: ReactNode;
+}) {
+	if (tone === "ok") {
+		return <span>{children}</span>;
 	}
-	if (lower === "active") {
-		return { isProblem: false, text: expiry ? `Expires ${expiry}` : "Active" };
-	}
-	return {
-		isProblem: false,
-		text: expiry ? `${label} until ${expiry}` : label,
-	};
+	return (
+		<span className={`inline-flex items-center gap-1.5 ${toneClasses[tone]}`}>
+			<span aria-hidden className="size-1.5 rounded-full bg-current" />
+			{children}
+		</span>
+	);
 }
 
 async function PlaylistSubscriptionStatus({
@@ -55,24 +62,10 @@ async function PlaylistSubscriptionStatus({
 }) {
 	try {
 		const status = await getPlaylistStatus(playlistId);
-		const { isProblem, text } = formatSubscriptionStatus(status);
-
-		if (!isProblem) {
-			return <span>{text}</span>;
-		}
-		return (
-			<span className="inline-flex items-center gap-1.5 text-red-600 dark:text-red-400">
-				<span aria-hidden className="size-1.5 rounded-full bg-current" />
-				{text}
-			</span>
-		);
+		const { tone, text } = describeSubscription(status, Date.now());
+		return <StatusText tone={tone}>{text}</StatusText>;
 	} catch {
-		return (
-			<span className="inline-flex items-center gap-1.5 text-red-600 dark:text-red-400">
-				<span aria-hidden className="size-1.5 rounded-full bg-current" />
-				Status unavailable
-			</span>
-		);
+		return <StatusText tone="problem">Status unavailable</StatusText>;
 	}
 }
 
