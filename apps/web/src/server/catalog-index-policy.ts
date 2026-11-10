@@ -102,10 +102,11 @@ function safeImage(value: string): string | null {
  */
 export function toCatalogRows(
 	kind: CatalogKind,
-	items: unknown[],
+	items: readonly unknown[],
+	/** Pass one set per kind to deduplicate across chunks of a listing. */
+	seenIds: Set<string> = new Set<string>(),
 ): CatalogRowInput[] {
 	const rows: CatalogRowInput[] = [];
-	const seenIds = new Set<string>();
 
 	for (const item of items) {
 		if (!item || typeof item !== "object" || Array.isArray(item)) {

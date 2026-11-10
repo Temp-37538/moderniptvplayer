@@ -15,6 +15,12 @@ import {
 	type CatalogRowInput,
 	type CatalogSyncPolicyState,
 } from "./catalog-index-policy";
+import {
+	CatalogProviderError,
+	CatalogSyncTimeoutError,
+	CatalogTooLargeError,
+	writeCatalogChunks,
+} from "./catalog-sync-pipeline";
 import { readM3uCatalog } from "./m3u-catalog";
 import {
 	createXtreamClient,
@@ -35,66 +41,66 @@ type CatalogEntryCandidate = {
 
 type Playlist = DecryptedPlaylist;
 
-class CatalogTooLargeError extends Error {}
-class CatalogSyncTimeoutError extends Error {}
 /**
  * Another sync or a playlist edit took the lock, or the playlist now reads
  * another provider, while this sync ran.
  */
 class CatalogLockLostError extends Error {}
 
-function withTimeout<T>(work: Promise<T>, timeoutMs: number): Promise<T> {
-	return new Promise((resolve, reject) => {
-		const timeout = setTimeout(
-			() => reject(new CatalogSyncTimeoutError()),
-			timeoutMs,
-		);
-		work.then(
-			(value) => {
-				clearTimeout(timeout);
-				resolve(value);
-			},
-			(error: unknown) => {
-				clearTimeout(timeout);
-				reject(error);
-			},
-		);
-	});
-}
-
-function errorCode(error: unknown, collecting: boolean): string {
+function errorCode(error: unknown): string {
 	if (error instanceof CatalogTooLargeError) {
 		return "too_large";
 	}
 	if (error instanceof CatalogSyncTimeoutError) {
 		return "timeout";
 	}
-	return collecting ? "provider" : "unknown";
+	return error instanceof CatalogProviderError ? "provider" : "unknown";
 }
 
-async function collectCatalogRows(
+/**
+ * Rows of one playlist, one kind at a time (channels, movies, series) and one
+ * chunk at a time, so the sync never holds every kind's provider listing or
+ * every row at once.
+ */
+async function* catalogRowChunks(
 	playlist: Playlist,
-): Promise<CatalogRowInput[]> {
+): AsyncGenerator<CatalogRowInput[]> {
 	if (playlist.source === "M3U") {
+		// The parsed M3U playlist is already cached in memory for browsing.
 		const parsed = await readM3uCatalog(playlist);
-		return [
-			...toCatalogRows("channel", parsed.live),
-			...toCatalogRows("movie", parsed.movies),
-			...toCatalogRows("series", parsed.shows),
+		const lists: Array<[CatalogKind, readonly unknown[]]> = [
+			["channel", parsed.live],
+			["movie", parsed.movies],
+			["series", parsed.shows],
 		];
+		for (const [kind, items] of lists) {
+			const seenIds = new Set<string>();
+			for (let start = 0; start < items.length; start += CATALOG_INSERT_BATCH) {
+				yield toCatalogRows(
+					kind,
+					items.slice(start, start + CATALOG_INSERT_BATCH),
+					seenIds,
+				);
+			}
+		}
+		return;
 	}
 
 	const xtream = createXtreamClient(playlist);
-	const [channels, movies, shows] = await Promise.all([
-		xtream.getChannels(),
-		xtream.getMovies(),
-		xtream.getShows(),
-	]);
-	return [
-		...toCatalogRows("channel", channels),
-		...toCatalogRows("movie", movies),
-		...toCatalogRows("series", shows),
+	const kinds: Array<[CatalogKind, "channels" | "movies" | "shows"]> = [
+		["channel", "channels"],
+		["movie", "movies"],
+		["series", "shows"],
 	];
+	for (const [kind, listing] of kinds) {
+		const seenIds = new Set<string>();
+		for await (const items of xtream.iterateCatalog(
+			listing,
+			CATALOG_INSERT_BATCH,
+		)) {
+			yield toCatalogRows(kind, items, seenIds);
+		}
+	}
 }
 
 async function insertCatalogBatch(
@@ -134,7 +140,6 @@ export async function syncCatalog(
 	const startedAt = Date.now();
 	let syncId: string | null = null;
 	let lockAcquired = false;
-	let collecting = true;
 	// Fencing token: every later write of this sync requires it, so a sync
 	// whose row was reset by a playlist edit, or taken over after its lock
 	// expired, can no longer activate its rows or overwrite the status.
@@ -184,34 +189,15 @@ export async function syncCatalog(
 
 		const { playlist, fingerprint } = snapshot;
 
-		const remainingMs = SYNC_TIMEOUT_MS - (Date.now() - startedAt);
-		if (remainingMs <= 0) {
-			throw new CatalogSyncTimeoutError();
-		}
-		const rows = await withTimeout(collectCatalogRows(playlist), remainingMs);
-		if (Date.now() - startedAt > SYNC_TIMEOUT_MS) {
-			throw new CatalogSyncTimeoutError();
-		}
-		total = rows.length;
-		if (total > CATALOG_MAX_ROWS) {
-			throw new CatalogTooLargeError();
-		}
-
-		syncId = crypto.randomUUID();
-		collecting = false;
-		for (let offset = 0; offset < rows.length; offset += CATALOG_INSERT_BATCH) {
-			if (Date.now() - startedAt >= SYNC_TIMEOUT_MS) {
-				throw new CatalogSyncTimeoutError();
-			}
-			await insertCatalogBatch(
-				playlistId,
-				syncId,
-				rows.slice(offset, offset + CATALOG_INSERT_BATCH),
-			);
-		}
-		if (Date.now() - startedAt >= SYNC_TIMEOUT_MS) {
-			throw new CatalogSyncTimeoutError();
-		}
+		const generation = crypto.randomUUID();
+		syncId = generation;
+		total = await writeCatalogChunks({
+			chunks: catalogRowChunks(playlist),
+			insert: (rows) => insertCatalogBatch(playlistId, generation, rows),
+			deadline: startedAt + SYNC_TIMEOUT_MS,
+			maxRows: CATALOG_MAX_ROWS,
+			batchSize: CATALOG_INSERT_BATCH,
+		});
 
 		const syncedAt = new Date();
 		// Both statements run in one transaction. The activation only matches
@@ -291,7 +277,7 @@ export async function syncCatalog(
 					     "lockToken" = NULL, "updatedAt" = CURRENT_TIMESTAMP
 					 WHERE "playlistId" = $1 AND "lockToken" = $3`,
 					playlistId,
-					errorCode(error, collecting),
+					errorCode(error),
 					lockToken,
 				);
 			} catch {

@@ -356,3 +356,24 @@ test("decides when to build, serve, refresh, or report unavailable", () => {
 test("the sync lock outlives the sync timeout", () => {
 	assert.ok(SYNC_LOCK_MS > SYNC_TIMEOUT_MS);
 });
+
+test("one id set deduplicates a listing across chunks", () => {
+	const seenIds = new Set<string>();
+	const first = toCatalogRows(
+		"movie",
+		[{ id: "m1", name: "Heat", categoryIds: ["c1"] }],
+		seenIds,
+	);
+	const second = toCatalogRows(
+		"movie",
+		[
+			{ id: "m1", name: "Heat again", categoryIds: ["c1"] },
+			{ id: "m2", name: "Ronin", categoryIds: ["c1"] },
+		],
+		seenIds,
+	);
+	assert.deepEqual(
+		[...first, ...second].map((row) => row.itemId),
+		["m1", "m2"],
+	);
+});
