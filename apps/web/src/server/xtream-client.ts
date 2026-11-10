@@ -1,6 +1,6 @@
 import "server-only";
 import { createHash } from "node:crypto";
-import { safeFetchJson } from "./safe-http";
+import { HttpTimeoutError, safeFetchJson } from "./safe-http";
 
 /**
  * Minimal Xtream Codes client. It replaces the network layer of
@@ -68,6 +68,14 @@ export type XtreamClientOptions = {
 const RAW_CACHE_TTL_MS = 60_000;
 const RAW_CACHE_MAX_ENTRIES = 8;
 const MAX_PAGE_SIZE = 1000;
+/**
+ * After a provider times out, the next calls of the same render fail at once
+ * instead of each waiting for its own timeout, so a dead provider shows the
+ * error after one timeout rather than several. Short enough that "Try again"
+ * really asks the provider again.
+ */
+const UNREACHABLE_BACKOFF_MS = 10_000;
+const unreachableUntil = new Map<string, number>();
 
 // Short-lived, in-process cache of raw upstream responses. The upstream API
 // has no pagination: every page used to re-download the full list. Keys are
@@ -239,10 +247,23 @@ export class SafeXtream {
 			this.#username,
 		)}&password=${enc(this.#password)}&action=${action}${query}`;
 
-		return readThrough(`${this.#cacheNamespace}|${action}${query}`, () =>
+		const namespace = this.#cacheNamespace;
+		const until = unreachableUntil.get(namespace);
+		if (until !== undefined) {
+			if (until > Date.now()) {
+				return Promise.reject(new HttpTimeoutError());
+			}
+			unreachableUntil.delete(namespace);
+		}
+		return readThrough(`${namespace}|${action}${query}`, () =>
 			safeFetchJson(url, {
 				allowPrivateHosts: this.#allowPrivateHosts,
 				...(this.#timeoutMs ? { timeoutMs: this.#timeoutMs } : {}),
+			}).catch((error: unknown) => {
+				if (error instanceof HttpTimeoutError) {
+					unreachableUntil.set(namespace, Date.now() + UNREACHABLE_BACKOFF_MS);
+				}
+				throw error;
 			}),
 		);
 	}
