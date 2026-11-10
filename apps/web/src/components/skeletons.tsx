@@ -314,8 +314,12 @@ export function ContinueWatchingSkeleton({ count = 7 }: { count?: number }) {
 			{Array.from({ length: count }).map((_, i) => (
 				<div key={i} className="w-36 shrink-0 sm:w-40 lg:w-44">
 					<Skeleton className="aspect-2/3 w-full rounded-xl" />
-					<Skeleton className="mt-2 h-4 w-full" />
-					<Skeleton className="mt-1.5 h-3 w-2/3" />
+					<div className="mt-2 flex h-5 items-center">
+						<Skeleton className="h-3.5 w-full" />
+					</div>
+					<div className="mt-0.5 flex h-4 items-center">
+						<Skeleton className="h-3 w-2/3" />
+					</div>
 				</div>
 			))}
 		</div>
@@ -330,11 +334,15 @@ export function PlaylistListSkeleton({ count = 2 }: { count?: number }) {
 					key={i}
 					className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:gap-6"
 				>
-					<div className="flex-1 space-y-2">
-						<Skeleton className="h-5 w-44" />
-						<Skeleton className="h-4 w-64 max-w-full" />
+					<div className="min-w-0 flex-1">
+						<div className="flex h-6 items-center">
+							<Skeleton className="h-4 w-40" />
+						</div>
+						<div className="mt-0.5 flex h-5 items-center">
+							<Skeleton className="h-3.5 w-64 max-w-full" />
+						</div>
 					</div>
-					<div className="flex gap-2">
+					<div className="-ml-2 flex items-center gap-1 sm:-mr-2 sm:ml-0">
 						<Skeleton className="h-8 w-16" />
 						<Skeleton className="h-8 w-16" />
 						<Skeleton className="h-8 w-16" />
@@ -346,28 +354,67 @@ export function PlaylistListSkeleton({ count = 2 }: { count?: number }) {
 	);
 }
 
+/**
+ * Keeps the Continue watching placeholder: most returning users have
+ * something to continue, so that is the case that must not jump. With an
+ * empty history the playlists move up once when the page resolves.
+ */
 export function HomeSkeleton() {
 	return (
-		<div className="space-y-10">
-			<div className="space-y-3">
-				<Skeleton className="h-10 w-56" />
-				<Skeleton className="h-4 w-72 max-w-full" />
-				<div className="flex gap-2 pt-2">
-					<Skeleton className="h-8 w-24 rounded-full" />
-					<Skeleton className="h-8 w-28 rounded-full" />
-					<Skeleton className="h-8 w-28 rounded-full" />
+		<div className="space-y-10 pb-6">
+			<div>
+				<div className="flex h-[2.3625rem] items-center md:h-[3.15rem]">
+					<Skeleton className="h-8 w-56 md:h-10 md:w-72" />
+				</div>
+				{/* The line wraps to two on phones. */}
+				<div className="mt-2 flex h-12 flex-col justify-around sm:h-6">
+					<Skeleton className="h-4 w-80 max-w-full" />
+					<Skeleton className="h-4 w-24 sm:hidden" />
+				</div>
+				<div className="mt-5 flex flex-wrap gap-1.5 sm:gap-2">
+					<Skeleton className="h-9 w-22 rounded-full sm:w-26" />
+					<Skeleton className="h-9 w-26 rounded-full sm:w-30" />
+					<Skeleton className="h-9 w-30 rounded-full sm:w-34" />
 				</div>
 			</div>
-			<div className="space-y-4">
-				<Skeleton className="h-7 w-48" />
+			<div>
+				<SectionHeadingSkeleton titleWidth="w-48" />
 				<ContinueWatchingSkeleton />
 			</div>
-			<div className="space-y-4">
-				<Skeleton className="h-7 w-36" />
-				<PlaylistListSkeleton />
+			<div>
+				<div className="mb-4 flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
+					<SectionHeadingSkeleton titleWidth="w-40" description bare />
+					<Skeleton className="h-7 w-28 rounded-md" />
+				</div>
+				<PlaylistListSkeleton count={1} />
 			</div>
 		</div>
 	);
+}
+
+/** Mirrors SectionHeading: a serif `text-2xl` title and an optional line. */
+function SectionHeadingSkeleton({
+	titleWidth,
+	description = false,
+	bare = false,
+}: {
+	titleWidth: string;
+	description?: boolean;
+	bare?: boolean;
+}) {
+	const content = (
+		<div>
+			<div className="flex h-8 items-center">
+				<Skeleton className={`h-6 ${titleWidth}`} />
+			</div>
+			{description ? (
+				<div className="mt-0.5 flex h-5 items-center">
+					<Skeleton className="h-3.5 w-16" />
+				</div>
+			) : null}
+		</div>
+	);
+	return bare ? content : <div className="mb-4">{content}</div>;
 }
 
 export function SavedItemsListSkeleton({ count = 5 }: { count?: number }) {
