@@ -102,14 +102,17 @@ export function ChannelSwitcher({
 		return null;
 	}
 
+	const position = channels.findIndex((channel) => channel.id === currentId);
+
 	return (
-		<nav aria-label="Channels in this category" className="space-y-3">
+		<nav aria-label="Channels in this category">
 			{neighbors && (
-				<div className="flex items-center justify-between gap-2">
+				<div className="flex items-center justify-between gap-2 border-b border-border/50 pb-2">
 					<Button
-						variant="outline"
+						variant="ghost"
 						size="sm"
 						nativeButton={false}
+						className="-ml-2.5 text-muted-foreground hover:text-foreground"
 						aria-label={`Previous channel: ${neighbors.previous.name}`}
 						title="Previous channel (P)"
 						render={<Link href={hrefOf(neighbors.previous)} prefetch={false} />}
@@ -117,10 +120,16 @@ export function ChannelSwitcher({
 						<ChevronLeftIcon />
 						Previous
 					</Button>
+					{position >= 0 && (
+						<span className="text-xs tabular-nums text-muted-foreground">
+							{position + 1} of {channels.length}
+						</span>
+					)}
 					<Button
-						variant="outline"
+						variant="ghost"
 						size="sm"
 						nativeButton={false}
+						className="-mr-2.5 text-muted-foreground hover:text-foreground"
 						aria-label={`Next channel: ${neighbors.next.name}`}
 						title="Next channel (N)"
 						render={<Link href={hrefOf(neighbors.next)} prefetch={false} />}
@@ -130,7 +139,7 @@ export function ChannelSwitcher({
 					</Button>
 				</div>
 			)}
-			<ul className="max-h-96 space-y-1 overflow-y-auto rounded-lg border border-border/60 bg-card p-1 xl:max-h-[min(70svh,40rem)]">
+			<ul className="-mx-2 max-h-96 overflow-y-auto py-1 xl:max-h-[min(70svh,40rem)]">
 				{channels.map((channel) => {
 					const current = channel.id === currentId;
 					return (
@@ -140,16 +149,15 @@ export function ChannelSwitcher({
 								href={hrefOf(channel)}
 								prefetch={false}
 								aria-current={current ? "page" : undefined}
-								// The theme's accent is a saturated orange: the current
-								// channel gets a light tint and a bar instead, with the
-								// normal text color, readable in both themes.
+								// Plain list: the current channel gets a square muted row
+								// and a bold name, no accent color or bar.
 								className={cn(
-									"flex items-center gap-3 rounded-md px-2 py-1.5 text-sm text-foreground outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
+									"flex items-center gap-3 px-2 py-1.5 text-sm text-foreground/85 outline-none transition-colors hover:bg-muted/50 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
 									current &&
-										"bg-primary/10 font-medium shadow-[inset_3px_0_0_var(--primary)] hover:bg-primary/15",
+										"bg-muted font-semibold text-foreground hover:bg-muted",
 								)}
 							>
-								<span className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded bg-muted">
+								<span className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-sm bg-muted/60">
 									{channel.logo ? (
 										<Image
 											src={channel.logo}
