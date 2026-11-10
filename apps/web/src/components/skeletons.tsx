@@ -138,17 +138,17 @@ export function ChannelListSkeletonNoSearchBar({
 export function CategoryGridSkeleton({ count = 35 }: { count?: number }) {
 	return (
 		<div className="h-full flex flex-col gap-3 md:gap-4">
-			<div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+			<div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
 				<div className="space-y-2">
 					<div className="flex h-[2.6125rem] items-center pb-1 md:h-[3.4rem]">
 						<Skeleton className="h-8 w-40 md:h-10" />
 					</div>
 					<TextLine line="h-4 md:h-5" className="h-3 w-44 md:h-3.5" />
 				</div>
-				<div className="flex flex-col gap-3 md:flex-row-reverse md:items-center md:gap-5">
-					<Skeleton className="h-8 w-full rounded-md md:w-70" />
-					<div className="flex items-center justify-between gap-3">
-						<TextLine line="h-6" className="h-4 w-40 md:w-44" />
+				<div className="flex flex-col gap-3 xl:flex-row-reverse xl:items-center xl:gap-5">
+					<Skeleton className="h-8 w-full rounded-md md:max-w-md xl:w-70" />
+					<div className="flex items-center justify-between gap-3 md:max-w-md xl:max-w-none">
+						<TextLine line="h-6 md:h-5" className="h-4 w-40 md:w-44" />
 						<Skeleton className="h-4 w-8 md:hidden" />
 					</div>
 				</div>

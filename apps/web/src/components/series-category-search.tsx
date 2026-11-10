@@ -164,7 +164,7 @@ function CategorySearchBase({
 
 	return (
 		<div className="h-full flex flex-col gap-3 md:gap-4  scrollbar-thin scrollbar-thumb-rounded-lg scrollbar-thumb-border/50 scrollbar-track-border/20">
-			<div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+			<div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
 				<div className="min-w-0 space-y-2">
 					<h1 className={`${PAGE_TITLE_CLASS} truncate pb-1`}>{title}</h1>
 					<p className="text-xs md:text-sm text-muted-foreground truncate">
@@ -172,12 +172,12 @@ function CategorySearchBase({
 						{filteredCategories.length === 1 ? "category" : "categories"}
 					</p>
 				</div>
-				{/* Mobile: search on top, the lock under it. Desktop: one row,
+				{/* Mobile: search on top, the lock under it. From xl: one row,
 				    lock then search, both centered on the same line. */}
-				<div className="flex flex-col gap-3 md:shrink-0 md:flex-row-reverse md:items-center md:gap-5">
+				<div className="flex flex-col gap-3 xl:shrink-0 xl:flex-row-reverse xl:items-center xl:gap-5">
 					<SearchForm
 						placeholder={placeholder}
-						className="w-full md:w-70"
+						className="w-full md:max-w-md xl:w-70"
 						inputName="q"
 						inputProps={{
 							value: query,
@@ -197,7 +197,7 @@ function CategorySearchBase({
 							},
 						}}
 					/>
-					<div className="flex items-center justify-between gap-3 md:contents">
+					<div className="flex items-center justify-between gap-3 md:max-w-md xl:contents">
 						<label
 							htmlFor="adult-category-lock"
 							className="flex items-center gap-2 whitespace-nowrap text-xs text-muted-foreground md:text-sm"
