@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { CheckCircle2, Link2, ListVideo } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useActionState } from "react";
+import { toast } from "sonner";
 
 const initialState: M3uFormState = {
 	errors: {},
@@ -23,6 +24,11 @@ export function M3UForm() {
 		async (previous: M3uFormState, formData: FormData) => {
 			const result = await addM3uPlaylistAction(previous, formData);
 			if (result.success && result.playlistId) {
+				if (result.convertedToXtream && result.message) {
+					// The toaster lives in the root providers, so the notice
+					// survives the navigation below.
+					toast.warning(result.message, { duration: 5_000 });
+				}
 				router.push(`/dashboard/${result.playlistId}`);
 				router.refresh();
 			}
