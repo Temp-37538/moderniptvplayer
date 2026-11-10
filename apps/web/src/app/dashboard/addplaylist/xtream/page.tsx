@@ -16,7 +16,7 @@ export const metadata: Metadata = createPageMetadata({
 
 function Page() {
 	return (
-		<div className="flex flex-1 flex-col px-4 pt-2 pb-16">
+		<div className="flex min-h-0 flex-1 flex-col overflow-y-auto pb-16">
 			<div className="w-full max-w-md">
 				<Link
 					href="/dashboard/addplaylist"

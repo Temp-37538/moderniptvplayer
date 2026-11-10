@@ -53,7 +53,7 @@ async function SettingsContent({ params }: { params: Params }) {
 
 	return (
 		<HydrationBoundary state={dehydrate(queryClient)}>
-			<div className="w-full  max-w-3xl mx-auto p-4 md:p-6">
+			<div className="w-full max-w-3xl mx-auto pb-6">
 				<Settings path={path} />
 			</div>
 		</HydrationBoundary>

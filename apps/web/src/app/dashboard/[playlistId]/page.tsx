@@ -1,4 +1,5 @@
 import { createPageMetadata, getPlaylistMetadataContext } from "@/app/metadata";
+import { PageContainer, PageHeader } from "@/components/page-container";
 import { SavedItemsList } from "@/components/saved-items-list";
 import { getFavoriteItems, getWatchLaterItems } from "@/server/user-items";
 import { playlistAccountLine } from "@/lib/playlist-label";
@@ -61,151 +62,145 @@ async function PlaylistHomeContent({
 	]);
 
 	return (
-		<div className="flex h-full flex-col overflow-y-auto p-6">
-			<div className="w-full max-w-4xl space-y-10">
-				<header className="space-y-1">
-					<h1 className="text-3xl font-bold tracking-tight">
-						{playlist.playlistName}
-					</h1>
-					<p className="text-sm text-muted-foreground">
-						{playlistAccountLine(playlist)}
-					</p>
-				</header>
+		<PageContainer width="narrow" className="space-y-10">
+			<PageHeader
+				title={playlist.playlistName}
+				description={playlistAccountLine(playlist)}
+			/>
 
-				<nav
-					aria-label="Playlist library"
-					className="grid gap-x-8 sm:grid-cols-4"
+			<nav
+				aria-label="Playlist library"
+				className="grid gap-x-8 sm:grid-cols-4"
+			>
+				<Link
+					href={`/dashboard/channels/${playlistId}` as Route}
+					className="group flex min-h-32 flex-col justify-between py-5 outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
 				>
-					<Link
-						href={`/dashboard/channels/${playlistId}` as Route}
-						className="group flex min-h-32 flex-col justify-between py-5 outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-					>
-						<div className="flex items-center justify-between">
-							<Tv className="size-5 text-muted-foreground transition-colors group-hover:text-primary" />
-							<ChevronRight className="size-4 text-muted-foreground/60 transition-transform group-hover:translate-x-1 group-hover:text-foreground" />
-						</div>
-						<div>
-							<h2 className="text-xl font-semibold tracking-tight transition-colors group-hover:text-primary">
-								Live TV
-							</h2>
-							<p className="mt-1 text-sm text-muted-foreground">
-								Channels and streams
-							</p>
-						</div>
-					</Link>
-					<Link
-						href={`/dashboard/movies/${playlistId}` as Route}
-						className="group flex min-h-32 flex-col justify-between py-5 outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-					>
-						<div className="flex items-center justify-between">
-							<Film className="size-5 text-muted-foreground transition-colors group-hover:text-primary" />
-							<ChevronRight className="size-4 text-muted-foreground/60 transition-transform group-hover:translate-x-1 group-hover:text-foreground" />
-						</div>
-						<div>
-							<h2 className="text-xl font-semibold tracking-tight transition-colors group-hover:text-primary">
-								Movies
-							</h2>
-							<p className="mt-1 text-sm text-muted-foreground">Films</p>
-						</div>
-					</Link>
-					<Link
-						href={`/dashboard/series/${playlistId}` as Route}
-						className="group flex min-h-32 flex-col justify-between py-5 outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-					>
-						<div className="flex items-center justify-between">
-							<Clapperboard className="size-5 text-muted-foreground transition-colors group-hover:text-primary" />
-							<ChevronRight className="size-4 text-muted-foreground/60 transition-transform group-hover:translate-x-1 group-hover:text-foreground" />
-						</div>
-						<div>
-							<h2 className="text-xl font-semibold tracking-tight transition-colors group-hover:text-primary">
-								Series
-							</h2>
-							<p className="mt-1 text-sm text-muted-foreground">Episodic TV</p>
-						</div>
-					</Link>
-					<Link
-						href={`/dashboard/search/${playlistId}` as Route}
-						className="group flex min-h-32 flex-col justify-between py-5 outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-					>
-						<div className="flex items-center justify-between">
-							<Search className="size-5 text-muted-foreground transition-colors group-hover:text-primary" />
-							<ChevronRight className="size-4 text-muted-foreground/60 transition-transform group-hover:translate-x-1 group-hover:text-foreground" />
-						</div>
-						<div>
-							<h2 className="text-xl font-semibold tracking-tight transition-colors group-hover:text-primary">
-								Search
-							</h2>
-							<p className="mt-1 text-sm text-muted-foreground">
-								Find anything in this playlist
-							</p>
-						</div>
-					</Link>
-				</nav>
+					<div className="flex items-center justify-between">
+						<Tv className="size-5 text-muted-foreground transition-colors group-hover:text-primary" />
+						<ChevronRight className="size-4 text-muted-foreground/60 transition-transform group-hover:translate-x-1 group-hover:text-foreground" />
+					</div>
+					<div>
+						<h2 className="text-xl font-semibold tracking-tight transition-colors group-hover:text-primary">
+							Live TV
+						</h2>
+						<p className="mt-1 text-sm text-muted-foreground">
+							Channels and streams
+						</p>
+					</div>
+				</Link>
+				<Link
+					href={`/dashboard/movies/${playlistId}` as Route}
+					className="group flex min-h-32 flex-col justify-between py-5 outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+				>
+					<div className="flex items-center justify-between">
+						<Film className="size-5 text-muted-foreground transition-colors group-hover:text-primary" />
+						<ChevronRight className="size-4 text-muted-foreground/60 transition-transform group-hover:translate-x-1 group-hover:text-foreground" />
+					</div>
+					<div>
+						<h2 className="text-xl font-semibold tracking-tight transition-colors group-hover:text-primary">
+							Movies
+						</h2>
+						<p className="mt-1 text-sm text-muted-foreground">Films</p>
+					</div>
+				</Link>
+				<Link
+					href={`/dashboard/series/${playlistId}` as Route}
+					className="group flex min-h-32 flex-col justify-between py-5 outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+				>
+					<div className="flex items-center justify-between">
+						<Clapperboard className="size-5 text-muted-foreground transition-colors group-hover:text-primary" />
+						<ChevronRight className="size-4 text-muted-foreground/60 transition-transform group-hover:translate-x-1 group-hover:text-foreground" />
+					</div>
+					<div>
+						<h2 className="text-xl font-semibold tracking-tight transition-colors group-hover:text-primary">
+							Series
+						</h2>
+						<p className="mt-1 text-sm text-muted-foreground">Episodic TV</p>
+					</div>
+				</Link>
+				<Link
+					href={`/dashboard/search/${playlistId}` as Route}
+					className="group flex min-h-32 flex-col justify-between py-5 outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+				>
+					<div className="flex items-center justify-between">
+						<Search className="size-5 text-muted-foreground transition-colors group-hover:text-primary" />
+						<ChevronRight className="size-4 text-muted-foreground/60 transition-transform group-hover:translate-x-1 group-hover:text-foreground" />
+					</div>
+					<div>
+						<h2 className="text-xl font-semibold tracking-tight transition-colors group-hover:text-primary">
+							Search
+						</h2>
+						<p className="mt-1 text-sm text-muted-foreground">
+							Find anything in this playlist
+						</p>
+					</div>
+				</Link>
+			</nav>
 
-				<div className="grid gap-10 md:grid-cols-2">
-					<section aria-labelledby="watch-later-heading" className="space-y-4">
-						<div className="flex items-baseline justify-between gap-4">
-							<h2
-								id="watch-later-heading"
-								className="text-lg font-semibold tracking-tight"
-							>
-								Watch Later{" "}
-								<span className="text-sm font-normal text-muted-foreground">
-									({watchLaterItems.length})
-								</span>
-							</h2>
-							<Link
-								href={`/dashboard/watchlater/${playlistId}` as Route}
-								className="shrink-0 text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-							>
-								See all
-							</Link>
-						</div>
-						{watchLaterItems.length > 0 ? (
-							<SavedItemsList
-								items={watchLaterItems.slice(0, 5)}
-								playlistId={playlistId}
-								variant="watchlater"
-							/>
-						) : (
-							<p className="text-sm text-muted-foreground">
-								Nothing saved to Watch Later yet.
-							</p>
-						)}
-					</section>
+			<div className="grid gap-10 md:grid-cols-2">
+				<section aria-labelledby="watch-later-heading" className="space-y-4">
+					<div className="flex items-baseline justify-between gap-4">
+						<h2
+							id="watch-later-heading"
+							className="text-lg font-semibold tracking-tight"
+						>
+							Watch Later{" "}
+							<span className="text-sm font-normal text-muted-foreground">
+								({watchLaterItems.length})
+							</span>
+						</h2>
+						<Link
+							href={`/dashboard/watchlater/${playlistId}` as Route}
+							className="shrink-0 text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+						>
+							See all
+						</Link>
+					</div>
+					{watchLaterItems.length > 0 ? (
+						<SavedItemsList
+							items={watchLaterItems.slice(0, 5)}
+							playlistId={playlistId}
+							variant="watchlater"
+						/>
+					) : (
+						<p className="text-sm text-muted-foreground">
+							Nothing saved to Watch Later yet.
+						</p>
+					)}
+				</section>
 
-					<section aria-labelledby="favorites-heading" className="space-y-4">
-						<div className="flex items-baseline justify-between gap-4">
-							<h2
-								id="favorites-heading"
-								className="text-lg font-semibold tracking-tight"
-							>
-								Favorites{" "}
-								<span className="text-sm font-normal text-muted-foreground">
-									({favoriteItems.length})
-								</span>
-							</h2>
-							<Link
-								href={`/dashboard/favorites/${playlistId}` as Route}
-								className="shrink-0 text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-							>
-								See all
-							</Link>
-						</div>
-						{favoriteItems.length > 0 ? (
-							<SavedItemsList
-								items={favoriteItems.slice(0, 5)}
-								playlistId={playlistId}
-								variant="favorites"
-							/>
-						) : (
-							<p className="text-sm text-muted-foreground">
-								No favorites saved yet.
-							</p>
-						)}
-					</section>
-				</div>
+				<section aria-labelledby="favorites-heading" className="space-y-4">
+					<div className="flex items-baseline justify-between gap-4">
+						<h2
+							id="favorites-heading"
+							className="text-lg font-semibold tracking-tight"
+						>
+							Favorites{" "}
+							<span className="text-sm font-normal text-muted-foreground">
+								({favoriteItems.length})
+							</span>
+						</h2>
+						<Link
+							href={`/dashboard/favorites/${playlistId}` as Route}
+							className="shrink-0 text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+						>
+							See all
+						</Link>
+					</div>
+					{favoriteItems.length > 0 ? (
+						<SavedItemsList
+							items={favoriteItems.slice(0, 5)}
+							playlistId={playlistId}
+							variant="favorites"
+						/>
+					) : (
+						<p className="text-sm text-muted-foreground">
+							No favorites saved yet.
+						</p>
+					)}
+				</section>
 			</div>
-		</div>
+		</PageContainer>
 	);
 }

@@ -1,5 +1,6 @@
 import { createPageMetadata, getPlaylistMetadataContext } from "@/app/metadata";
 import { EmptyState } from "@/components/empty-state";
+import { PageContainer, PageHeader } from "@/components/page-container";
 import { SavedItemsList } from "@/components/saved-items-list";
 import type { PlaylistIdPageProps as PageProps } from "@/components/types";
 import { getFavoriteItems } from "@/server/user-items";
@@ -42,14 +43,11 @@ async function FavoritesContent({ params }: PageProps) {
 	const items = await getFavoriteItems(playlistId);
 
 	return (
-		<div className="space-y-6">
-			<div className="max-w-2xl space-y-1">
-				<h1 className="text-2xl font-bold tracking-tight">Favorites</h1>
-				<p className="text-sm text-muted-foreground">
-					{playlist.playlistName} - {items.length} item
-					{items.length !== 1 ? "s" : ""}
-				</p>
-			</div>
+		<PageContainer width="narrow">
+			<PageHeader
+				title="Favorites"
+				description={`${playlist.playlistName} - ${items.length} item${items.length !== 1 ? "s" : ""}`}
+			/>
 			{items.length === 0 ? (
 				<div className="flex min-h-[60vh] items-center justify-center">
 					<EmptyState
@@ -59,7 +57,7 @@ async function FavoritesContent({ params }: PageProps) {
 					/>
 				</div>
 			) : (
-				<div className="max-w-2xl">
+				<div>
 					<SavedItemsList
 						items={items}
 						playlistId={playlistId}
@@ -67,6 +65,6 @@ async function FavoritesContent({ params }: PageProps) {
 					/>
 				</div>
 			)}
-		</div>
+		</PageContainer>
 	);
 }

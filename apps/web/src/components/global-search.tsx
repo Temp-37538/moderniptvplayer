@@ -244,7 +244,7 @@ export function GlobalSearch({
 	return (
 		<div className="flex h-full flex-col gap-6">
 			<header className="space-y-1">
-				<h1 className="text-3xl font-bold tracking-tight">Search</h1>
+				<h1 className="text-2xl font-bold tracking-tight">Search</h1>
 				<p className="text-sm text-muted-foreground">
 					Search channels, movies, and series in {playlistName}.
 				</p>
