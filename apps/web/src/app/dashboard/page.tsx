@@ -47,12 +47,7 @@ function StatusText({
 	if (tone === "ok") {
 		return <span>{children}</span>;
 	}
-	return (
-		<span className={`inline-flex items-center gap-1.5 ${toneClasses[tone]}`}>
-			<span aria-hidden className="size-1.5 rounded-full bg-current" />
-			{children}
-		</span>
-	);
+	return <span className={toneClasses[tone]}>{children}</span>;
 }
 
 async function PlaylistSubscriptionStatus({
