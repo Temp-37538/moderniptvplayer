@@ -5,6 +5,7 @@ import { env } from "@moderniptvplayer/env/server";
 import { revalidatePath } from "next/cache";
 import { requireAuthenticatedUserId } from "./auth-utils";
 import { forgetM3uCatalog } from "./m3u-catalog";
+import { forgetCatalogIndex } from "./catalog-index";
 import {
 	convertM3uRows,
 	M3uConversionTargetMissingError,
@@ -200,6 +201,7 @@ export async function updatePlaylist(
 	}
 
 	forgetPlaylistCredentials(playlistId);
+	await forgetCatalogIndex(playlistId);
 	revalidatePath("/dashboard", "layout");
 }
 
@@ -280,6 +282,9 @@ export async function updateM3uPlaylist(
 	}
 	forgetPlaylistCredentials(playlistId);
 	forgetM3uCatalog(playlistId);
+	if (storedUrl !== null) {
+		await forgetCatalogIndex(playlistId);
+	}
 	revalidatePath("/dashboard", "layout");
 }
 
@@ -348,6 +353,7 @@ export async function replaceM3uPlaylistWithXtream(
 	}
 	forgetPlaylistCredentials(playlistId);
 	forgetM3uCatalog(playlistId);
+	await forgetCatalogIndex(playlistId);
 	revalidatePath("/dashboard", "layout");
 	return cleared;
 }

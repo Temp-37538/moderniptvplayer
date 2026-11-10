@@ -11,6 +11,7 @@ import { ACTIVE_PLAYLIST_COOKIE } from "./active-playlist";
 import { requireAuthenticatedUserId } from "./auth-utils";
 import { getPlaylistCacheTags } from "./cached-content";
 import { forgetM3uCatalog, retrieveSubmittedM3u } from "./m3u-catalog";
+import { markCatalogStale } from "./catalog-index";
 import {
 	decideM3uImport,
 	describeM3uFailure,
@@ -811,6 +812,7 @@ export async function refreshPlaylistCacheAction(playlistId: string) {
 	await assertPlaylistAccess(playlistId);
 	forgetM3uCatalog(playlistId);
 	expirePlaylistCacheTags(playlistId);
+	await markCatalogStale(playlistId);
 }
 
 export async function preparePlaylistSwitchAction(

@@ -12,8 +12,10 @@ import prisma from "@moderniptvplayer/db";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 import { requireAuthenticatedUserId } from "./auth-utils";
+import type { CatalogKind } from "./catalog-index-policy";
 import {
 	categoryTargetFromItemUrl,
+	isAdultCategoryName,
 	isCategorySetBlocked,
 	isItemOpenFromCategory,
 	itemOpenAllowed,
@@ -281,6 +283,43 @@ export async function filterBrowsableItems<T>(
 			lockAdultCategories: true,
 		}),
 	);
+}
+
+export async function loadCatalogSearchRules(playlistId: string): Promise<{
+	hidden: Record<CatalogKind, ReadonlySet<string>>;
+	adult: Record<CatalogKind, ReadonlySet<string>>;
+} | null> {
+	const userId = await requireAuthenticatedUserId();
+	const [channel, movie, series] = await Promise.all([
+		loadBlockState(userId, playlistId, "channel"),
+		loadBlockState(userId, playlistId, "movie"),
+		loadBlockState(userId, playlistId, "series"),
+	]);
+	if (!channel.owned || !movie.owned || !series.owned) {
+		return null;
+	}
+
+	const adultIds = (state: BlockState) =>
+		state.lockAdultCategories
+			? new Set(
+					[...state.namesById]
+						.filter(([, name]) => isAdultCategoryName(name))
+						.map(([id]) => id),
+				)
+			: new Set<string>();
+
+	return {
+		hidden: {
+			channel: channel.hiddenIds,
+			movie: movie.hiddenIds,
+			series: series.hiddenIds,
+		},
+		adult: {
+			channel: adultIds(channel),
+			movie: adultIds(movie),
+			series: adultIds(series),
+		},
+	};
 }
 
 const LIST_LOOKUP_CONCURRENCY = 4;

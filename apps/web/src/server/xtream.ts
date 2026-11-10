@@ -6,6 +6,7 @@ import camelcaseKeys from "camelcase-keys";
 import Cryptr from "cryptr";
 import "server-only";
 import { requireAuthenticatedUserId } from "./auth-utils";
+import { processMap } from "./process-map";
 import { SafeXtream } from "./xtream-client";
 
 const cryptr = new Cryptr(env.SECRET_KEY);
@@ -24,12 +25,16 @@ export type DecryptedPlaylist = {
 // Decrypted credentials live only in this process, for a short time. They are
 // deliberately NOT stored with `use cache`: cached values and cache keys can
 // end up in a shared/persistent cache handler.
+// Kept on globalThis: Next can load this module once per route bundle (a
+// route handler and a server action do not share module state), and a
+// per-bundle Map would let `forgetPlaylistCredentials` in an edit action miss
+// the copy a route handler keeps serving.
 const CREDENTIAL_TTL_MS = 60_000;
 const MAX_CACHED_CREDENTIALS = 200;
-const credentialCache = new Map<
+const credentialCache = processMap<
 	string,
 	{ expires: number; value: DecryptedPlaylist }
->();
+>("playlist-credentials");
 
 export function forgetPlaylistCredentials(playlistId: string) {
 	for (const key of credentialCache.keys()) {
@@ -56,19 +61,36 @@ export async function getCachedPlaylistByUserAndId(
 			userId,
 		},
 	});
-
-	if (!playlist) {
+	const value = playlist ? decryptPlaylist(playlist) : null;
+	if (!value) {
 		credentialCache.delete(key);
 		return null;
 	}
 
+	if (credentialCache.size >= MAX_CACHED_CREDENTIALS) {
+		credentialCache.clear();
+	}
+	credentialCache.set(key, { expires: now + CREDENTIAL_TTL_MS, value });
+	return value;
+}
+
+type StoredPlaylist = {
+	id: string;
+	source: string;
+	serverUrl: string;
+	username: string;
+	password: string;
+	playlistName: string;
+	m3uUrl: string | null;
+};
+
+function decryptPlaylist(playlist: StoredPlaylist): DecryptedPlaylist | null {
 	const source = playlist.source === "M3U" ? "M3U" : "XTREAM";
 	let m3uUrl: string | null = null;
 	let password = "";
 	try {
 		if (source === "M3U") {
 			if (!playlist.m3uUrl) {
-				credentialCache.delete(key);
 				return null;
 			}
 			m3uUrl = cryptr.decrypt(playlist.m3uUrl);
@@ -80,11 +102,9 @@ export async function getCachedPlaylistByUserAndId(
 			"[playlist] decrypt failed:",
 			error instanceof Error ? error.name : "unknown",
 		);
-		credentialCache.delete(key);
 		return null;
 	}
-
-	const value: DecryptedPlaylist = {
+	return {
 		id: playlist.id,
 		source,
 		serverUrl: playlist.serverUrl,
@@ -93,12 +113,38 @@ export async function getCachedPlaylistByUserAndId(
 		playlistName: playlist.playlistName,
 		m3uUrl,
 	};
+}
 
-	if (credentialCache.size >= MAX_CACHED_CREDENTIALS) {
-		credentialCache.clear();
-	}
-	credentialCache.set(key, { expires: now + CREDENTIAL_TTL_MS, value });
-	return value;
+/**
+ * SQL fingerprint of the columns that decide which provider a playlist reads.
+ * A rename does not change it; a new server, username, password, M3U URL or
+ * source does (a re-encrypted password changes it too, which is harmless).
+ * Only the hash leaves the database.
+ */
+export const PLAYLIST_SOURCE_FINGERPRINT_SQL = `md5(concat_ws(chr(31), "source"::text, "serverUrl", "username", "password", coalesce("m3uUrl", '')))`;
+
+/**
+ * Read a playlist straight from the database, never from the credential
+ * cache, together with its source fingerprint taken in the same statement.
+ * Long-running work (the catalogue sync) uses it so it cannot run on
+ * credentials that an edit has already replaced.
+ */
+export async function readPlaylistSnapshot(
+	userId: string,
+	playlistId: string,
+): Promise<{ playlist: DecryptedPlaylist; fingerprint: string } | null> {
+	const rows = await prisma.$queryRawUnsafe<
+		Array<StoredPlaylist & { fingerprint: string }>
+	>(
+		`SELECT "id", "source"::text AS "source", "serverUrl", "username", "password",
+		        "playlistName", "m3uUrl", ${PLAYLIST_SOURCE_FINGERPRINT_SQL} AS "fingerprint"
+		 FROM "playlist" WHERE "id" = $1 AND "userId" = $2 LIMIT 1`,
+		playlistId,
+		userId,
+	);
+	const row = rows[0];
+	const playlist = row ? decryptPlaylist(row) : null;
+	return row && playlist ? { playlist, fingerprint: row.fingerprint } : null;
 }
 
 export async function getPlaylistById(playlistId: string) {
