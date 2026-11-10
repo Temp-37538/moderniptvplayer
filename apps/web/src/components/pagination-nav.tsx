@@ -15,12 +15,14 @@ function PageLink({
 	label,
 	children,
 	iconOnly = false,
+	className,
 }: {
 	href: Route;
 	enabled: boolean;
 	label: string;
 	children: React.ReactNode;
 	iconOnly?: boolean;
+	className?: string;
 }) {
 	const size = iconOnly ? "icon-sm" : "sm";
 	if (!enabled) {
@@ -30,6 +32,7 @@ function PageLink({
 				size={size}
 				disabled
 				aria-label={iconOnly ? label : undefined}
+				className={className}
 			>
 				{children}
 			</Button>
@@ -41,6 +44,7 @@ function PageLink({
 			variant="outline"
 			size={size}
 			aria-label={iconOnly ? label : undefined}
+			className={className}
 			render={<Link href={href} />}
 		>
 			{children}
@@ -64,13 +68,14 @@ export function PaginationNav({
 	return (
 		<nav
 			aria-label="Pagination"
-			className="flex items-center justify-center gap-2 mt-8"
+			className="mt-8 flex items-center justify-center gap-1.5 sm:gap-2"
 		>
 			<PageLink
 				href={pageHref(1)}
 				enabled={hasPreviousPage}
 				label="First page"
 				iconOnly
+				className="hidden sm:inline-flex"
 			>
 				<ChevronsLeft className="size-4" />
 			</PageLink>
@@ -84,7 +89,7 @@ export function PaginationNav({
 			</PageLink>
 			<span
 				aria-current="page"
-				className="px-3 py-1 text-sm text-muted-foreground tabular-nums"
+				className="whitespace-nowrap px-2 py-1 text-sm text-muted-foreground tabular-nums sm:px-3"
 			>
 				Page {currentPage} of {lastPage}
 			</span>
@@ -101,6 +106,7 @@ export function PaginationNav({
 				enabled={hasNextPage}
 				label="Last page"
 				iconOnly
+				className="hidden sm:inline-flex"
 			>
 				<ChevronsRight className="size-4" />
 			</PageLink>
