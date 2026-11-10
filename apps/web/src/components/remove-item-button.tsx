@@ -20,21 +20,27 @@ export function RemoveItemButton({
 	variant,
 }: RemoveItemButtonProps) {
 	const [isPending, startTransition] = useTransition();
+	const listName = variant === "watchlater" ? "Watch Later" : "Favorites";
+
+	// Removing and restoring are the same toggle.
+	function toggle() {
+		return variant === "watchlater"
+			? toggleWatchLater(playlistId, itemId, itemType, itemName, itemUrl)
+			: toggleFavorite(playlistId, itemId, itemType, itemName, itemUrl);
+	}
+
+	// The row is gone once removed, so the undo does not rely on its state.
+	function handleUndo() {
+		toggle().catch(() => toast.error(`Unable to restore ${itemName}`));
+	}
 
 	function handleRemove() {
 		startTransition(async () => {
 			try {
-				if (variant === "watchlater") {
-					await toggleWatchLater(
-						playlistId,
-						itemId,
-						itemType,
-						itemName,
-						itemUrl,
-					);
-				} else {
-					await toggleFavorite(playlistId, itemId, itemType, itemName, itemUrl);
-				}
+				await toggle();
+				toast.success(`Removed ${itemName} from ${listName}`, {
+					action: { label: "Undo", onClick: handleUndo },
+				});
 			} catch {
 				toast.error(`Unable to remove ${itemName}`);
 			}

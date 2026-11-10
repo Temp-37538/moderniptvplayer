@@ -108,6 +108,9 @@ function CategorySearchBase({
 		try {
 			await toggleCategoryHidden(id, kind, category.id);
 			router.refresh();
+			toast.success(`${category.name} hidden`, {
+				action: { label: "Undo", onClick: () => onUnhide(category) },
+			});
 		} catch {
 			setVisible(previousVisible);
 			setHidden(previousHidden);
