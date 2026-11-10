@@ -417,6 +417,21 @@ for (const item of playbackKinds) {
 		assertNoUpstream(state);
 	});
 
+	test(`a listing row from another category does not open ${item.article} ${item.label}`, async () => {
+		const state = installState();
+		state.hiddenIds = new Set([HIDDEN]);
+		restrict(state);
+		useDetail(state, item, []);
+		state.findCatalog = () => ({
+			id: item.membershipId,
+			categoryIds: [HIDDEN],
+		});
+
+		const denied = await playItem(state, item, VISIBLE);
+		assertDenied(denied.response, denied.text);
+		assertNoUpstream(state);
+	});
+
 	test(`listing row categories still reach the adult lock for ${item.article} ${item.label}`, async () => {
 		const state = installState();
 		state.lockAdult = true;
@@ -424,7 +439,7 @@ for (const item of playbackKinds) {
 		useDetail(state, item, []);
 		state.findCatalog = () => ({
 			id: item.membershipId,
-			categoryId: ADULT,
+			categoryIds: [VISIBLE, ADULT],
 		});
 
 		const denied = await playItem(state, item, VISIBLE);

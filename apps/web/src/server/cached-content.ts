@@ -13,6 +13,7 @@ import {
 	type CategoryKind,
 	findMembershipRow,
 	type MembershipRow,
+	resolveMembershipRow,
 	toMembershipRows,
 } from "@/server/category-preference-policy";
 import { M3U_MAX_ENTRIES } from "@/server/m3u";
@@ -428,19 +429,20 @@ export async function getCachedCatalogMembership(
 	}
 	const playlist = await resolvePlaylist(userId, playlistId);
 
-	// Use the active generation when available. Missing tables or an unavailable
-	// index must not block playback: the existing provider lookup remains the
-	// authoritative fallback for entries not present in the snapshot.
-	try {
-		const syncRows = await prisma.$queryRawUnsafe<
-			Array<{ activeSyncId: string | null }>
-		>(
-			`SELECT "activeSyncId" FROM "catalog_sync"
-			 WHERE "playlistId" = $1 LIMIT 1`,
-			playlistId,
-		);
-		const activeSyncId = syncRows[0]?.activeSyncId;
-		if (activeSyncId) {
+	return resolveMembershipRow({
+		categoryId,
+		readIndexed: async () => {
+			const syncRows = await prisma.$queryRawUnsafe<
+				Array<{ activeSyncId: string | null }>
+			>(
+				`SELECT "activeSyncId" FROM "catalog_sync"
+				 WHERE "playlistId" = $1 LIMIT 1`,
+				playlistId,
+			);
+			const activeSyncId = syncRows[0]?.activeSyncId;
+			if (!activeSyncId) {
+				return null;
+			}
 			const indexedRows = await prisma.$queryRawUnsafe<
 				Array<{ itemId: string; categoryIds: string[] }>
 			>(
@@ -454,29 +456,26 @@ export async function getCachedCatalogMembership(
 				itemId,
 			);
 			const indexed = indexedRows[0];
-			if (indexed) {
-				return {
-					id: indexed.itemId,
-					categoryIds: indexed.categoryIds,
-				};
+			return indexed
+				? { id: indexed.itemId, categoryIds: indexed.categoryIds }
+				: null;
+		},
+		readListing: async () => {
+			if (playlist.source === "M3U") {
+				// The parsed M3U catalog already lives in memory, so there is
+				// nothing worth caching again: read the category slice and keep
+				// the one row.
+				const items: Array<{ id?: string }> =
+					kind === "movie"
+						? await m3uMovies(playlist, categoryId, 1, M3U_MAX_ENTRIES)
+						: await m3uShows(playlist, categoryId, 1, M3U_MAX_ENTRIES);
+				const found = items.find((item) => item.id === itemId);
+				return found ? (toMembershipRows([found])[0] ?? null) : null;
 			}
-		}
-	} catch {
-		// If the additive schema is not deployed yet, use the legacy provider path.
-	}
-
-	if (playlist.source === "M3U") {
-		// The parsed M3U catalog already lives in memory, so there is nothing
-		// worth caching again: read the category slice and keep the one row.
-		const items: Array<{ id?: string }> =
-			kind === "movie"
-				? await m3uMovies(playlist, categoryId, 1, M3U_MAX_ENTRIES)
-				: await m3uShows(playlist, categoryId, 1, M3U_MAX_ENTRIES);
-		const found = items.find((item) => item.id === itemId);
-		return found ? (toMembershipRows([found])[0] ?? null) : null;
-	}
-	return findMembershipRow(
-		await loadXtreamMembershipRows(userId, playlistId, kind, categoryId),
-		itemId,
-	);
+			return findMembershipRow(
+				await loadXtreamMembershipRows(userId, playlistId, kind, categoryId),
+				itemId,
+			);
+		},
+	});
 }

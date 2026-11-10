@@ -5,6 +5,7 @@ import {
 	isCategorySetBlocked,
 	itemOpenAllowed,
 	provenCategoryIds,
+	resolveMembershipRow,
 	toMembershipRows,
 } from "./category-preference-policy.ts";
 
@@ -67,12 +68,35 @@ test("without detail categories one listing row is the proof", async () => {
 		return Promise.resolve({ id: "m1", categoryIds: [OTHER] });
 	};
 
-	assert.deepEqual(await provenCategoryIds({}, VISIBLE, listing), [
-		VISIBLE,
-		OTHER,
-	]);
-	assert.equal(reads, 1);
 	assert.deepEqual(await provenCategoryIds(null, OTHER, listing), [OTHER]);
+	assert.equal(reads, 1);
+	assert.deepEqual(
+		await provenCategoryIds({}, VISIBLE, () =>
+			Promise.resolve({ id: "m1", categoryIds: [] }),
+		),
+		[VISIBLE],
+	);
+});
+
+test("a listing row from another category does not prove the requested one", async () => {
+	assert.equal(
+		await provenCategoryIds({}, VISIBLE, () =>
+			Promise.resolve({ id: "m1", categoryIds: [HIDDEN] }),
+		),
+		null,
+	);
+
+	const { restricted, isAvailable } = account({ hidden: [HIDDEN] });
+	assert.equal(
+		await itemOpenAllowed({
+			restricted,
+			item: {},
+			categoryId: VISIBLE,
+			loadListing: () => Promise.resolve({ id: "m1", categoryIds: [HIDDEN] }),
+			isAvailable,
+		}),
+		false,
+	);
 });
 
 test("a missing or failing listing denies", async () => {
@@ -168,7 +192,8 @@ test("the adult lock sees every real category of the title", async () => {
 			restricted,
 			item: {},
 			categoryId: VISIBLE,
-			loadListing: () => Promise.resolve({ id: "m1", categoryIds: [ADULT] }),
+			loadListing: () =>
+				Promise.resolve({ id: "m1", categoryIds: [VISIBLE, ADULT] }),
 			isAvailable,
 		}),
 		false,
@@ -221,4 +246,49 @@ test("membership rows keep only the id and the categories", () => {
 		categoryIds: [OTHER, VISIBLE],
 	});
 	assert.equal(findMembershipRow(rows, "missing"), null);
+});
+
+test("an index row for the requested category skips the provider listing", async () => {
+	const row = await resolveMembershipRow({
+		categoryId: VISIBLE,
+		readIndexed: () => Promise.resolve({ id: "m1", categoryIds: [VISIBLE] }),
+		readListing: neverListed as () => Promise<null>,
+	});
+	assert.deepEqual(row, { id: "m1", categoryIds: [VISIBLE] });
+});
+
+test("an index row for another category falls back to the provider listing", async () => {
+	const { restricted, isAvailable } = account({ hidden: [HIDDEN] });
+	const indexedInHidden = () =>
+		Promise.resolve({ id: "m1", categoryIds: [HIDDEN] });
+	const open = (
+		listing: () => Promise<{ id: string; categoryIds: string[] } | null>,
+	) =>
+		itemOpenAllowed({
+			restricted,
+			item: null,
+			categoryId: VISIBLE,
+			loadListing: () =>
+				resolveMembershipRow({
+					categoryId: VISIBLE,
+					readIndexed: indexedInHidden,
+					readListing: listing,
+				}),
+			isAvailable,
+		});
+
+	assert.equal(
+		await open(() => Promise.resolve({ id: "m1", categoryIds: [VISIBLE] })),
+		true,
+	);
+	assert.equal(await open(() => Promise.resolve(null)), false);
+});
+
+test("an unreadable index falls back to the provider listing", async () => {
+	const row = await resolveMembershipRow({
+		categoryId: VISIBLE,
+		readIndexed: () => Promise.reject(new Error("no table")),
+		readListing: () => Promise.resolve({ id: "m1", categoryIds: [VISIBLE] }),
+	});
+	assert.deepEqual(row, { id: "m1", categoryIds: [VISIBLE] });
 });
