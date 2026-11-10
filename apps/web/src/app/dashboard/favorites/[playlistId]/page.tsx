@@ -46,7 +46,7 @@ async function FavoritesContent({ params }: PageProps) {
 		<PageContainer width="narrow">
 			<PageHeader
 				title="Favorites"
-				description={`${playlist.playlistName} - ${items.length} item${items.length !== 1 ? "s" : ""}`}
+				description={`${playlist.playlistName} · ${items.length} item${items.length !== 1 ? "s" : ""}`}
 			/>
 			{items.length === 0 ? (
 				<div className="flex min-h-[60vh] items-center justify-center">

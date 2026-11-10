@@ -5,6 +5,10 @@ import { Clock, Heart } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 
+const savedDateFormatter = new Intl.DateTimeFormat("en", {
+	dateStyle: "medium",
+});
+
 const typeLabels: Record<string, string> = {
 	channel: "Channel",
 	movie: "Movie",
@@ -43,36 +47,36 @@ export function SavedItemsList({
 	}
 
 	return (
-		<div className="space-y-2">
+		<ul className="divide-y divide-border/70 overflow-hidden rounded-xl border border-border/70">
 			{items.map((item) => (
-				<div
+				<li
 					key={item.id}
-					className="ml-4 flex items-center gap-4 py-3 border-b border-border/40 last:border-b-0 hover:bg-muted/20 transition-colors -mx-1 px-1"
+					className="group relative flex items-center gap-4 px-4 py-3 transition-colors hover:bg-muted/40 sm:px-5"
 				>
-					<Link
-						href={item.itemUrl as Route}
-						className="flex items-center gap-4 flex-1 min-w-0"
-					>
-						<div className="flex-1 min-w-0">
-							<h3 className="text-xs font-medium leading-tight truncate">
-								{item.itemName}
-							</h3>
-							<p className="text-[0.7rem] text-muted-foreground mt-0.5">
-								{typeLabels[item.itemType] ?? item.itemType} -{" "}
-								{new Date(item.createdAt).toLocaleDateString()}
-							</p>
-						</div>
-					</Link>
-					<RemoveItemButton
-						itemId={item.itemId}
-						itemType={item.itemType as ItemType}
-						itemName={item.itemName}
-						itemUrl={item.itemUrl}
-						playlistId={playlistId}
-						variant={variant}
-					/>
-				</div>
+					<div className="min-w-0 flex-1">
+						<Link
+							href={item.itemUrl as Route}
+							className="block truncate text-sm font-medium outline-none after:absolute after:inset-0 focus-visible:after:ring-3 focus-visible:after:ring-ring/60 focus-visible:after:ring-inset"
+						>
+							{item.itemName}
+						</Link>
+						<p className="mt-0.5 truncate text-xs text-muted-foreground">
+							{typeLabels[item.itemType] ?? item.itemType} · Added{" "}
+							{savedDateFormatter.format(new Date(item.createdAt))}
+						</p>
+					</div>
+					<div className="relative z-10">
+						<RemoveItemButton
+							itemId={item.itemId}
+							itemType={item.itemType as ItemType}
+							itemName={item.itemName}
+							itemUrl={item.itemUrl}
+							playlistId={playlistId}
+							variant={variant}
+						/>
+					</div>
+				</li>
 			))}
-		</div>
+		</ul>
 	);
 }

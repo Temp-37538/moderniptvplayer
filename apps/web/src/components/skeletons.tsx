@@ -338,17 +338,14 @@ export function ContinueWatchingSkeleton({ count = 6 }: { count?: number }) {
 
 export function SavedItemsListSkeleton({ count = 5 }: { count?: number }) {
 	return (
-		<div className="max-w-2xl space-y-6">
+		<div className="max-w-4xl space-y-6">
 			<div className="space-y-2">
-				<Skeleton className="h-8 w-48" />
-				<Skeleton className="h-4 w-32" />
+				<Skeleton className="h-12 w-56" />
+				<Skeleton className="h-4 w-40" />
 			</div>
-			<div className="space-y-2">
+			<div className="divide-y divide-border/70 overflow-hidden rounded-xl border border-border/70">
 				{Array.from({ length: count }).map((_, i) => (
-					<div
-						key={i}
-						className="ml-4 flex items-center gap-4 py-3 border-b border-border/40 last:border-b-0"
-					>
+					<div key={i} className="flex items-center gap-4 px-4 py-3 sm:px-5">
 						<div className="flex-1 space-y-2">
 							<Skeleton className="h-4 w-3/4 max-w-xs" />
 							<Skeleton className="h-3 w-1/2 max-w-50" />
