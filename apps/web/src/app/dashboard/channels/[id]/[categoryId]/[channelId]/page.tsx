@@ -155,7 +155,7 @@ async function ChannelDetailContent({ params }: PageProps) {
 							width={56}
 							height={56}
 							unoptimized
-							className="size-full object-contain p-2"
+							className="size-full object-contain object-left"
 						/>
 					) : (
 						<Radio className="size-6 text-muted-foreground/60" />
