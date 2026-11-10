@@ -592,6 +592,30 @@ export function PlaylistHomeSkeleton() {
 	);
 }
 
+/** The global search page: title, the search field, kind filters. */
+export function GlobalSearchSkeleton() {
+	return (
+		<div className="flex h-full flex-col gap-6">
+			<PageHeaderSkeleton
+				titleWidth="w-40"
+				descriptionWidth="w-72 max-w-full"
+			/>
+			<div className="space-y-4">
+				<Skeleton className="h-12 w-full max-w-3xl rounded-lg" />
+				<div className="flex flex-wrap gap-2">
+					{["w-11", "w-20", "w-18", "w-16"].map((width, i) => (
+						<Skeleton
+							key={i}
+							className={cn("h-[2.375rem] rounded-full", width)}
+						/>
+					))}
+				</div>
+				<TextLine line="h-5" className="h-3.5 w-56" />
+			</div>
+		</div>
+	);
+}
+
 interface AuthSuspenseProps {
 	path: string;
 }
