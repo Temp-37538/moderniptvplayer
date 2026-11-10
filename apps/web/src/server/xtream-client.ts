@@ -299,6 +299,44 @@ export class SafeXtream {
 		};
 	}
 
+	/**
+	 * Whole listing of one kind for the catalogue sync, serialized a chunk at
+	 * a time. Unlike the browsing methods it bypasses the shared response
+	 * cache, so the raw listing is not kept for a minute after the sync, it
+	 * skips the stream URLs the index never stores, and it drops each raw item
+	 * once its chunk is serialized so only one kind's listing is ever held.
+	 */
+	async *iterateCatalog(
+		kind: "channels" | "movies" | "shows",
+		chunkSize: number,
+	): AsyncGenerator<unknown[]> {
+		const action =
+			kind === "channels"
+				? "get_live_streams"
+				: kind === "movies"
+					? "get_vod_streams"
+					: "get_series";
+		const url = `${this.baseUrl}/player_api.php?username=${enc(
+			this.#username,
+		)}&password=${enc(this.#password)}&action=${action}`;
+		const data = await safeFetchJson(url, {
+			allowPrivateHosts: this.#allowPrivateHosts,
+			...(this.#timeoutMs ? { timeoutMs: this.#timeoutMs } : {}),
+		});
+		if (!Array.isArray(data)) {
+			throw new Error("Unexpected response from playlist server");
+		}
+		const all = data as Array<RawRecord | undefined>;
+		const size = Math.max(1, Math.floor(chunkSize));
+		for (let start = 0; start < all.length; start += size) {
+			const end = Math.min(start + size, all.length);
+			const chunk = all.slice(start, end);
+			// Let the raw objects of this chunk be collected once serialized.
+			all.fill(undefined, start, end);
+			yield this.#serialize(kind, chunk) as unknown[];
+		}
+	}
+
 	async getChannels({ categoryId, page, limit }: ListOptions = {}) {
 		await this.#ensureProfile();
 		const all = await this.#getList("get_live_streams", categoryId);

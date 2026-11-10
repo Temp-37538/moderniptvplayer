@@ -9,6 +9,8 @@ import {
 	SEARCH_QUERY_MAX,
 	SYNC_LOCK_MS,
 	SYNC_RETRY_COOLDOWN_MS,
+	SYNC_TIMEOUT_MS,
+	buildCatalogSearchQuery,
 	decideSync,
 	normalizeSearchText,
 	parseSearchTokens,
@@ -350,4 +352,65 @@ test("decides when to build, serve, refresh, or report unavailable", () => {
 		),
 		"serve-and-refresh",
 	);
+});
+
+test("the sync lock outlives the sync timeout", () => {
+	assert.ok(SYNC_LOCK_MS > SYNC_TIMEOUT_MS);
+});
+
+test("one id set deduplicates a listing across chunks", () => {
+	const seenIds = new Set<string>();
+	const first = toCatalogRows(
+		"movie",
+		[{ id: "m1", name: "Heat", categoryIds: ["c1"] }],
+		seenIds,
+	);
+	const second = toCatalogRows(
+		"movie",
+		[
+			{ id: "m1", name: "Heat again", categoryIds: ["c1"] },
+			{ id: "m2", name: "Ronin", categoryIds: ["c1"] },
+		],
+		seenIds,
+	);
+	assert.deepEqual(
+		[...first, ...second].map((row) => row.itemId),
+		["m1", "m2"],
+	);
+});
+
+test("the search query filters and ranks in SQL with parameters only", () => {
+	const { sql, params } = buildCatalogSearchQuery({
+		playlistId: "p1",
+		activeSyncId: "s1",
+		kind: "movie",
+		tokens: ["dark", "o'knight"],
+		hiddenIds: new Set(["h1", "h2"]),
+		adultIds: new Set(["a1"]),
+		limit: 20,
+	});
+
+	assert.deepEqual(params, [
+		"p1",
+		"s1",
+		"movie",
+		JSON.stringify(["h1", "h2"]),
+		JSON.stringify(["a1"]),
+		"dark o'knight",
+		"dark",
+		20,
+		"dark",
+		"o'knight",
+	]);
+	for (const value of ["p1", "s1", "h1", "a1", "dark", "knight"]) {
+		assert.equal(sql.includes(value), false, value);
+	}
+	assert.match(
+		sql,
+		/strpos\("normalizedName", \$9\) > 0 AND strpos\("normalizedName", \$10\) > 0/,
+	);
+	assert.match(sql, /NOT \("categoryIds" <@ /);
+	assert.match(sql, /NOT \("categoryIds" && /);
+	assert.ok(sql.indexOf("ORDER BY") < sql.indexOf("LIMIT $8"));
+	assert.ok(sql.indexOf("NOT (") < sql.indexOf("LIMIT $8"));
 });
