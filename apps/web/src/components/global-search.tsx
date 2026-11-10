@@ -221,7 +221,7 @@ export function GlobalSearch({
 			: displayedStatus === "loading"
 				? "Searching..."
 				: displayedStatus === "building"
-					? "Building the index, this can take a few minutes"
+					? ""
 					: displayedStatus === "unavailable"
 						? "The index is temporarily unavailable."
 						: displayedStatus === "error"
@@ -291,12 +291,12 @@ export function GlobalSearch({
 						description="Use at least 2 characters to search your entire playlist."
 					/>
 				) : displayedStatus === "building" || displayedStatus === "loading" ? (
-					<div className="flex items-center gap-3 py-8 text-sm text-muted-foreground">
+					<output className="flex items-center gap-3 py-8 text-sm text-muted-foreground">
 						<span className="size-4 animate-spin rounded-full border-2 border-current border-r-transparent" />
 						{displayedStatus === "building"
 							? "Building the index, this can take a few minutes"
 							: "Searching..."}
-					</div>
+					</output>
 				) : displayedStatus === "unavailable" ? (
 					<div className="flex flex-col items-start gap-3 py-8">
 						<p className="text-sm text-muted-foreground">
