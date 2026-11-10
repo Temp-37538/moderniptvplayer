@@ -62,7 +62,8 @@ async function PlaylistSubscriptionStatus({
 		const { tone, text } = describeSubscription(status, Date.now());
 		return <StatusText tone={tone}>{text}</StatusText>;
 	} catch {
-		return <StatusText tone="problem">Status unavailable</StatusText>;
+		// Unknown is not a problem with the subscription: keep it muted.
+		return <span title="The provider did not answer">Status unavailable</span>;
 	}
 }
 
