@@ -1,4 +1,5 @@
 import "server-only";
+import prisma from "@moderniptvplayer/db";
 import type {
 	StandardXtreamCategory,
 	StandardXtreamChannel,
@@ -12,6 +13,7 @@ import {
 	type CategoryKind,
 	findMembershipRow,
 	type MembershipRow,
+	resolveMembershipRow,
 	toMembershipRows,
 } from "@/server/category-preference-policy";
 import { M3U_MAX_ENTRIES } from "@/server/m3u";
@@ -426,18 +428,54 @@ export async function getCachedCatalogMembership(
 		return null;
 	}
 	const playlist = await resolvePlaylist(userId, playlistId);
-	if (playlist.source === "M3U") {
-		// The parsed M3U catalog already lives in memory, so there is nothing
-		// worth caching again: read the category slice and keep the one row.
-		const items: Array<{ id?: string }> =
-			kind === "movie"
-				? await m3uMovies(playlist, categoryId, 1, M3U_MAX_ENTRIES)
-				: await m3uShows(playlist, categoryId, 1, M3U_MAX_ENTRIES);
-		const found = items.find((item) => item.id === itemId);
-		return found ? (toMembershipRows([found])[0] ?? null) : null;
-	}
-	return findMembershipRow(
-		await loadXtreamMembershipRows(userId, playlistId, kind, categoryId),
-		itemId,
-	);
+
+	return resolveMembershipRow({
+		categoryId,
+		readIndexed: async () => {
+			const syncRows = await prisma.$queryRawUnsafe<
+				Array<{ activeSyncId: string | null }>
+			>(
+				`SELECT "activeSyncId" FROM "catalog_sync"
+				 WHERE "playlistId" = $1 LIMIT 1`,
+				playlistId,
+			);
+			const activeSyncId = syncRows[0]?.activeSyncId;
+			if (!activeSyncId) {
+				return null;
+			}
+			const indexedRows = await prisma.$queryRawUnsafe<
+				Array<{ itemId: string; categoryIds: string[] }>
+			>(
+				`SELECT "itemId", "categoryIds" FROM "catalog_entry"
+				 WHERE "playlistId" = $1 AND "syncId" = $2
+				   AND "kind" = $3 AND "itemId" = $4
+				 LIMIT 1`,
+				playlistId,
+				activeSyncId,
+				kind,
+				itemId,
+			);
+			const indexed = indexedRows[0];
+			return indexed
+				? { id: indexed.itemId, categoryIds: indexed.categoryIds }
+				: null;
+		},
+		readListing: async () => {
+			if (playlist.source === "M3U") {
+				// The parsed M3U catalog already lives in memory, so there is
+				// nothing worth caching again: read the category slice and keep
+				// the one row.
+				const items: Array<{ id?: string }> =
+					kind === "movie"
+						? await m3uMovies(playlist, categoryId, 1, M3U_MAX_ENTRIES)
+						: await m3uShows(playlist, categoryId, 1, M3U_MAX_ENTRIES);
+				const found = items.find((item) => item.id === itemId);
+				return found ? (toMembershipRows([found])[0] ?? null) : null;
+			}
+			return findMembershipRow(
+				await loadXtreamMembershipRows(userId, playlistId, kind, categoryId),
+				itemId,
+			);
+		},
+	});
 }

@@ -198,8 +198,9 @@ export function readCategoryIds(value: unknown): string[] {
 
 /**
  * Detail category ids are authoritative when they exist. An empty detail, or
- * a detail the serializer cannot read, is membership only when one
- * category-scoped catalog row exists. The returned ids are every real
+ * a detail the serializer cannot read, is membership only when one catalog
+ * row lists the requested category, or has no category at all and comes from
+ * a category-scoped lookup. The returned ids are every real
  * category the adult lock must see. `null` denies the request.
  */
 export async function provenCategoryIds(
@@ -227,7 +228,11 @@ export async function provenCategoryIds(
 	if (listedIds.includes(requestedCategoryId)) {
 		return listedIds;
 	}
-	return [requestedCategoryId, ...listedIds];
+	// A row that names other categories is not proof for the requested one,
+	// even if the lookup was scoped to it: the catalogue index returns rows
+	// regardless of the category asked for. Only a row without any category
+	// relies on the category-scoped lookup that found it.
+	return listedIds.length === 0 ? [requestedCategoryId] : null;
 }
 
 /**
@@ -281,6 +286,29 @@ export function findMembershipRow(
 	itemId: string,
 ): MembershipRow | null {
 	return rows.find((row) => row.id === itemId) ?? null;
+}
+
+/**
+ * The catalogue index is not scoped to a category, so its row proves
+ * membership only when it lists the requested category. Otherwise (no row,
+ * another category, or an unreadable index) the provider listing of the
+ * requested category stays the authority.
+ */
+export async function resolveMembershipRow(input: {
+	categoryId: string;
+	readIndexed: () => Promise<MembershipRow | null>;
+	readListing: () => Promise<MembershipRow | null>;
+}): Promise<MembershipRow | null> {
+	let indexed: MembershipRow | null = null;
+	try {
+		indexed = await input.readIndexed();
+	} catch {
+		// A missing or unavailable index falls back to the provider listing.
+	}
+	if (indexed?.categoryIds.includes(input.categoryId)) {
+		return indexed;
+	}
+	return input.readListing();
 }
 
 export function readEpisodeIds(value: unknown): string[] {
