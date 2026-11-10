@@ -54,7 +54,8 @@ async function SettingsContent({ params }: { params: Params }) {
 	return (
 		<HydrationBoundary state={dehydrate(queryClient)}>
 			<div className="w-full max-w-3xl mx-auto pb-6">
-				<Settings path={path} />
+				{/* Tabs above the panel on phones, beside it from md up. */}
+				<Settings path={path} className="max-md:flex-col" />
 			</div>
 		</HydrationBoundary>
 	);
