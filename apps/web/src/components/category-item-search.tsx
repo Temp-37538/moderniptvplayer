@@ -270,36 +270,35 @@ export function CategoryItemSearch({
 						/>
 					)
 				) : section === "channels" ? (
-					<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+					<ul className="grid grid-cols-2 gap-x-4 gap-y-6 min-[480px]:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8">
 						{items.map((item) => {
 							const safeLogoSrc = toSafeImageSrc(item.logo);
 							return (
-								<Link
-									key={item.id}
-									href={
-										`/dashboard/channels/${playlistId}/${item.categoryId}/${item.id}` as Route
-									}
-									className="group flex items-center gap-4 rounded-xl border border-border/50 bg-card p-4 transition-all duration-200 hover:border-primary/30 hover:bg-accent/50 hover:shadow-lg hover:shadow-primary/5"
-								>
-									<div className="flex items-center justify-center size-12 rounded-lg bg-muted overflow-hidden shrink-0">
-										<ImageWithFallback
-											src={safeLogoSrc}
-											alt={item.name}
-											className="size-full object-contain p-1"
-											fallback={
-												<Radio className="size-5 text-muted-foreground/40" />
-											}
-										/>
-									</div>
-									<div className="flex-1 min-w-0">
-										<h3 className="text-sm font-medium leading-tight line-clamp-1 group-hover:text-primary transition-colors">
+								<li key={item.id}>
+									<Link
+										href={
+											`/dashboard/channels/${playlistId}/${item.categoryId}/${item.id}` as Route
+										}
+										className="group block outline-none"
+									>
+										<div className="flex aspect-video items-center justify-center overflow-hidden rounded-md bg-muted/40 transition-colors group-hover:bg-muted/80 group-focus-visible:ring-2 group-focus-visible:ring-ring">
+											<ImageWithFallback
+												src={safeLogoSrc}
+												alt=""
+												className="size-full object-contain p-[18%]"
+												fallback={
+													<Radio className="size-6 text-muted-foreground/50" />
+												}
+											/>
+										</div>
+										<h3 className="mt-2 truncate text-sm font-medium">
 											{item.name}
 										</h3>
-									</div>
-								</Link>
+									</Link>
+								</li>
 							);
 						})}
-					</div>
+					</ul>
 				) : (
 					<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
 						{items.map((item) => {
