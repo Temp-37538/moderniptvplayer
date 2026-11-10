@@ -19,6 +19,7 @@
     "src/server/m3u-884.test.ts",
     "src/server/m3u-conversion.test.ts",
     "src/server/safe-redirect.test.ts",
-    "src/server/vod-category-route.test.ts"
+    "src/server/vod-category-route.test.ts",
+    "src/server/process-map.test.ts"
   ]
 }

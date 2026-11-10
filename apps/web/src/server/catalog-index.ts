@@ -15,7 +15,12 @@ import {
 	type CatalogSyncPolicyState,
 } from "./catalog-index-policy";
 import { readM3uCatalog } from "./m3u-catalog";
-import { createXtreamClient, getCachedPlaylistByUserAndId } from "./xtream";
+import {
+	createXtreamClient,
+	type DecryptedPlaylist,
+	PLAYLIST_SOURCE_FINGERPRINT_SQL,
+	readPlaylistSnapshot,
+} from "./xtream";
 
 type CatalogSyncRecord = CatalogSyncPolicyState;
 
@@ -27,12 +32,15 @@ type CatalogEntryCandidate = {
 	image: string | null;
 };
 
-type Playlist = NonNullable<
-	Awaited<ReturnType<typeof getCachedPlaylistByUserAndId>>
->;
+type Playlist = DecryptedPlaylist;
 
 class CatalogTooLargeError extends Error {}
 class CatalogSyncTimeoutError extends Error {}
+/**
+ * Another sync or a playlist edit took the lock, or the playlist now reads
+ * another provider, while this sync ran.
+ */
+class CatalogLockLostError extends Error {}
 
 const SYNC_TIMEOUT_MS = 50_000;
 
@@ -128,6 +136,10 @@ export async function syncCatalog(
 	let syncId: string | null = null;
 	let lockAcquired = false;
 	let collecting = true;
+	// Fencing token: every later write of this sync requires it, so a sync
+	// whose row was reset by a playlist edit, or taken over after its lock
+	// expired, can no longer activate its rows or overwrite the status.
+	const lockToken = crypto.randomUUID();
 	let total = 0;
 
 	try {
@@ -142,28 +154,36 @@ export async function syncCatalog(
 		const lockUntil = new Date(now.getTime() + SYNC_LOCK_MS);
 		const lockCount = await prisma.$executeRawUnsafe(
 			`UPDATE "catalog_sync"
-			 SET "status" = 'syncing', "lockedUntil" = $2, "lastAttemptAt" = $3, "updatedAt" = $3
+			 SET "status" = 'syncing', "lockedUntil" = $2, "lastAttemptAt" = $3, "updatedAt" = $3,
+			     "lockToken" = $4
 			 WHERE "playlistId" = $1
 			   AND ("status" <> 'syncing' OR "lockedUntil" < $3)`,
 			playlistId,
 			lockUntil,
 			now,
+			lockToken,
 		);
 		if (lockCount !== 1) {
 			return;
 		}
 		lockAcquired = true;
 
-		const playlist = await getCachedPlaylistByUserAndId(userId, playlistId);
-		if (!playlist) {
+		// Read the credentials fresh, never from the in-memory cache: a stale
+		// copy would index the provider the playlist used before an edit.
+		const snapshot = await readPlaylistSnapshot(userId, playlistId);
+		if (!snapshot) {
 			await prisma.$executeRawUnsafe(
 				`UPDATE "catalog_sync"
-				 SET "status" = 'idle', "lockedUntil" = NULL, "lastError" = NULL, "updatedAt" = CURRENT_TIMESTAMP
-				 WHERE "playlistId" = $1`,
+				 SET "status" = 'idle', "lockedUntil" = NULL, "lockToken" = NULL,
+				     "lastError" = NULL, "updatedAt" = CURRENT_TIMESTAMP
+				 WHERE "playlistId" = $1 AND "lockToken" = $2`,
 				playlistId,
+				lockToken,
 			);
 			return;
 		}
+
+		const { playlist, fingerprint } = snapshot;
 
 		const remainingMs = SYNC_TIMEOUT_MS - (Date.now() - startedAt);
 		if (remainingMs <= 0) {
@@ -195,23 +215,42 @@ export async function syncCatalog(
 		}
 
 		const syncedAt = new Date();
-		await prisma.$transaction([
+		// Both statements run in one transaction. The activation only matches
+		// while this sync still holds the token and the playlist still reads
+		// the provider this sync fetched, and the cleanup only runs if the
+		// activation did, so a stale sync never replaces a newer index.
+		const [activated] = await prisma.$transaction([
 			prisma.$executeRawUnsafe(
 				`UPDATE "catalog_sync"
 				 SET "activeSyncId" = $2, "status" = 'ready', "syncedAt" = $3,
-				     "itemCount" = $4, "lastError" = NULL, "lockedUntil" = NULL, "updatedAt" = $3
-				 WHERE "playlistId" = $1`,
+				     "itemCount" = $4, "lastError" = NULL, "lockedUntil" = NULL,
+				     "lockToken" = NULL, "updatedAt" = $3
+				 WHERE "playlistId" = $1 AND "lockToken" = $5
+				   AND EXISTS (
+				     SELECT 1 FROM "playlist"
+				     WHERE "id" = $1 AND ${PLAYLIST_SOURCE_FINGERPRINT_SQL} = $6
+				   )`,
 				playlistId,
 				syncId,
 				syncedAt,
 				total,
+				lockToken,
+				fingerprint,
 			),
 			prisma.$executeRawUnsafe(
-				`DELETE FROM "catalog_entry" WHERE "playlistId" = $1 AND "syncId" <> $2`,
+				`DELETE FROM "catalog_entry"
+				 WHERE "playlistId" = $1 AND "syncId" <> $2
+				   AND EXISTS (
+				     SELECT 1 FROM "catalog_sync"
+				     WHERE "playlistId" = $1 AND "activeSyncId" = $2
+				   )`,
 				playlistId,
 				syncId,
 			),
 		]);
+		if (activated !== 1) {
+			throw new CatalogLockLostError();
+		}
 
 		console.info("[catalog-index] synced", {
 			playlistId,
@@ -230,14 +269,31 @@ export async function syncCatalog(
 				// Keep the previous active generation intact.
 			}
 		}
-		if (lockAcquired) {
+		if (lockAcquired && error instanceof CatalogLockLostError) {
+			// Release the lock if it is still ours (the playlist changed under
+			// this sync), so the next search rebuilds right away.
 			try {
 				await prisma.$executeRawUnsafe(
 					`UPDATE "catalog_sync"
-					 SET "status" = 'failed', "lastError" = $2, "lockedUntil" = NULL, "updatedAt" = CURRENT_TIMESTAMP
-					 WHERE "playlistId" = $1`,
+					 SET "status" = 'idle', "lockedUntil" = NULL, "lockToken" = NULL,
+					     "updatedAt" = CURRENT_TIMESTAMP
+					 WHERE "playlistId" = $1 AND "lockToken" = $2`,
+					playlistId,
+					lockToken,
+				);
+			} catch {
+				// The lock expires on its own.
+			}
+		} else if (lockAcquired) {
+			try {
+				await prisma.$executeRawUnsafe(
+					`UPDATE "catalog_sync"
+					 SET "status" = 'failed', "lastError" = $2, "lockedUntil" = NULL,
+					     "lockToken" = NULL, "updatedAt" = CURRENT_TIMESTAMP
+					 WHERE "playlistId" = $1 AND "lockToken" = $3`,
 					playlistId,
 					errorCode(error, collecting),
+					lockToken,
 				);
 			} catch {
 				// The index remains unavailable or the previous generation stays active.
@@ -368,22 +424,45 @@ export async function searchCatalog(input: {
 	return resultsByKind.flat();
 }
 
+/**
+ * Drop the index of a playlist whose source changed. Deleting the sync row
+ * also drops the lock token, so a sync still running for the old source
+ * cannot activate its rows afterwards. Never throws: a playlist edit must not
+ * fail because of the index.
+ */
 export async function forgetCatalogIndex(playlistId: string): Promise<void> {
-	await prisma.$executeRawUnsafe(
-		`DELETE FROM "catalog_entry" WHERE "playlistId" = $1`,
-		playlistId,
-	);
-	await prisma.$executeRawUnsafe(
-		`DELETE FROM "catalog_sync" WHERE "playlistId" = $1`,
-		playlistId,
-	);
+	try {
+		await prisma.$transaction([
+			prisma.$executeRawUnsafe(
+				`DELETE FROM "catalog_sync" WHERE "playlistId" = $1`,
+				playlistId,
+			),
+			prisma.$executeRawUnsafe(
+				`DELETE FROM "catalog_entry" WHERE "playlistId" = $1`,
+				playlistId,
+			),
+		]);
+	} catch (error) {
+		console.error(
+			"[catalog-index] forget failed",
+			error instanceof Error ? error.name : "unknown",
+		);
+	}
 }
 
+/** Never throws, for the same reason as forgetCatalogIndex. */
 export async function markCatalogStale(playlistId: string): Promise<void> {
-	await prisma.$executeRawUnsafe(
-		`UPDATE "catalog_sync" SET "syncedAt" = $2, "updatedAt" = CURRENT_TIMESTAMP
-		 WHERE "playlistId" = $1`,
-		playlistId,
-		new Date(0),
-	);
+	try {
+		await prisma.$executeRawUnsafe(
+			`UPDATE "catalog_sync" SET "syncedAt" = $2, "updatedAt" = CURRENT_TIMESTAMP
+			 WHERE "playlistId" = $1`,
+			playlistId,
+			new Date(0),
+		);
+	} catch (error) {
+		console.error(
+			"[catalog-index] mark stale failed",
+			error instanceof Error ? error.name : "unknown",
+		);
+	}
 }
