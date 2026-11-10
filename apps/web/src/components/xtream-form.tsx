@@ -61,7 +61,7 @@ export function XtreamCodesForm() {
 						required
 						defaultValue={state.inputs?.username ?? ""}
 						minLength={1}
-						maxLength={40}
+						maxLength={128}
 						autoComplete="off"
 						aria-invalid={Boolean(state.errors.properties?.username)}
 						aria-describedby={
@@ -100,7 +100,7 @@ export function XtreamCodesForm() {
 						defaultValue={state.inputs?.password ?? ""}
 						required
 						minLength={1}
-						maxLength={100}
+						maxLength={256}
 						autoComplete="new-password"
 						aria-invalid={Boolean(state.errors.properties?.password)}
 						aria-describedby={
@@ -138,9 +138,10 @@ export function XtreamCodesForm() {
 						id="xtream-serverUrl"
 						name="serverUrl"
 						required
+						maxLength={2048}
 						autoComplete="url"
 						defaultValue={state.inputs?.serverUrl ?? ""}
-						aria-describedby="serverUrl-error"
+						aria-describedby="xtream-serverUrl-error"
 						placeholder="http://example.com:8080"
 						className={cn(
 							"pl-10 h-12 bg-secondary border-border text-foreground placeholder:text-muted-foreground",
@@ -171,7 +172,7 @@ export function XtreamCodesForm() {
 						name="playlistName"
 						required
 						minLength={1}
-						maxLength={50}
+						maxLength={100}
 						autoComplete="playlist-name"
 						defaultValue={state.inputs?.playlistName ?? ""}
 						aria-describedby="playlistName-error"
