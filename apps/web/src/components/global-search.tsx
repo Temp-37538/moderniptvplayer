@@ -9,8 +9,15 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 const SEARCH_DEBOUNCE_MS = 300;
-const SEARCH_POLL_INTERVAL_MS = 2_000;
-const SEARCH_MAX_POLLS = 30;
+// Poll for as long as a first sync may run. Mirrors SYNC_TIMEOUT_MS in
+// server/catalog-index-policy.ts, which is not imported here to keep the
+// server policy (and the adult category rules it pulls in) out of the client
+// bundle. 5 s keeps polling at 12 requests a minute, well under the route's
+// limit of 30 per user.
+const SEARCH_POLL_WINDOW_MS = 300_000;
+const SEARCH_POLL_INTERVAL_MS = 5_000;
+const SEARCH_MAX_POLLS =
+	Math.ceil(SEARCH_POLL_WINDOW_MS / SEARCH_POLL_INTERVAL_MS) + 1;
 const SEARCH_LIMIT = 20;
 
 type SearchKind = "all" | "channel" | "movie" | "series";
@@ -214,7 +221,7 @@ export function GlobalSearch({
 			: displayedStatus === "loading"
 				? "Searching..."
 				: displayedStatus === "building"
-					? "Building the index, this can take a moment"
+					? ""
 					: displayedStatus === "unavailable"
 						? "The index is temporarily unavailable."
 						: displayedStatus === "error"
@@ -284,12 +291,12 @@ export function GlobalSearch({
 						description="Use at least 2 characters to search your entire playlist."
 					/>
 				) : displayedStatus === "building" || displayedStatus === "loading" ? (
-					<div className="flex items-center gap-3 py-8 text-sm text-muted-foreground">
+					<output className="flex items-center gap-3 py-8 text-sm text-muted-foreground">
 						<span className="size-4 animate-spin rounded-full border-2 border-current border-r-transparent" />
 						{displayedStatus === "building"
-							? "Building the index, this can take a moment"
+							? "Building the index, this can take a few minutes"
 							: "Searching..."}
-					</div>
+					</output>
 				) : displayedStatus === "unavailable" ? (
 					<div className="flex flex-col items-start gap-3 py-8">
 						<p className="text-sm text-muted-foreground">
