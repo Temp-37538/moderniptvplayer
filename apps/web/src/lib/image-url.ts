@@ -4,7 +4,6 @@ function parseUrl(raw: string) {
 	try {
 		return new URL(raw);
 	} catch {
-		console.log("parseUrl: invalid URL:", raw);
 		return undefined;
 	}
 }
@@ -12,7 +11,6 @@ function parseUrl(raw: string) {
 export function toSafeImageSrc(raw: string | undefined): string | undefined {
 	const trimmed = raw?.trim();
 	if (!trimmed) {
-		console.log("toSafeImageSrc: input empty or whitespace:", raw);
 		return undefined;
 	}
 
@@ -24,7 +22,6 @@ export function toSafeImageSrc(raw: string | undefined): string | undefined {
 
 	const parsed = parseUrl(candidate);
 	if (!parsed) {
-		console.log("toSafeImageSrc: parseUrl failed for:", trimmed);
 		return undefined;
 	}
 
@@ -32,10 +29,5 @@ export function toSafeImageSrc(raw: string | undefined): string | undefined {
 		return `${IMAGE_PROXY_PATH}${encodeURIComponent(parsed.toString())}`;
 	}
 
-	console.log(
-		"toSafeImageSrc: unsupported protocol:",
-		parsed.protocol,
-		parsed.toString(),
-	);
 	return undefined;
 }
