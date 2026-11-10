@@ -12,6 +12,7 @@
   },
   "include": [
     "src/lib/continue-watching.test.ts",
+    "src/lib/global-search-timing.test.ts",
     "src/server/category-membership.test.ts",
     "src/server/category-preference-policy.test.ts",
     "src/server/catalog-index-policy.test.ts",
