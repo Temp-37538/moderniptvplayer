@@ -39,8 +39,12 @@ const ADULT_TOKENS = new Set([
 ]);
 
 const STRONG_TOKENS = new Set([
+	"bangbros",
 	"bdsm",
+	"brazzer",
 	"brazzers",
+	"charme",
+	"dorcel",
 	"doroslych",
 	"erotic",
 	"erotica",
@@ -53,18 +57,25 @@ const STRONG_TOKENS = new Set([
 	"erotika",
 	"hardcore",
 	"hentai",
+	"hustler",
 	"milf",
 	"milfs",
 	"nsfw",
 	"onlyfans",
+	"penthouse",
+	"playboy",
 	"porn",
 	"porno",
 	"pornos",
+	"realitykings",
+	"redlight",
 	"redtube",
 	"sexshop",
 	"sexshops",
+	"vivid",
 	"vzroslye",
 	"vzroslyh",
+	"xhamster",
 	"xvideos",
 	"xvideo",
 	"xnxx",
@@ -76,7 +87,17 @@ const STRONG_TOKENS = new Set([
 
 const STRONG_PREFIXES = ["xxx", "porn", "hentai", "erot", "nsfw", "onlyfan"];
 
-const SEX_TOKENS = new Set(["sex", "sexo", "sexy", "sexos", "sexys"]);
+const STRONG_PHRASES = ["bang bros", "naughty america", "reality kings"];
+
+const SEX_TOKENS = new Set([
+	"sex",
+	"sexe",
+	"sexes",
+	"sexo",
+	"sexy",
+	"sexos",
+	"sexys",
+]);
 
 const SEX_CONTEXT = new Set([
 	"4k",
@@ -360,6 +381,26 @@ function hasAgeMarker(normalized: string) {
 		.some((token) => /(?:18\+|21\+|\+18|\+21|fsk18|r18)/.test(token));
 }
 
+/**
+ * A lone "x" is the French and Spanish adult label only next to a media word
+ * ("Films X", "Canal X", "X Movies", "Films X HD"). Both neighbours must be
+ * media words or absent, so "X-Men", "Movies X-Men", "Formula X TV" and a
+ * bare "X" stay allowed.
+ */
+function hasXMarker(tokens: string[]) {
+	return tokens.some((token, index) => {
+		if (token !== "x" || tokens.length === 1) {
+			return false;
+		}
+		const previous = tokens[index - 1];
+		const next = tokens[index + 1];
+		return (
+			(previous === undefined || SEX_CONTEXT.has(previous)) &&
+			(next === undefined || SEX_CONTEXT.has(next))
+		);
+	});
+}
+
 function hasSexMarker(tokens: string[]) {
 	if (!tokens.some((token) => SEX_TOKENS.has(token))) {
 		return false;
@@ -383,7 +424,9 @@ export function isAdultCategoryName(name: string) {
 	if (
 		hasAgeMarker(normalized) ||
 		tokens.some(isStrongToken) ||
-		hasSexMarker(tokens)
+		STRONG_PHRASES.some((phrase) => containsPhrase(normalized, phrase)) ||
+		hasSexMarker(tokens) ||
+		hasXMarker(tokens)
 	) {
 		return true;
 	}
