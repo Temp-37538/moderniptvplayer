@@ -1,6 +1,7 @@
 "use client";
 
 import { removeContinueWatchingAction } from "@/app/dashboard/actions";
+import { FallbackImage } from "@/components/fallback-image";
 import { SectionHeading } from "@/components/section-heading";
 import {
 	AlertDialog,
@@ -21,7 +22,6 @@ import {
 	XIcon,
 } from "lucide-react";
 import type { Route } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -184,13 +184,18 @@ export function ContinueWatchingRail({
 							>
 								<div className="relative aspect-2/3 overflow-hidden rounded-xl border border-border/50 bg-muted shadow-sm transition-shadow group-hover/card:shadow-lg">
 									{item.image ? (
-										<Image
+										<FallbackImage
 											src={item.image}
 											alt=""
 											fill
 											sizes="176px"
 											unoptimized
 											className="object-cover transition-transform duration-300 group-hover/card:scale-105 motion-reduce:transition-none motion-reduce:group-hover/card:scale-100"
+											fallback={
+												<div className="absolute inset-0 flex items-center justify-center bg-linear-to-br from-muted to-accent">
+													<PlayIcon className="size-8 text-muted-foreground/50" />
+												</div>
+											}
 										/>
 									) : (
 										<div className="absolute inset-0 flex items-center justify-center bg-linear-to-br from-muted to-accent">
