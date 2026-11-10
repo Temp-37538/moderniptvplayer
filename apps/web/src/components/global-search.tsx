@@ -392,7 +392,7 @@ export function GlobalSearch({
 											({grouped.length})
 										</span>
 									</h2>
-									<div className="grid gap-2 md:grid-cols-2">
+									<div className="grid grid-cols-[minmax(0,1fr)] gap-2 md:grid-cols-2">
 										{grouped.map((result) => (
 											<Link
 												key={`${result.kind}-${result.id}`}
