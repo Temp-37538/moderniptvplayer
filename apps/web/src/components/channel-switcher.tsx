@@ -124,9 +124,13 @@ export function ChannelSwitcher({
 								href={hrefOf(channel)}
 								prefetch={false}
 								aria-current={current ? "page" : undefined}
+								// The theme's accent is a saturated orange: the current
+								// channel gets a light tint and a bar instead, with the
+								// normal text color, readable in both themes.
 								className={cn(
-									"flex items-center gap-3 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-accent/60",
-									current && "bg-accent font-medium text-primary",
+									"flex items-center gap-3 rounded-md px-2 py-1.5 text-sm text-foreground outline-none transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
+									current &&
+										"bg-primary/10 font-medium shadow-[inset_3px_0_0_var(--primary)] hover:bg-primary/15",
 								)}
 							>
 								<span className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded bg-muted">
@@ -143,7 +147,14 @@ export function ChannelSwitcher({
 										<Radio className="size-4 text-muted-foreground/50" />
 									)}
 								</span>
-								<span className="min-w-0 flex-1 truncate">{channel.name}</span>
+								<span className="min-w-0 flex-1 truncate">
+									{channel.name}
+									{current && (
+										<span className="block text-xs font-normal text-muted-foreground">
+											Now playing
+										</span>
+									)}
+								</span>
 								{channel.number > 0 && (
 									<span className="text-xs text-muted-foreground tabular-nums">
 										{channel.number}
