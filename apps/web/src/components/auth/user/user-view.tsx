@@ -1,10 +1,6 @@
 "use client";
 
-import {
-	type UsernameAuthClient,
-	useAuth,
-	useSession,
-} from "@better-auth-ui/react";
+import { useAuth, useSession } from "@better-auth-ui/react";
 import type { User } from "better-auth";
 
 import { Skeleton } from "@/components/ui/skeleton";
@@ -15,15 +11,12 @@ export type UserViewProps = {
 	className?: string;
 	isPending?: boolean;
 	/**
-	 * When true, the subtitle line (email when name/username is shown) is hidden.
+	 * When true, the subtitle line (email when the name is shown) is hidden.
 	 * @default false
 	 */
 	hideSubtitle?: boolean;
 	/** @remarks `User` */
-	user?: Partial<User> & {
-		username?: string | null;
-		displayUsername?: string | null;
-	};
+	user?: Partial<User>;
 };
 export function UserView({
 	className,
@@ -32,10 +25,9 @@ export function UserView({
 	user,
 }: UserViewProps) {
 	const { authClient } = useAuth();
-	const { data: session, isPending: sessionPending } = useSession(
-		authClient as UsernameAuthClient,
-		{ enabled: !user && !isPending },
-	);
+	const { data: session, isPending: sessionPending } = useSession(authClient, {
+		enabled: !user && !isPending,
+	});
 
 	const resolvedUser = user ?? session?.user;
 
@@ -55,21 +47,18 @@ export function UserView({
 
 	return (
 		<div className={cn("flex items-center gap-2 min-w-0", className)}>
-			<UserAvatar user={resolvedUser as User | undefined} />
+			<UserAvatar user={resolvedUser} />
 
 			<div className="grid min-w-0 flex-1 text-left text-sm leading-tight">
 				<span className="truncate font-medium text-foreground">
-					{resolvedUser?.displayUsername ||
-						resolvedUser?.name ||
-						resolvedUser?.email}
+					{resolvedUser?.name || resolvedUser?.email}
 				</span>
 
-				{!hideSubtitle &&
-					(resolvedUser?.displayUsername || resolvedUser?.name) && (
-						<span className="text-muted-foreground truncate text-xs">
-							{resolvedUser?.email}
-						</span>
-					)}
+				{!hideSubtitle && resolvedUser?.name && (
+					<span className="text-muted-foreground truncate text-xs">
+						{resolvedUser?.email}
+					</span>
+				)}
 			</div>
 		</div>
 	);
