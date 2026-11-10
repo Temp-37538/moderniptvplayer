@@ -168,10 +168,13 @@ export async function m3uChannels(
 	categoryId: string,
 	page: number,
 	limit: number,
+	lookahead = 0,
 ) {
 	const parsed = await readM3uCatalog(playlist);
 	const items = parsed.live.filter((entry) => entry.categoryId === categoryId);
-	return pageSlice(items, page, limit).map((entry) => toChannel(entry));
+	return pageSlice(items, page, limit, lookahead).map((entry) =>
+		toChannel(entry),
+	);
 }
 
 export async function m3uChannel(
@@ -194,12 +197,13 @@ export async function m3uMovies(
 	categoryId: string,
 	page: number,
 	limit: number,
+	lookahead = 0,
 ) {
 	const parsed = await readM3uCatalog(playlist);
 	const items = parsed.movies.filter(
 		(entry) => entry.categoryId === categoryId,
 	);
-	return pageSlice(items, page, limit).map(toMovieListing);
+	return pageSlice(items, page, limit, lookahead).map(toMovieListing);
 }
 
 export async function m3uMovie(
@@ -219,12 +223,15 @@ export async function m3uShows(
 	categoryId: string,
 	page: number,
 	limit: number,
+	lookahead = 0,
 ) {
 	const parsed = await readM3uCatalog(playlist);
 	const items = parsed.shows.filter((show) =>
 		show.categoryIds.includes(categoryId),
 	);
-	return pageSlice(items, page, limit).map((show) => toShowListing(show));
+	return pageSlice(items, page, limit, lookahead).map((show) =>
+		toShowListing(show),
+	);
 }
 
 export async function m3uShow(

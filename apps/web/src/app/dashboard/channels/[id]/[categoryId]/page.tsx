@@ -5,12 +5,15 @@ import {
 	assertCategoryAvailable,
 	filterBrowsableItems,
 } from "@/server/category-access";
+import { splitPage } from "@/server/pagination";
 import { getPlaylistById } from "@/server/xtream";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { BreadcrumbLabel } from "@/components/breadcrumb-labels";
 import { EmptyState } from "@/components/empty-state";
+import { PageContainer, PageHeader } from "@/components/page-container";
 import { PaginationNav } from "@/components/pagination-nav";
 import { toSafeImageSrc } from "@/lib/image-url";
 import { Radio } from "lucide-react";
@@ -67,13 +70,12 @@ async function ChannelsByCategoryContent({ params, searchParams }: PageProps) {
 
 	await assertCategoryAvailable(id, "channel", categoryId);
 
-	const channels = await getCachedChannels(
-		id,
-		playlist,
-		categoryId,
-		currentPage,
-		ITEMS_PER_PAGE,
-	);
+	const [rows, context] = await Promise.all([
+		getCachedChannels(id, playlist, categoryId, currentPage, ITEMS_PER_PAGE, 1),
+		getCategoryMetadataContext("channels", id, categoryId),
+	]);
+	// The next page is known from the raw rows, before the visibility filter.
+	const { items: channels, hasNextPage } = splitPage(rows, ITEMS_PER_PAGE);
 	const visibleChannels = await filterBrowsableItems(
 		id,
 		"channel",
@@ -81,19 +83,21 @@ async function ChannelsByCategoryContent({ params, searchParams }: PageProps) {
 		channels,
 	);
 
-	const hasNextPage = channels.length === ITEMS_PER_PAGE;
 	const hasPreviousPage = currentPage > 1;
+	const categoryName = context?.categoryName ?? "Channels";
 
 	return (
-		<div className="h-full overflow-y-auto ">
-			<div className="flex items-center justify-between mb-6">
-				<div className="flex items-center gap-3">
-					<div>
-						<h1 className="text-2xl font-bold tracking-tight">Channels</h1>
-						<p className="text-sm text-muted-foreground">Page {currentPage}</p>
-					</div>
-				</div>
-			</div>
+		<PageContainer>
+			<BreadcrumbLabel
+				href={`/dashboard/channels/${id}/${categoryId}`}
+				label={context?.categoryName}
+			/>
+			<PageHeader
+				title={categoryName}
+				description={
+					hasPreviousPage ? `Channels, page ${currentPage}` : "Channels"
+				}
+			/>
 			{visibleChannels.length > 0 ? (
 				<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
 					{visibleChannels.map((channel) => {
@@ -108,7 +112,7 @@ async function ChannelsByCategoryContent({ params, searchParams }: PageProps) {
 									{safeLogoSrc ? (
 										<Image
 											src={safeLogoSrc}
-											alt={channel.name}
+											alt=""
 											width={48}
 											height={48}
 											unoptimized
@@ -134,8 +138,16 @@ async function ChannelsByCategoryContent({ params, searchParams }: PageProps) {
 				</div>
 			) : (
 				<EmptyState
-					title="No channels in this category"
-					description="Try another category."
+					title={
+						hasPreviousPage || hasNextPage
+							? "Nothing to show on this page"
+							: "No channels in this category"
+					}
+					description={
+						hasPreviousPage || hasNextPage
+							? "Try the next or previous page."
+							: "Try another category."
+					}
 				/>
 			)}
 			<PaginationNav
@@ -144,6 +156,6 @@ async function ChannelsByCategoryContent({ params, searchParams }: PageProps) {
 				hasPreviousPage={hasPreviousPage}
 				baseUrl={`/dashboard/channels/${id}/${categoryId}`}
 			/>
-		</div>
+		</PageContainer>
 	);
 }

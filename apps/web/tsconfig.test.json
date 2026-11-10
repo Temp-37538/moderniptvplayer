@@ -18,6 +18,7 @@
     "src/server/category-preference-policy.test.ts",
     "src/server/catalog-index-policy.test.ts",
     "src/server/m3u.test.ts",
+    "src/server/pagination.test.ts",
     "src/server/m3u-884.test.ts",
     "src/server/m3u-conversion.test.ts",
     "src/server/safe-redirect.test.ts",

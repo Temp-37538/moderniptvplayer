@@ -1,3 +1,4 @@
+import { pageWindow } from "./pagination.ts";
 import { sha256Hex } from "./playlist-identity.ts";
 
 export const M3U_MAX_URL_LENGTH = 4096;
@@ -548,11 +549,10 @@ export function pageSlice<T>(
 	items: readonly T[],
 	page: number,
 	limit: number,
+	lookahead = 0,
 ): T[] {
-	const size = Number.isFinite(limit) && limit > 0 ? Math.floor(limit) : 20;
-	const index = Number.isFinite(page) && page > 0 ? Math.floor(page) : 1;
-	const start = (index - 1) * size;
-	return items.slice(start, start + size);
+	const { start, end } = pageWindow(page, limit, lookahead);
+	return items.slice(start, end);
 }
 
 export function findM3uStream(

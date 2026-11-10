@@ -1,5 +1,7 @@
 import { createPageMetadata, getCategoryMetadataContext } from "@/app/metadata";
+import { BreadcrumbLabel } from "@/components/breadcrumb-labels";
 import { EmptyState } from "@/components/empty-state";
+import { PageContainer, PageHeader } from "@/components/page-container";
 import { PaginationNav } from "@/components/pagination-nav";
 import type { IdCategoryPageProps as PageProps } from "@/components/types";
 import { toSafeImageSrc } from "@/lib/image-url";
@@ -8,6 +10,7 @@ import {
 	assertCategoryAvailable,
 	filterBrowsableItems,
 } from "@/server/category-access";
+import { splitPage } from "@/server/pagination";
 import { getPlaylistById } from "@/server/xtream";
 import { Tv } from "lucide-react";
 import type { Metadata } from "next";
@@ -66,13 +69,12 @@ async function SeriesByCategoryContent({ params, searchParams }: PageProps) {
 
 	await assertCategoryAvailable(id, "series", categoryId);
 
-	const shows = await getCachedShows(
-		id,
-		playlist,
-		categoryId,
-		currentPage,
-		ITEMS_PER_PAGE,
-	);
+	const [rows, context] = await Promise.all([
+		getCachedShows(id, playlist, categoryId, currentPage, ITEMS_PER_PAGE, 1),
+		getCategoryMetadataContext("series", id, categoryId),
+	]);
+	// The next page is known from the raw rows, before the visibility filter.
+	const { items: shows, hasNextPage } = splitPage(rows, ITEMS_PER_PAGE);
 	const visibleShows = await filterBrowsableItems(
 		id,
 		"series",
@@ -80,19 +82,19 @@ async function SeriesByCategoryContent({ params, searchParams }: PageProps) {
 		shows,
 	);
 
-	const hasNextPage = shows.length === ITEMS_PER_PAGE;
 	const hasPreviousPage = currentPage > 1;
+	const categoryName = context?.categoryName ?? "Series";
 
 	return (
-		<div className="h-full overflow-y-auto  scrollbar-thin scrollbar-thumb-rounded-lg scrollbar-thumb-border/50 scrollbar-track-border/20">
-			<div className="flex items-center justify-between mb-6">
-				<div className="flex items-center gap-3">
-					<div>
-						<h1 className="text-2xl font-bold tracking-tight">Series</h1>
-						<p className="text-sm text-muted-foreground">Page {currentPage}</p>
-					</div>
-				</div>
-			</div>
+		<PageContainer>
+			<BreadcrumbLabel
+				href={`/dashboard/series/${id}/${categoryId}`}
+				label={context?.categoryName}
+			/>
+			<PageHeader
+				title={categoryName}
+				description={hasPreviousPage ? `Series, page ${currentPage}` : "Series"}
+			/>
 			{visibleShows.length > 0 ? (
 				<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
 					{visibleShows.map((show) => {
@@ -107,7 +109,7 @@ async function SeriesByCategoryContent({ params, searchParams }: PageProps) {
 									{safePosterSrc ? (
 										<Image
 											src={safePosterSrc}
-											alt={show.name}
+											alt=""
 											fill
 											sizes="(min-width: 1280px) 16vw, (min-width: 1024px) 19vw, (min-width: 768px) 24vw, (min-width: 640px) 32vw, 48vw"
 											unoptimized
@@ -128,8 +130,16 @@ async function SeriesByCategoryContent({ params, searchParams }: PageProps) {
 				</div>
 			) : (
 				<EmptyState
-					title="No series in this category"
-					description="Try another category."
+					title={
+						hasPreviousPage || hasNextPage
+							? "Nothing to show on this page"
+							: "No series in this category"
+					}
+					description={
+						hasPreviousPage || hasNextPage
+							? "Try the next or previous page."
+							: "Try another category."
+					}
 				/>
 			)}
 			<PaginationNav
@@ -138,6 +148,6 @@ async function SeriesByCategoryContent({ params, searchParams }: PageProps) {
 				hasPreviousPage={hasPreviousPage}
 				baseUrl={`/dashboard/series/${id}/${categoryId}`}
 			/>
-		</div>
+		</PageContainer>
 	);
 }
