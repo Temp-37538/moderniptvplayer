@@ -1,6 +1,8 @@
 import "server-only";
 import { createHash } from "node:crypto";
 import { HttpTimeoutError, safeFetchJson } from "./safe-http";
+import { createUnreachableBackoff } from "./unreachable-backoff";
+import { fillSerializerDefaults } from "./xtream-defaults";
 
 /**
  * Minimal Xtream Codes client. It replaces the network layer of
@@ -70,12 +72,10 @@ const RAW_CACHE_MAX_ENTRIES = 8;
 const MAX_PAGE_SIZE = 1000;
 /**
  * After a provider times out, the next calls of the same render fail at once
- * instead of each waiting for its own timeout, so a dead provider shows the
- * error after one timeout rather than several. Short enough that "Try again"
+ * instead of each waiting for its own timeout. Short enough that "Try again"
  * really asks the provider again.
  */
-const UNREACHABLE_BACKOFF_MS = 10_000;
-const unreachableUntil = new Map<string, number>();
+const unreachable = createUnreachableBackoff(10_000);
 
 // Short-lived, in-process cache of raw upstream responses. The upstream API
 // has no pagination: every page used to re-download the full list. Keys are
@@ -122,75 +122,6 @@ const toId = (value: unknown) =>
 	typeof value === "string" || typeof value === "number" ? String(value) : "";
 
 const enc = encodeURIComponent;
-
-/**
- * Fills the fields the library serializers read without checking, so a panel
- * that omits `category_ids`, `backdrop_path`, `tmdb_id` or an episode's
- * `info` cannot crash a page. Returns copies: raw responses are shared
- * through the response cache.
- */
-function withListDefaults(value: unknown): RawRecord {
-	const item = toRecord(value);
-	const id = toId(item.category_id);
-	return {
-		...item,
-		category_ids: Array.isArray(item.category_ids)
-			? item.category_ids
-			: id
-				? [id]
-				: [],
-		backdrop_path: Array.isArray(item.backdrop_path)
-			? item.backdrop_path
-			: typeof item.backdrop_path === "string" && item.backdrop_path
-				? [item.backdrop_path]
-				: [],
-	};
-}
-
-function fillSerializerDefaults(key: SerializerKey, value: unknown): unknown {
-	if (key === "channels" || key === "movies" || key === "shows") {
-		return Array.isArray(value) ? value.map(withListDefaults) : value;
-	}
-	if (key === "movie") {
-		const data = toRecord(value);
-		const info = withListDefaults(Array.isArray(data.info) ? {} : data.info);
-		return {
-			...data,
-			info: { ...info, tmdb_id: toId(info.tmdb_id) },
-			movie_data: withListDefaults(data.movie_data),
-		};
-	}
-	if (key === "show") {
-		const data = toRecord(value);
-		const episodes: RawRecord = {};
-		for (const [season, list] of Object.entries(toRecord(data.episodes))) {
-			if (!Array.isArray(list)) {
-				continue;
-			}
-			const filled = list
-				.filter((episode) => typeof episode === "object" && episode !== null)
-				.map((episode: RawRecord) => ({
-					...episode,
-					season: episode.season ?? (Number(season) || season),
-					info: toRecord(episode.info),
-				}));
-			// An empty season has nothing to show, and the serializer reads its
-			// first episode when the panel sends no season list.
-			if (filled.length > 0) {
-				episodes[season] = filled;
-			}
-		}
-		return {
-			...data,
-			info: withListDefaults(data.info),
-			episodes,
-			seasons: Array.isArray(data.seasons)
-				? data.seasons.filter((season) => toId(toRecord(season).id) !== "")
-				: [],
-		};
-	}
-	return value;
-}
 
 export class SafeXtream {
 	readonly baseUrl: string;
@@ -248,12 +179,8 @@ export class SafeXtream {
 		)}&password=${enc(this.#password)}&action=${action}${query}`;
 
 		const namespace = this.#cacheNamespace;
-		const until = unreachableUntil.get(namespace);
-		if (until !== undefined) {
-			if (until > Date.now()) {
-				return Promise.reject(new HttpTimeoutError());
-			}
-			unreachableUntil.delete(namespace);
+		if (unreachable.isBlocked(namespace)) {
+			return Promise.reject(new HttpTimeoutError());
 		}
 		return readThrough(`${namespace}|${action}${query}`, () =>
 			safeFetchJson(url, {
@@ -261,7 +188,7 @@ export class SafeXtream {
 				...(this.#timeoutMs ? { timeoutMs: this.#timeoutMs } : {}),
 			}).catch((error: unknown) => {
 				if (error instanceof HttpTimeoutError) {
-					unreachableUntil.set(namespace, Date.now() + UNREACHABLE_BACKOFF_MS);
+					unreachable.markTimedOut(namespace);
 				}
 				throw error;
 			}),
