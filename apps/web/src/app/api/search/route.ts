@@ -16,7 +16,11 @@ import { globalSearchQuerySchema } from "@/server/search-params-schema";
 import { getPlaylistById } from "@/server/xtream";
 import { after, type NextRequest, NextResponse } from "next/server";
 
-export const maxDuration = 60;
+// The catalogue sync runs through after() in this same invocation, so the
+// route needs the Vercel Hobby maximum (fluid compute). Must equal
+// SYNC_FUNCTION_MAX_MS in server/catalog-index-policy.ts; Next only reads a
+// literal here.
+export const maxDuration = 300;
 
 function emptyResponse(
 	status: "building" | "unavailable",
@@ -31,6 +35,22 @@ function emptyResponse(
 	};
 }
 
+function unavailableResponse(
+	stale: boolean,
+	syncedAt: Date | null,
+	retryAfterMs: number,
+) {
+	const retryAfter = Math.ceil(retryAfterMs / 1000);
+	return NextResponse.json(
+		{ ...emptyResponse("unavailable", stale, syncedAt), retryAfter },
+		{
+			status: 503,
+			headers:
+				retryAfter > 0 ? { "Retry-After": String(retryAfter) } : undefined,
+		},
+	);
+}
+
 export async function GET(request: NextRequest) {
 	const parsed = globalSearchQuerySchema.safeParse(
 		Object.fromEntries(request.nextUrl.searchParams.entries()),
@@ -43,7 +63,7 @@ export async function GET(request: NextRequest) {
 		);
 	}
 
-	const { playlistId, q, kind, limit } = parsed.data;
+	const { playlistId, q, kind, limit, retry } = parsed.data;
 	const tokens = parseSearchTokens(q);
 	if (!tokens) {
 		return NextResponse.json(
@@ -84,7 +104,11 @@ export async function GET(request: NextRequest) {
 			);
 		}
 
-		const state = await ensureCatalog(userId, playlistId);
+		const state = await ensureCatalog(
+			userId,
+			playlistId,
+			retry ? "retry" : "auto",
+		);
 		if (state.start) {
 			after(() => syncCatalog(userId, playlistId));
 		}
@@ -95,9 +119,10 @@ export async function GET(request: NextRequest) {
 			);
 		}
 		if (state.status === "unavailable" || !state.activeSyncId) {
-			return NextResponse.json(
-				emptyResponse("unavailable", state.stale, state.syncedAt),
-				{ status: 503 },
+			return unavailableResponse(
+				state.stale,
+				state.syncedAt,
+				state.retryAfterMs,
 			);
 		}
 
