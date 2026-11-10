@@ -31,7 +31,7 @@ function Thumbnail({ src, itemType }: { src?: string; itemType: string }) {
 	return (
 		<div
 			className={`relative flex shrink-0 items-center justify-center overflow-hidden rounded-sm bg-muted/60 ${
-				isChannel ? "size-11" : "h-15 w-10"
+				isChannel ? "size-10" : "h-15 w-10"
 			}`}
 		>
 			{src ? (
@@ -40,7 +40,7 @@ function Thumbnail({ src, itemType }: { src?: string; itemType: string }) {
 					alt=""
 					fill
 					unoptimized
-					sizes="44px"
+					sizes="40px"
 					className={isChannel ? "object-contain p-1.5" : "object-cover"}
 				/>
 			) : (
