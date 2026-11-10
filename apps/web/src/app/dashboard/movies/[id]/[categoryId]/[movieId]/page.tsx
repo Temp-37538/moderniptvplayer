@@ -3,6 +3,7 @@ import {
 	getCategoryMetadataContext,
 	getMovieMetadataContext,
 } from "@/app/metadata";
+import { FallbackImage } from "@/components/fallback-image";
 import { BreadcrumbLabel } from "@/components/breadcrumb-labels";
 import { CopyStreamButton } from "@/components/copy-stream-button";
 import { ExternalStreamLink } from "@/components/external-stream-link";
@@ -23,7 +24,6 @@ import { getResumeInfo } from "@/server/watch-progress";
 import { createXtreamClient, getPlaylistById } from "@/server/xtream";
 import { Film } from "lucide-react";
 import type { Metadata } from "next";
-import Image from "next/image";
 import { notFound } from "next/navigation";
 
 export const instant = false;
@@ -124,13 +124,18 @@ async function MovieDetailContent({ params }: PageProps) {
 				<div className="grid gap-10 xl:grid-cols-[19rem_minmax(0,1fr)] xl:gap-14">
 					<div className="w-full space-y-5 md:mx-auto md:max-w-xs xl:sticky xl:top-0 xl:mx-0 xl:max-w-none xl:self-start">
 						{safePosterSrc ? (
-							<Image
+							<FallbackImage
 								src={safePosterSrc}
 								alt={movie.name}
 								width={304}
 								height={456}
 								unoptimized
 								className="w-full rounded-2xl border border-border/40 object-cover shadow-2xl shadow-black/50"
+								fallback={
+									<div className="flex aspect-2/3 w-full items-center justify-center rounded-2xl border border-border/40 bg-muted">
+										<Film className="size-12 text-muted-foreground/40" />
+									</div>
+								}
 							/>
 						) : (
 							<div className="flex aspect-2/3 w-full items-center justify-center rounded-2xl border border-border/40 bg-muted">

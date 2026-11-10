@@ -1,11 +1,11 @@
 import { EmptyState } from "@/components/empty-state";
+import { FallbackImage } from "@/components/fallback-image";
 import { RemoveItemButton } from "@/components/remove-item-button";
 import type { ItemType, SavedItemsListProps } from "@/components/types";
 import { toSafeImageSrc } from "@/lib/image-url";
 import { catalogImageKey, getCatalogImages } from "@/server/catalog-lookups";
 import { Clock, Film, Heart, Radio, Tv } from "lucide-react";
 import type { Route } from "next";
-import Image from "next/image";
 import Link from "next/link";
 
 const savedDateFormatter = new Intl.DateTimeFormat("en", {
@@ -35,13 +35,16 @@ function Thumbnail({ src, itemType }: { src?: string; itemType: string }) {
 			}`}
 		>
 			{src ? (
-				<Image
+				<FallbackImage
 					src={src}
 					alt=""
 					fill
 					unoptimized
 					sizes="40px"
 					className={isChannel ? "object-contain p-1.5" : "object-cover"}
+					fallback={
+						<Icon aria-hidden className="size-4 text-muted-foreground/60" />
+					}
 				/>
 			) : (
 				<Icon aria-hidden className="size-4 text-muted-foreground/60" />

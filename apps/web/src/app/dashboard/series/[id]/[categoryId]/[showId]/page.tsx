@@ -3,6 +3,7 @@ import {
 	getCategoryMetadataContext,
 	getShowMetadataContext,
 } from "@/app/metadata";
+import { FallbackImage } from "@/components/fallback-image";
 import { BreadcrumbLabel } from "@/components/breadcrumb-labels";
 import { ItemActionButtons } from "@/components/item-action-buttons";
 import { ResumeEpisodeButton } from "@/components/resume-episode-button";
@@ -26,7 +27,6 @@ import { getEpisodeProgress } from "@/server/watch-progress";
 import { getPlaylistById } from "@/server/xtream";
 import { PlayIcon, Tv } from "lucide-react";
 import type { Metadata } from "next";
-import Image from "next/image";
 import { notFound } from "next/navigation";
 
 export const instant = false;
@@ -131,7 +131,7 @@ async function ShowDetailContent({ params }: PageProps) {
 					<div className="w-full space-y-5 md:mx-auto md:max-w-xs xl:sticky xl:top-0 xl:mx-0 xl:max-w-none xl:self-start">
 						<div className="relative">
 							{safePosterSrc ? (
-								<Image
+								<FallbackImage
 									src={safePosterSrc}
 									alt={show.name}
 									width={304}
@@ -139,6 +139,11 @@ async function ShowDetailContent({ params }: PageProps) {
 									unoptimized
 									priority
 									className="w-full rounded-2xl border border-border/40 object-cover shadow-2xl shadow-black/50"
+									fallback={
+										<div className="flex aspect-2/3 w-full items-center justify-center rounded-2xl border border-border/40 bg-muted">
+											<Tv className="size-12 text-muted-foreground/40" />
+										</div>
+									}
 								/>
 							) : (
 								<div className="flex aspect-2/3 w-full items-center justify-center rounded-2xl border border-border/40 bg-muted">

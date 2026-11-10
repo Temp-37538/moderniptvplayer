@@ -1,4 +1,5 @@
 import { createPageMetadata, getCategoryMetadataContext } from "@/app/metadata";
+import { FallbackImage } from "@/components/fallback-image";
 import { BreadcrumbLabel } from "@/components/breadcrumb-labels";
 import { EmptyState } from "@/components/empty-state";
 import { PageContainer, PageHeader } from "@/components/page-container";
@@ -18,7 +19,6 @@ import {
 import { getPlaylistById } from "@/server/xtream";
 import { Tv } from "lucide-react";
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
@@ -123,13 +123,18 @@ async function SeriesByCategoryContent({ params, searchParams }: PageProps) {
 							>
 								<div className="relative aspect-2/3 overflow-hidden rounded-xl bg-muted border border-border/30">
 									{safePosterSrc ? (
-										<Image
+										<FallbackImage
 											src={safePosterSrc}
 											alt=""
 											fill
 											sizes="(min-width: 1280px) 16vw, (min-width: 1024px) 19vw, (min-width: 768px) 24vw, (min-width: 640px) 32vw, 48vw"
 											unoptimized
 											className="object-cover transition-transform duration-300 group-hover:scale-105"
+											fallback={
+												<div className="flex items-center justify-center size-full text-muted-foreground">
+													<Tv className="size-10 opacity-50" />
+												</div>
+											}
 										/>
 									) : (
 										<div className="flex items-center justify-center size-full text-muted-foreground">

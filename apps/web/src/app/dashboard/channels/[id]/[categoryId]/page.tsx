@@ -1,4 +1,5 @@
 import { createPageMetadata, getCategoryMetadataContext } from "@/app/metadata";
+import { FallbackImage } from "@/components/fallback-image";
 import type { IdCategoryPageProps as PageProps } from "@/components/types";
 import { getCachedChannelsPage } from "@/server/cached-content";
 import {
@@ -21,7 +22,6 @@ import { PageContainer, PageHeader } from "@/components/page-container";
 import { PaginationNav } from "@/components/pagination-nav";
 import { toSafeImageSrc } from "@/lib/image-url";
 import { Radio } from "lucide-react";
-import Image from "next/image";
 
 export const instant = false;
 
@@ -125,13 +125,16 @@ async function ChannelsByCategoryContent({ params, searchParams }: PageProps) {
 								>
 									<div className="relative flex aspect-video items-center justify-center overflow-hidden rounded-md bg-muted/40 transition-colors group-hover:bg-muted/80 group-focus-visible:ring-2 group-focus-visible:ring-ring">
 										{safeLogoSrc ? (
-											<Image
+											<FallbackImage
 												src={safeLogoSrc}
 												alt=""
 												fill
 												unoptimized
 												sizes="(min-width: 1024px) 200px, 45vw"
 												className="object-contain p-[18%] transition-transform duration-200 group-hover:scale-105"
+												fallback={
+													<Radio className="size-6 text-muted-foreground/50" />
+												}
 											/>
 										) : (
 											<Radio className="size-6 text-muted-foreground/50" />
