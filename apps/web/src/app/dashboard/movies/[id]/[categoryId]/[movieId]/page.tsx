@@ -171,7 +171,7 @@ async function MovieDetailContent({ params }: PageProps) {
 						) : null}
 					</div>
 
-					<div className="min-w-0">
+					<div className="min-w-0 max-w-4xl">
 						<header>
 							<h1 className="font-serif text-4xl leading-[1.05] tracking-tight text-balance md:text-5xl">
 								{movie.name}
@@ -183,7 +183,7 @@ async function MovieDetailContent({ params }: PageProps) {
 							) : null}
 							{movie.genre && movie.genre.length > 0 ? (
 								<p className="mt-4 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-									{movie.genre.join(" - ")}
+									{movie.genre.join(" · ")}
 								</p>
 							) : null}
 						</header>
@@ -256,7 +256,7 @@ async function MovieDetailContent({ params }: PageProps) {
 							) : null}
 							{movie.subtitles && movie.subtitles.length > 0 ? (
 								<div>
-									<dt className="text-sm font-medium text-foreground/80">
+									<dt className="font-serif text-base font-medium text-foreground/80">
 										Subtitles
 									</dt>
 									<dd className="mt-1.5 text-sm">
@@ -266,7 +266,7 @@ async function MovieDetailContent({ params }: PageProps) {
 							) : null}
 							{movie.country ? (
 								<div>
-									<dt className="text-sm font-medium text-foreground/80">
+									<dt className="font-serif text-base font-medium text-foreground/80">
 										Country
 									</dt>
 									<dd className="mt-1.5 text-sm">{movie.country}</dd>

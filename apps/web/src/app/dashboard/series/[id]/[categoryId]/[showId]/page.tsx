@@ -215,14 +215,14 @@ async function ShowDetailContent({ params }: PageProps) {
 						)}
 					</div>
 
-					<div className="min-w-0">
+					<div className="min-w-0 max-w-4xl">
 						<header>
 							<h1 className="font-serif text-4xl leading-[1.05] tracking-tight text-balance md:text-5xl">
 								{show.name}
 							</h1>
 							{show.genre && show.genre.length > 0 && (
 								<p className="mt-4 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-									{show.genre.join(", ")}
+									{show.genre.join(" · ")}
 								</p>
 							)}
 						</header>
@@ -236,7 +236,7 @@ async function ShowDetailContent({ params }: PageProps) {
 						<dl className="mt-8 grid gap-x-8 gap-y-4 border-y border-border/50 py-6 sm:grid-cols-2">
 							{show.director?.some((name) => name !== "") && (
 								<div>
-									<dt className="text-sm font-medium text-foreground/80">
+									<dt className="font-serif text-base font-medium text-foreground/80">
 										Director
 									</dt>
 									<dd className="mt-1.5 text-sm">
@@ -246,7 +246,7 @@ async function ShowDetailContent({ params }: PageProps) {
 							)}
 							{show.cast && show.cast.length > 0 && (
 								<div>
-									<dt className="text-sm font-medium text-foreground/80">
+									<dt className="font-serif text-base font-medium text-foreground/80">
 										Cast
 									</dt>
 									<dd className="mt-1.5 text-sm">{show.cast.join(", ")}</dd>
