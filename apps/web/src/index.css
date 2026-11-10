@@ -220,3 +220,25 @@ html[data-scroll-behavior="smooth"] {
 	animation: heroFadeInBlur 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 	will-change: transform, opacity;
 }
+
+/*
+ * Reduced motion: no pulsing skeletons, no slide-in, no animated transitions.
+ * Unlayered, so it wins over the Tailwind utility layers.
+ */
+@media (prefers-reduced-motion: reduce) {
+	.animate-pulse {
+		animation: none;
+	}
+
+	.animate-hero-fade {
+		opacity: 1;
+		animation: none;
+	}
+
+	*,
+	::before,
+	::after {
+		scroll-behavior: auto;
+		transition-duration: 0.01ms;
+	}
+}
