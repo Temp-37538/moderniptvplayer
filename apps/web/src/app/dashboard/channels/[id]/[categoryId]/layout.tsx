@@ -5,7 +5,7 @@ export const instant = false;
 
 function Layout({ children }: { children: React.ReactNode }) {
 	return (
-		<Suspense fallback={<ChannelListSkeletonNoSearchBar count={18} />}>
+		<Suspense fallback={<ChannelListSkeletonNoSearchBar count={24} />}>
 			{children}
 		</Suspense>
 	);

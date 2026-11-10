@@ -20,7 +20,8 @@ import { notFound } from "next/navigation";
 
 export const instant = false;
 
-const ITEMS_PER_PAGE = 20;
+// 24 fills whole rows in the 1 to 6 column grids.
+const ITEMS_PER_PAGE = 24;
 
 export async function generateMetadata({
 	params,
