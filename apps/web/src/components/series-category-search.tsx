@@ -255,7 +255,11 @@ function CategorySearchBase({
 								) : null}
 							</Link>
 							<div
-								className={`${editing ? "flex md:pointer-coarse:opacity-100" : "hidden md:pointer-coarse:hidden"} shrink-0 gap-0.5 bg-background transition-opacity md:absolute md:flex md:top-1/2 md:right-0 md:-translate-y-1/2 md:opacity-0 md:group-focus-within:opacity-100 md:group-hover:opacity-100`}
+								className={`${
+									editing
+										? "flex md:pointer-coarse:static md:pointer-coarse:translate-y-0 md:pointer-coarse:opacity-100"
+										: "hidden md:pointer-coarse:hidden"
+								} shrink-0 gap-0.5 bg-background transition-opacity md:absolute md:flex md:top-1/2 md:right-0 md:-translate-y-1/2 md:opacity-0 md:group-focus-within:opacity-100 md:group-hover:opacity-100`}
 							>
 								<button
 									type="button"
