@@ -121,7 +121,7 @@ async function MovieDetailContent({ params }: PageProps) {
 				label={movie.name}
 			/>
 			<div className="w-full pb-6">
-				<div className="grid gap-10 xl:grid-cols-[19rem_minmax(0,1fr)] xl:gap-14">
+				<div className="grid grid-cols-[minmax(0,1fr)] gap-10 xl:grid-cols-[19rem_minmax(0,1fr)] xl:gap-14">
 					<div className="w-full space-y-5 md:mx-auto md:max-w-xs xl:sticky xl:top-0 xl:mx-0 xl:max-w-none xl:self-start">
 						{safePosterSrc ? (
 							<FallbackImage
@@ -243,7 +243,7 @@ async function MovieDetailContent({ params }: PageProps) {
 							/>
 						</section>
 
-						<dl className="mt-8 grid gap-x-8 gap-y-4 border-y border-border/50 py-6 sm:grid-cols-2">
+						<dl className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-x-8 gap-y-4 border-y border-border/50 py-6 wrap-break-word sm:grid-cols-2">
 							{movie.director && movie.director.length > 0 ? (
 								<div>
 									<dt className="font-serif text-base font-medium text-foreground/80">
