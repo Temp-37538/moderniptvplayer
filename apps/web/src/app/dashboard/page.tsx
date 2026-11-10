@@ -215,7 +215,7 @@ async function HomeContent() {
 						</Button>
 					}
 				/>
-				<ul className="divide-y divide-border/70 overflow-hidden rounded-xl border border-border/70">
+				<ul className="divide-y divide-border/50 border-y border-border/50">
 					{cards.map((playlist) => (
 						<PlaylistCard
 							key={playlist.id}

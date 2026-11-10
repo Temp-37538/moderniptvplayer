@@ -73,11 +73,11 @@ export function PlaylistCard({
 	}
 
 	return (
-		<li className="group relative flex flex-col gap-3 px-4 py-4 transition-colors hover:bg-muted/40 sm:flex-row sm:items-center sm:gap-6 sm:px-5">
+		<li className="group relative flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:gap-6">
 			<div className="min-w-0 flex-1">
 				<Link
 					href={`/dashboard/${id}` as Route}
-					className="block truncate text-base font-semibold tracking-tight outline-none after:absolute after:inset-0 focus-visible:after:rounded-[inherit] focus-visible:after:ring-3 focus-visible:after:ring-ring/60 focus-visible:after:ring-inset"
+					className="block truncate text-base font-semibold tracking-tight decoration-muted-foreground/50 underline-offset-4 outline-none after:absolute after:inset-0 group-hover:underline focus-visible:after:ring-2 focus-visible:after:ring-ring"
 				>
 					{playlistName}
 				</Link>
@@ -100,7 +100,7 @@ export function PlaylistCard({
 				</div>
 			</div>
 
-			<div className="relative z-10 -ml-2 flex items-center gap-1 sm:ml-0">
+			<div className="relative z-10 -ml-2 flex items-center gap-1 sm:-mr-2 sm:ml-0">
 				<nav aria-label={`Browse ${playlistName}`} className="flex gap-1">
 					{sections.map(({ label, href }) => (
 						<Button

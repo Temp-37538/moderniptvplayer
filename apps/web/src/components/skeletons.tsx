@@ -324,11 +324,11 @@ export function ContinueWatchingSkeleton({ count = 7 }: { count?: number }) {
 
 export function PlaylistListSkeleton({ count = 2 }: { count?: number }) {
 	return (
-		<div className="divide-y divide-border/70 overflow-hidden rounded-xl border border-border/70">
+		<div className="divide-y divide-border/50 border-y border-border/50">
 			{Array.from({ length: count }).map((_, i) => (
 				<div
 					key={i}
-					className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:gap-6 sm:px-5"
+					className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:gap-6"
 				>
 					<div className="flex-1 space-y-2">
 						<Skeleton className="h-5 w-44" />
