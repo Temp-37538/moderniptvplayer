@@ -69,7 +69,7 @@ export default function HeroSection() {
 											)}
 											nativeButton={false}
 										>
-											<span className="text-nowrap">Watch a movie !</span>
+											<span className="text-nowrap">Watch a movie!</span>
 										</Button>
 									</div>
 									<Button

@@ -7,7 +7,7 @@ import Link from "next/link";
 export const instant = false;
 
 export const metadata: Metadata = createPageMetadata({
-	title: "Add Xtream Playlist",
+	title: "Add Xtream playlist",
 	description:
 		"Connect a playlist with Xtream Codes credentials to start browsing channels, movies, and series.",
 	path: "/dashboard/addplaylist/xtream",

@@ -7,7 +7,7 @@ import Link from "next/link";
 export const instant = false;
 
 export const metadata: Metadata = createPageMetadata({
-	title: "Add M3U Playlist",
+	title: "Add M3U playlist",
 	description: "Import an IPTV playlist from an M3U URL.",
 	path: "/dashboard/addplaylist/m3u",
 	noIndex: true,

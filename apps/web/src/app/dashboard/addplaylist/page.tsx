@@ -13,7 +13,7 @@ import Link from "next/link";
 export const instant = false;
 
 export const metadata: Metadata = createPageMetadata({
-	title: "Add a Playlist",
+	title: "Add a playlist",
 	description:
 		"Choose how you want to import your IPTV library with Xtream Codes or M3U.",
 	path: "/dashboard/addplaylist",

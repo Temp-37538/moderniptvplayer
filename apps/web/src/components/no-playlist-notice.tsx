@@ -21,7 +21,7 @@ export function NoPlaylistNotice() {
 					render={<Link href="/dashboard/addplaylist" />}
 				>
 					<PlusIcon className="size-4 transition-transform duration-200 group-hover:rotate-90" />
-					Add a playlist
+					Add playlist
 				</Button>
 			</div>
 		</div>

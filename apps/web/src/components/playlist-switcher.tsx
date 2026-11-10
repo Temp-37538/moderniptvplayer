@@ -124,7 +124,7 @@ export function PlaylistSwitcher() {
 				<SidebarMenuItem>
 					<SidebarMenuButton
 						size="lg"
-						tooltip="Add a playlist"
+						tooltip="Add playlist"
 						render={<Link href="/dashboard/addplaylist" />}
 					>
 						<div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
@@ -257,7 +257,7 @@ export function PlaylistSwitcher() {
 										className="bg-transparent flex gap-2 justify-content p-2 items-center font-medium w-full h-full"
 									>
 										<PlusIcon className="size-4" />
-										Add a playlist
+										Add playlist
 									</Link>
 								</DropdownMenuItem>
 							</DropdownMenuGroup>
