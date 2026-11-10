@@ -62,9 +62,16 @@ export function clearedItemsTotal(counts: SavedItemCounts): number {
 	);
 }
 
+const HTTP_884_REFUSED =
+	"Your M3U link was refused by the server (HTTP 884), so the playlist";
+
+/** Shown after an add where HTTP 884 made the M3U link an Xtream playlist. */
+export const M3U_ADDED_AS_XTREAM_MESSAGE = `${HTTP_884_REFUSED} was added as Xtream using the username and password from the link.`;
+
 export function conversionSuccessMessage(counts: SavedItemCounts): string {
+	const converted = `Playlist updated. ${HTTP_884_REFUSED} now signs in with Xtream using the username and password from the link.`;
 	if (clearedItemsTotal(counts) === 0) {
-		return "Playlist updated. It now signs in with Xtream.";
+		return converted;
 	}
-	return "Playlist updated. It now signs in with Xtream, so the favorites, watch later items, progress, and category choices saved from the M3U version were cleared. Their items do not exist in the Xtream catalog.";
+	return `${converted} The favorites, watch later items, progress, and category choices saved from the M3U version were cleared. Their items do not exist in the Xtream catalog.`;
 }

@@ -14,6 +14,7 @@ const contentSecurityPolicy = [
 
 const nextConfig: NextConfig = {
 	cacheComponents: true,
+	partialPrefetching: false,
 	typedRoutes: true,
 	reactCompiler: true,
 	agentRules: false,

@@ -100,7 +100,7 @@ test("the message tells the user what was cleared", () => {
 
 	assert.equal(
 		conversionSuccessMessage(none),
-		"Playlist updated. It now signs in with Xtream.",
+		"Playlist updated. Your M3U link was refused by the server (HTTP 884), so the playlist now signs in with Xtream using the username and password from the link.",
 	);
 	const message = conversionSuccessMessage({ ...none, progress: 1 });
 	assert.match(message, /cleared/);
