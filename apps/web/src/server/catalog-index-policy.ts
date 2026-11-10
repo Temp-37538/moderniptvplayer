@@ -11,12 +11,22 @@ export const CATALOG_NAME_MAX = 300;
 export const CATALOG_IMAGE_MAX = 2048;
 export const CATALOG_INSERT_BATCH = 2_000;
 export const CATALOG_TTL_MS = 6 * 60 * 60 * 1000;
-// A sync gives up after SYNC_TIMEOUT_MS. The lock must outlive it, otherwise
-// a second sync could start while the first one is still writing. The search
-// box polls for the same window (SEARCH_POLL_WINDOW_MS in global-search.tsx).
-export const SYNC_TIMEOUT_MS = 300_000;
-export const SYNC_LOCK_MS = 360_000;
+// The sync runs through after() inside the /api/search invocation, so the
+// route's maxDuration (300 s, the Vercel Hobby maximum with fluid compute) is
+// a hard kill. The sync gives up well before it, so it can still record its
+// failure and release its lock. The lock outlives the invocation, otherwise a
+// second sync could start while the first one is still writing, but only by a
+// small margin, so the lock of a killed sync does not block the next one for
+// long. The search box polls for SYNC_LOCK_MS (SEARCH_POLL_WINDOW_MS in
+// global-search.tsx).
+export const SYNC_FUNCTION_MAX_MS = 300_000;
+export const SYNC_TIMEOUT_MS = 240_000;
+export const SYNC_LOCK_MS = SYNC_FUNCTION_MAX_MS + 30_000;
 export const SYNC_RETRY_COOLDOWN_MS = 5 * 60 * 1000;
+// An explicit retry from the user skips the cooldown above, but still waits
+// this long after the last attempt, so repeated clicks cannot hammer the
+// provider with full catalogue listings.
+export const SYNC_MANUAL_RETRY_MIN_MS = 30_000;
 export const SEARCH_QUERY_MIN = 2;
 export const SEARCH_QUERY_MAX = 64;
 export const SEARCH_MAX_TOKENS = 6;
@@ -232,9 +242,35 @@ export type SyncDecision =
 	| "build"
 	| "unavailable";
 
+/** "retry" is an explicit retry from the user, "auto" any other search. */
+export type SyncTrigger = "auto" | "retry";
+
+/**
+ * Time left before a failed sync may be retried, 0 when nothing waits. The
+ * running sync's lock is not a cooldown: `decideSync` and the lock in
+ * `syncCatalog` still keep two syncs from running at once.
+ */
+export function syncRetryDelayMs(
+	state: CatalogSyncPolicyState | null,
+	now: Date,
+	trigger: SyncTrigger = "auto",
+): number {
+	if (state?.status !== "failed" || state.lastAttemptAt === null) {
+		return 0;
+	}
+	const elapsed = now.getTime() - state.lastAttemptAt.getTime();
+	if (elapsed < 0) {
+		return 0;
+	}
+	const cooldown =
+		trigger === "retry" ? SYNC_MANUAL_RETRY_MIN_MS : SYNC_RETRY_COOLDOWN_MS;
+	return Math.max(0, cooldown - elapsed);
+}
+
 export function decideSync(
 	state: CatalogSyncPolicyState | null,
 	now: Date,
+	trigger: SyncTrigger = "auto",
 ): SyncDecision {
 	if (!state) {
 		return "build";
@@ -245,11 +281,7 @@ export function decideSync(
 		state.status === "syncing" &&
 		state.lockedUntil !== null &&
 		state.lockedUntil.getTime() > nowMs;
-	const recentFailure =
-		state.status === "failed" &&
-		state.lastAttemptAt !== null &&
-		nowMs - state.lastAttemptAt.getTime() >= 0 &&
-		nowMs - state.lastAttemptAt.getTime() < SYNC_RETRY_COOLDOWN_MS;
+	const recentFailure = syncRetryDelayMs(state, now, trigger) > 0;
 
 	if (!state.activeSyncId) {
 		if (locked) {

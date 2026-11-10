@@ -42,9 +42,9 @@ export async function loadCatalogSearchRules(playlistId) {
 	return current.rules;
 }
 
-export async function ensureCatalog(userId, playlistId) {
+export async function ensureCatalog(userId, playlistId, trigger) {
 	const current = state();
-	current.ensureCalls.push({ userId, playlistId });
+	current.ensureCalls.push({ userId, playlistId, trigger });
 	return current.catalog;
 }
 
