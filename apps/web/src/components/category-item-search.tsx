@@ -8,7 +8,7 @@ import type { Route } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import type { ComponentType, ReactNode } from "react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const SEARCH_DEBOUNCE_MS = 300;
 const MIN_QUERY_LENGTH = 2;
@@ -27,13 +27,14 @@ type SearchResultItem = {
 
 type SearchResponse = {
 	items: SearchResultItem[];
-	meta?: {
-		scannedPages: number;
-		elapsedMs: number;
-		hasMore: boolean;
-		reason: string;
-	};
 	error?: string;
+};
+
+/** What the last finished request answered, and for which query. */
+type SearchOutcome = {
+	query: string;
+	items: SearchResultItem[];
+	error: string | null;
 };
 
 type CategoryItemSearchProps = {
@@ -124,22 +125,20 @@ export function CategoryItemSearch({
 }: CategoryItemSearchProps) {
 	const [query, setQuery] = useState("");
 	const [debouncedQuery, setDebouncedQuery] = useState("");
-	const [items, setItems] = useState<SearchResultItem[]>([]);
-	const [meta, setMeta] = useState<SearchResponse["meta"]>(undefined);
-	const [isLoading, setIsLoading] = useState(false);
-	const [error, setError] = useState<string | null>(null);
+	const [outcome, setOutcome] = useState<SearchOutcome | null>(null);
 
 	const { title, placeholder } = SECTION_CONFIG[section];
 	const normalizedQuery = query.trim();
 	const isQueryValid = normalizedQuery.length >= MIN_QUERY_LENGTH;
+	// Until the answer for what is typed now arrives (debounce included),
+	// the search is pending: no "No results" for an answer not given yet.
+	const isPending = isQueryValid && outcome?.query !== normalizedQuery;
+	const items = outcome?.items ?? [];
+	const error = isPending ? null : (outcome?.error ?? null);
 
 	useEffect(() => {
 		if (!isQueryValid) {
 			setDebouncedQuery("");
-			setItems([]);
-			setMeta(undefined);
-			setError(null);
-			setIsLoading(false);
 			return;
 		}
 
@@ -165,10 +164,6 @@ export function CategoryItemSearch({
 			limit: String(MAX_RESULTS),
 		});
 
-		setIsLoading(true);
-		setError(null);
-		setMeta(undefined);
-
 		fetch(`/api/${section}/search?${searchParams.toString()}`, {
 			signal: abortController.signal,
 			cache: "no-store",
@@ -181,8 +176,11 @@ export function CategoryItemSearch({
 				return (await response.json()) as SearchResponse;
 			})
 			.then((payload) => {
-				setItems(Array.isArray(payload.items) ? payload.items : []);
-				setMeta(payload.meta);
+				setOutcome({
+					query: debouncedQuery,
+					items: Array.isArray(payload.items) ? payload.items : [],
+					error: null,
+				});
 			})
 			.catch((fetchError: unknown) => {
 				if (
@@ -194,31 +192,20 @@ export function CategoryItemSearch({
 					return;
 				}
 
-				setItems([]);
-				setMeta(undefined);
-				setError(
-					fetchError instanceof Error
-						? fetchError.message
-						: "Search request failed.",
-				);
-			})
-			.finally(() => {
-				if (!abortController.signal.aborted) {
-					setIsLoading(false);
-				}
+				setOutcome({
+					query: debouncedQuery,
+					items: [],
+					error:
+						fetchError instanceof Error
+							? fetchError.message
+							: "Search request failed.",
+				});
 			});
 
 		return () => {
 			abortController.abort();
 		};
 	}, [categoryId, debouncedQuery, playlistId, section]);
-
-	const resultMeta = useMemo(() => {
-		if (!meta) {
-			return null;
-		}
-		return `${items.length} result${items.length > 1 ? "s" : ""} - ${meta.scannedPages} page${meta.scannedPages > 1 ? "s" : ""} scanned in ${meta.elapsedMs}ms`;
-	}, [items.length, meta]);
 
 	return (
 		<div className="h-full flex flex-col gap-4">
@@ -240,35 +227,44 @@ export function CategoryItemSearch({
 						className="h-12 pl-9 text-base"
 					/>
 				</div>
-				{!isQueryValid ? (
-					<p className="text-sm text-muted-foreground">
-						Type at least {MIN_QUERY_LENGTH} characters.
-					</p>
-				) : isLoading ? (
-					<p className="text-sm text-muted-foreground inline-flex items-center gap-2">
-						<Loader2 className="size-4 animate-spin" />
-						Searching...
-					</p>
-				) : error ? (
-					<p className="text-sm text-red-500">{error}</p>
-				) : (
-					<p className="text-sm text-muted-foreground">
-						{resultMeta ?? "No results yet."}
-					</p>
-				)}
+				<output aria-live="polite" className="min-h-5 text-sm">
+					{!isQueryValid ? (
+						<span className="text-muted-foreground">
+							Type at least {MIN_QUERY_LENGTH} characters.
+						</span>
+					) : isPending ? (
+						<span className="inline-flex items-center gap-2 text-muted-foreground">
+							<Loader2 className="size-4 animate-spin" />
+							Searching...
+						</span>
+					) : error ? (
+						<span className="text-red-500">{error}</span>
+					) : (
+						<span className="text-muted-foreground">
+							{items.length} result{items.length === 1 ? "" : "s"}
+						</span>
+					)}
+				</output>
 			</div>
 
-			<div className="flex-1 overflow-y-auto pb-10">
+			<div
+				aria-busy={isPending}
+				className={`flex-1 overflow-y-auto pb-10 transition-opacity ${
+					isPending ? "opacity-60" : ""
+				}`}
+			>
 				{!isQueryValid ? (
 					<EmptyState
 						title="Start typing to search"
 						description="Use at least 2 characters to run search."
 					/>
-				) : items.length === 0 && !isLoading && !error ? (
-					<EmptyState
-						title="No results"
-						description="Try another term in this category."
-					/>
+				) : items.length === 0 ? (
+					isPending || error ? null : (
+						<EmptyState
+							title="No results"
+							description="Try another term in this category."
+						/>
+					)
 				) : section === "channels" ? (
 					<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
 						{items.map((item) => {
