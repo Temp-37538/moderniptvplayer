@@ -115,6 +115,53 @@ const toId = (value: unknown) =>
 
 const enc = encodeURIComponent;
 
+/**
+ * Fills the fields the library serializers map over without checking, so a
+ * panel that omits `category_ids` or an episode's `info` cannot crash a page.
+ * Returns copies: raw responses are shared through the response cache.
+ */
+function withCategoryIds(value: unknown): unknown {
+	const item = toRecord(value);
+	if (Array.isArray(item.category_ids)) {
+		return value;
+	}
+	const id = toId(item.category_id);
+	return { ...item, category_ids: id ? [id] : [] };
+}
+
+function fillSerializerDefaults(key: SerializerKey, value: unknown): unknown {
+	if (key === "channels" || key === "movies" || key === "shows") {
+		return Array.isArray(value) ? value.map(withCategoryIds) : value;
+	}
+	if (key === "movie") {
+		const data = toRecord(value);
+		return {
+			...data,
+			info: Array.isArray(data.info) ? {} : toRecord(data.info),
+			movie_data: withCategoryIds(data.movie_data),
+		};
+	}
+	if (key === "show") {
+		const data = toRecord(value);
+		const episodes: RawRecord = {};
+		for (const [season, list] of Object.entries(toRecord(data.episodes))) {
+			episodes[season] = Array.isArray(list)
+				? list.map((episode) => {
+						const record = toRecord(episode);
+						return { ...record, info: toRecord(record.info) };
+					})
+				: [];
+		}
+		return {
+			...data,
+			info: withCategoryIds(data.info),
+			episodes,
+			seasons: Array.isArray(data.seasons) ? data.seasons : [],
+		};
+	}
+	return value;
+}
+
 export class SafeXtream {
 	readonly baseUrl: string;
 	readonly serializerType: string;
@@ -159,7 +206,7 @@ export class SafeXtream {
 		const serializer = this.#serializers[key] as
 			| ((input: unknown) => unknown)
 			| undefined;
-		return serializer ? serializer(value) : value;
+		return serializer ? serializer(fillSerializerDefaults(key, value)) : value;
 	}
 
 	#get(action: string, params: Record<string, string> = {}): Promise<unknown> {
