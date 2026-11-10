@@ -162,33 +162,20 @@ function CategorySearchBase({
 
 	return (
 		<div className="h-full flex flex-col gap-3 md:gap-4  scrollbar-thin scrollbar-thumb-rounded-lg scrollbar-thumb-border/50 scrollbar-track-border/20">
-			<div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-				<div className="flex items-center justify-between gap-2.5 md:gap-3 min-w-0">
-					<div className="min-w-0 space-y-2">
-						<h1 className={`${PAGE_TITLE_CLASS} truncate pb-1`}>{title}</h1>
-						<p className="text-xs md:text-sm text-muted-foreground truncate">
-							{playlistName} · {filteredCategories.length}{" "}
-							{filteredCategories.length === 1 ? "category" : "categories"}
-						</p>
-					</div>
-					<label
-						htmlFor="adult-category-lock-mobile"
-						className="flex md:hidden items-center gap-2 text-xs text-muted-foreground shrink-0"
-					>
-						<Switch
-							id="adult-category-lock-mobile"
-							size="sm"
-							checked={adultLocked}
-							disabled={lockPending}
-							onCheckedChange={onLockChange}
-						/>
-						Lock adult categories
-					</label>
+			<div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+				<div className="min-w-0 space-y-2">
+					<h1 className={`${PAGE_TITLE_CLASS} truncate pb-1`}>{title}</h1>
+					<p className="text-xs md:text-sm text-muted-foreground truncate">
+						{playlistName} · {filteredCategories.length}{" "}
+						{filteredCategories.length === 1 ? "category" : "categories"}
+					</p>
 				</div>
-				<div className="flex flex-col gap-2 md:items-end">
+				{/* Mobile: search on top, the lock under it. Desktop: one row,
+				    lock then search, both centered on the same line. */}
+				<div className="flex flex-col gap-3 md:shrink-0 md:flex-row-reverse md:items-center md:gap-5">
 					<SearchForm
 						placeholder={placeholder}
-						className="md:w-70 w-full"
+						className="w-full md:w-70"
 						inputName="q"
 						inputProps={{
 							value: query,
@@ -210,7 +197,7 @@ function CategorySearchBase({
 					/>
 					<label
 						htmlFor="adult-category-lock"
-						className="hidden md:flex items-center gap-2 text-xs text-muted-foreground"
+						className="flex items-center gap-2 whitespace-nowrap text-xs text-muted-foreground md:text-sm"
 					>
 						<Switch
 							id="adult-category-lock"
