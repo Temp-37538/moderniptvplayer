@@ -43,6 +43,8 @@ export type M3uFormState = {
 	message?: string;
 	playlistId?: string;
 	changed?: boolean;
+	/** HTTP 884 turned the submitted M3U link into an Xtream playlist. */
+	convertedToXtream?: boolean;
 };
 
 export interface NavItem {

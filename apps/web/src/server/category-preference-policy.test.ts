@@ -84,6 +84,54 @@ test("adult classification hits explicit category names and age marks", () => {
 	}
 });
 
+test("adult classification covers French labels and adult brands", () => {
+	const adult = [
+		"FR | Films X",
+		"Films X HD",
+		"Canal X",
+		"X Movies",
+		"VOD X",
+		"Films de sexe",
+		"Sexe",
+		"Films de charme",
+		"Dorcel TV",
+		"Playboy TV",
+		"Hustler HD",
+		"Penthouse",
+		"Vivid",
+		"Redlight HD",
+		"Brazzers",
+		"Bangbros",
+		"Bang Bros",
+		"Reality Kings",
+		"Naughty America",
+		"Pornhub",
+		"xHamster",
+		"Érotisme",
+	];
+	for (const name of adult) {
+		assert.equal(isAdultCategoryName(name), true, name);
+	}
+
+	const safe = [
+		"X",
+		"X-Men",
+		"Movies X-Men",
+		"VOD | X-Men Collection",
+		"Formula X TV",
+		"X Factor",
+		"Malcolm X",
+		"Charmed",
+		"Sexy Beasts",
+		"Adult Swim",
+		"America",
+		"Kings",
+	];
+	for (const name of safe) {
+		assert.equal(isAdultCategoryName(name), false, name);
+	}
+});
+
 test("native script names stay allowed when normalization is empty", () => {
 	const names = [
 		"للكبار",

@@ -34,6 +34,7 @@ import {
 } from "./queries";
 import {
 	conversionSuccessMessage,
+	M3U_ADDED_AS_XTREAM_MESSAGE,
 	type SavedItemCounts,
 } from "./m3u-conversion";
 import { checkRateLimit } from "./rate-limit";
@@ -328,8 +329,9 @@ export async function addM3uPlaylistAction(
 				errors: {},
 				success: true,
 				inputs: { m3uUrl: "", playlistName: imported.playlistName },
-				message: "Playlist added successfully !",
+				message: M3U_ADDED_AS_XTREAM_MESSAGE,
 				playlistId: playlist.id,
+				convertedToXtream: true,
 			};
 		} catch (error) {
 			if (error instanceof PlaylistAlreadyExistsError) {
@@ -737,6 +739,7 @@ export async function updateM3uPlaylistAction(
 			inputs: { m3uUrl: "", playlistName: imported.playlistName },
 			message: conversionSuccessMessage(cleared),
 			playlistId,
+			convertedToXtream: true,
 		};
 	}
 
