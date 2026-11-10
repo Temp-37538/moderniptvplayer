@@ -224,15 +224,23 @@ function CategorySearchBase({
 				</div>
 			</div>
 			<div
-				className={`flex-1 overflow-y-auto ${lockPending ? "pointer-events-none opacity-60" : ""}`}
+				className={`-m-1 flex-1 overflow-y-auto ${lockPending ? "pointer-events-none opacity-60" : ""}`}
 			>
-				<div className="grid grid-cols-2 sm:grid-cols-3   lg:grid-cols-4 xl:grid-cols-5 gap-3">
+				<div className="grid grid-cols-1 gap-2 p-1 min-[420px]:grid-cols-2 sm:gap-3 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
 					{filteredCategories.map((category) => (
 						<div
 							key={category.id}
-							className="group relative flex flex-col rounded-xl border border-border/50 bg-card transition-all duration-200 hover:border-primary/30 hover:bg-accent/50 hover:shadow-lg hover:shadow-primary/5"
+							className="group relative flex min-h-16 items-center rounded-xl border border-border/60 bg-card transition-colors hover:border-border hover:bg-muted/50"
 						>
-							<div className="absolute top-2 right-2 z-10 flex gap-1">
+							<Link
+								href={buildCategoryHref(category.id)}
+								className="flex min-h-16 flex-1 items-center rounded-xl py-3 pr-18 pl-4 outline-none focus-visible:ring-3 focus-visible:ring-ring/60"
+							>
+								<span className="line-clamp-2 text-sm font-medium leading-snug">
+									{category.name}
+								</span>
+							</Link>
+							<div className="absolute top-1/2 right-2 z-10 flex -translate-y-1/2 gap-0.5">
 								<button
 									type="button"
 									aria-pressed={category.pinned}
@@ -242,7 +250,7 @@ function CategorySearchBase({
 											: `Pin ${category.name}`
 									}
 									disabled={pendingId === category.id}
-									className="inline-flex size-7 items-center justify-center rounded-md bg-background/80 text-muted-foreground hover:text-foreground disabled:opacity-50 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-ring"
+									className={`inline-flex size-7 cursor-pointer items-center justify-center rounded-md text-muted-foreground outline-none transition-opacity hover:bg-background hover:text-foreground focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 md:group-hover:opacity-100 md:group-focus-within:opacity-100 ${category.pinned ? "" : "md:opacity-0"}`}
 									onClick={() => onTogglePin(category)}
 								>
 									<Pin
@@ -253,20 +261,12 @@ function CategorySearchBase({
 									type="button"
 									aria-label={`Hide ${category.name}`}
 									disabled={pendingId === category.id}
-									className="inline-flex size-7 items-center justify-center rounded-md bg-background/80 text-muted-foreground hover:text-foreground disabled:opacity-50 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-ring"
+									className="inline-flex size-7 cursor-pointer items-center justify-center rounded-md text-muted-foreground outline-none transition-opacity hover:bg-background hover:text-foreground focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100"
 									onClick={() => onHide(category)}
 								>
 									<EyeOff className="size-3.5" />
 								</button>
 							</div>
-							<Link
-								href={buildCategoryHref(category.id)}
-								className="flex flex-col items-center justify-center gap-2 md:gap-3 rounded-xl p-3 pt-9 pb-10 md:p-5 md:pt-10 md:pb-12 outline-none focus-visible:ring-2 focus-visible:ring-ring"
-							>
-								<span className="text-xs md:text-sm font-medium text-center leading-tight line-clamp-2">
-									{category.name}
-								</span>
-							</Link>
 						</div>
 					))}
 				</div>
