@@ -398,7 +398,7 @@ export function SettingsSkeleton() {
 	return (
 		<div className="h-full overflow-hidden">
 			<div className="w-full max-w-3xl mx-auto pb-6">
-				<Tabs value="account" className="w-full gap-4 max-md:flex-col md:gap-6">
+				<Tabs value="account" className="w-full gap-4 max-lg:flex-col md:gap-6">
 					<div>
 						<TabsList aria-label="Settings">
 							<TabsTrigger value="account" className="gap-1">
@@ -466,7 +466,7 @@ export function SecuritySettingsSkeleton() {
 			<div className="w-full max-w-3xl mx-auto pb-6">
 				<Tabs
 					value="security"
-					className="w-full gap-4 max-md:flex-col md:gap-6"
+					className="w-full gap-4 max-lg:flex-col md:gap-6"
 				>
 					<div>
 						<TabsList aria-label="Settings">
