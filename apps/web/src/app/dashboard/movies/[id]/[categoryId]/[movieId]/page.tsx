@@ -121,8 +121,8 @@ async function MovieDetailContent({ params }: PageProps) {
 				label={movie.name}
 			/>
 			<div className="w-full pb-6">
-				<div className="grid gap-10 md:grid-cols-[19rem_minmax(0,1fr)] md:gap-14">
-					<div className="md:sticky md:top-0 md:self-start space-y-5">
+				<div className="grid gap-10 xl:grid-cols-[19rem_minmax(0,1fr)] xl:gap-14">
+					<div className="w-full space-y-5 md:mx-auto md:max-w-xs xl:sticky xl:top-0 xl:mx-0 xl:max-w-none xl:self-start">
 						{safePosterSrc ? (
 							<Image
 								src={safePosterSrc}

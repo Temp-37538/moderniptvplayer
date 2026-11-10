@@ -177,8 +177,8 @@ export function MediaDetailSkeleton() {
 	return (
 		<div className="h-full overflow-hidden">
 			<div className="w-full pb-6">
-				<div className="grid gap-10 md:grid-cols-[19rem_minmax(0,1fr)] md:gap-14">
-					<div className="md:self-start space-y-5">
+				<div className="grid gap-10 xl:grid-cols-[19rem_minmax(0,1fr)] xl:gap-14">
+					<div className="w-full space-y-5 md:mx-auto md:max-w-xs xl:mx-0 xl:max-w-none xl:self-start">
 						<Skeleton className="aspect-2/3 w-full rounded-2xl" />
 						<div className="mt-5 flex h-4 flex-wrap items-center justify-center gap-x-6 gap-y-2">
 							<Skeleton className="h-3 w-14" />
@@ -246,8 +246,8 @@ export function ShowDetailSkeleton() {
 	return (
 		<div className="h-full overflow-hidden">
 			<div className="w-full pb-6">
-				<div className="grid gap-10 md:grid-cols-[19rem_minmax(0,1fr)] md:gap-14">
-					<div className="space-y-5 md:self-start">
+				<div className="grid gap-10 xl:grid-cols-[19rem_minmax(0,1fr)] xl:gap-14">
+					<div className="w-full space-y-5 md:mx-auto md:max-w-xs xl:mx-0 xl:max-w-none xl:self-start">
 						<div className="relative">
 							<Skeleton className="aspect-2/3 w-full rounded-2xl border border-border/40" />
 							<div className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-inset ring-white/10" />
