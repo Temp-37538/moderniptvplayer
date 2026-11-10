@@ -6,6 +6,7 @@ import {
 	CATALOG_TTL_MS,
 	SEARCH_CANDIDATES_PER_KIND,
 	SYNC_LOCK_MS,
+	buildCatalogSearchQuery,
 	SYNC_TIMEOUT_MS,
 	decideSync,
 	pickOpenCategory,
@@ -355,22 +356,21 @@ export async function searchCatalog(input: {
 
 	const resultsByKind = await Promise.all(
 		input.kinds.map(async (kind) => {
-			const tokenClauses = input.tokens.map(
-				(_token, index) => `strpos("normalizedName", $${index + 4}) > 0`,
-			);
-			const sql = `SELECT "itemId", "name", "normalizedName", "categoryIds", "image"
-				FROM "catalog_entry"
-				WHERE "playlistId" = $1 AND "syncId" = $2 AND "kind" = $3
-				  AND ${tokenClauses.join(" AND ")}
-				ORDER BY "normalizedName" ASC
-				LIMIT $${input.tokens.length + 4}`;
+			// Visibility and ranking run in SQL before the LIMIT, so the query
+			// only needs the rows it will return. The in-memory pass below
+			// re-checks them with the same rules as a safety net.
+			const { sql, params } = buildCatalogSearchQuery({
+				playlistId: input.playlistId,
+				activeSyncId: input.activeSyncId,
+				kind,
+				tokens: input.tokens,
+				hiddenIds: input.hidden[kind],
+				adultIds: input.adult[kind],
+				limit: Math.min(input.limit, SEARCH_CANDIDATES_PER_KIND),
+			});
 			const candidates = await prisma.$queryRawUnsafe<CatalogEntryCandidate[]>(
 				sql,
-				input.playlistId,
-				input.activeSyncId,
-				kind,
-				...input.tokens,
-				SEARCH_CANDIDATES_PER_KIND,
+				...params,
 			);
 
 			const matches = candidates.flatMap((candidate) => {

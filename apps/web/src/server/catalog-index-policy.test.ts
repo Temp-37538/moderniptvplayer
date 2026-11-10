@@ -10,6 +10,7 @@ import {
 	SYNC_LOCK_MS,
 	SYNC_RETRY_COOLDOWN_MS,
 	SYNC_TIMEOUT_MS,
+	buildCatalogSearchQuery,
 	decideSync,
 	normalizeSearchText,
 	parseSearchTokens,
@@ -376,4 +377,40 @@ test("one id set deduplicates a listing across chunks", () => {
 		[...first, ...second].map((row) => row.itemId),
 		["m1", "m2"],
 	);
+});
+
+test("the search query filters and ranks in SQL with parameters only", () => {
+	const { sql, params } = buildCatalogSearchQuery({
+		playlistId: "p1",
+		activeSyncId: "s1",
+		kind: "movie",
+		tokens: ["dark", "o'knight"],
+		hiddenIds: new Set(["h1", "h2"]),
+		adultIds: new Set(["a1"]),
+		limit: 20,
+	});
+
+	assert.deepEqual(params, [
+		"p1",
+		"s1",
+		"movie",
+		JSON.stringify(["h1", "h2"]),
+		JSON.stringify(["a1"]),
+		"dark o'knight",
+		"dark",
+		20,
+		"dark",
+		"o'knight",
+	]);
+	for (const value of ["p1", "s1", "h1", "a1", "dark", "knight"]) {
+		assert.equal(sql.includes(value), false, value);
+	}
+	assert.match(
+		sql,
+		/strpos\("normalizedName", \$9\) > 0 AND strpos\("normalizedName", \$10\) > 0/,
+	);
+	assert.match(sql, /NOT \("categoryIds" <@ /);
+	assert.match(sql, /NOT \("categoryIds" && /);
+	assert.ok(sql.indexOf("ORDER BY") < sql.indexOf("LIMIT $8"));
+	assert.ok(sql.indexOf("NOT (") < sql.indexOf("LIMIT $8"));
 });

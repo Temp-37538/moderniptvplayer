@@ -269,3 +269,60 @@ export function decideSync(
 	}
 	return "serve-and-refresh";
 }
+
+/**
+ * One kind's search query. Visibility and ranking run in SQL, before the
+ * LIMIT, so hidden or adult titles can no longer push visible ones out of the
+ * candidates, and the best matches come first instead of the first names in
+ * alphabetical order. The rank mirrors `rankMatch`: exact name, name starting
+ * with the query, a word starting with the first token, then the rest; ties
+ * go to the shorter name, then the name. Every value is a parameter.
+ *
+ * - Hidden: a title is dropped when all its categories are hidden. A title
+ *   without categories is dropped too, as `pickOpenCategory` does.
+ * - Adult: a title is dropped when any category is adult-locked.
+ */
+export function buildCatalogSearchQuery(input: {
+	playlistId: string;
+	activeSyncId: string;
+	kind: CatalogKind;
+	tokens: readonly string[];
+	hiddenIds: ReadonlySet<string>;
+	adultIds: ReadonlySet<string>;
+	limit: number;
+}): { sql: string; params: unknown[] } {
+	const joined = input.tokens.join(" ");
+	const firstToken = input.tokens[0] ?? "";
+	const params: unknown[] = [
+		input.playlistId,
+		input.activeSyncId,
+		input.kind,
+		JSON.stringify([...input.hiddenIds]),
+		JSON.stringify([...input.adultIds]),
+		joined,
+		firstToken,
+		input.limit,
+	];
+	const tokenClauses = input.tokens.map((token) => {
+		params.push(token);
+		return `strpos("normalizedName", $${params.length}) > 0`;
+	});
+	const sql = `SELECT "itemId", "name", "normalizedName", "categoryIds", "image"
+		FROM "catalog_entry"
+		WHERE "playlistId" = $1 AND "syncId" = $2 AND "kind" = $3
+		  AND ${tokenClauses.join(" AND ")}
+		  AND NOT ("categoryIds" <@ ARRAY(SELECT jsonb_array_elements_text($4::jsonb)))
+		  AND NOT ("categoryIds" && ARRAY(SELECT jsonb_array_elements_text($5::jsonb)))
+		ORDER BY
+		  CASE
+		    WHEN "normalizedName" = $6 THEN 0
+		    WHEN starts_with("normalizedName", $6) THEN 1
+		    WHEN starts_with("normalizedName", $7)
+		      OR strpos("normalizedName", ' ' || $7) > 0 THEN 2
+		    ELSE 3
+		  END,
+		  length("normalizedName"),
+		  "normalizedName"
+		LIMIT $8`;
+	return { sql, params };
+}
