@@ -1,27 +1,20 @@
 "use client";
 import { usePlaylistIdFromPath } from "@/hooks/use-playlist-id";
 import { buildBreadcrumbs } from "@/lib/breadcrumbs";
-import { cn } from "@/lib/utils";
 import { House } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import React, { useEffect } from "react";
+import type React from "react";
+import { useEffect } from "react";
 import { AppSidebar } from "./app-sidebar";
 import {
 	BreadcrumbLabelsProvider,
 	useBreadcrumbLabels,
 } from "./breadcrumb-labels";
+import { HeaderBreadcrumbs } from "./header-breadcrumbs";
 import { PlaylistProvider, usePlaylists } from "./playlist-context";
 import type { Playlist } from "./types";
-import {
-	Breadcrumb,
-	BreadcrumbItem,
-	BreadcrumbLink,
-	BreadcrumbList,
-	BreadcrumbPage,
-	BreadcrumbSeparator,
-} from "./ui/breadcrumb";
 import { Button } from "./ui/button";
 import { SidebarInset, SidebarTrigger } from "./ui/sidebar";
 
@@ -103,52 +96,7 @@ function SidebarContent({ children }: { children: React.ReactNode }) {
 				<header className="flex h-16 z-10 shrink-0 justify-between items-center gap-2 border-b px-6 md:px-8 lg:px-10">
 					<div className="flex min-w-0 items-center gap-2">
 						<SidebarTrigger className="-ml-1 size-8 rounded-lg bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary hover:brightness-90 hover:text-sidebar-primary-foreground dark:hover:bg-sidebar-primary dark:hover:text-sidebar-primary-foreground md:hidden" />
-						<Breadcrumb className="min-w-0">
-							{/* One line: the middle crumbs only show from lg up. */}
-							<BreadcrumbList className="flex-nowrap">
-								{crumbs.map((crumb, index) => {
-									const isLast = index === crumbs.length - 1;
-									const isCurrent = isLast && crumb.href === pathname;
-									const isMiddle = index > 0 && index < crumbs.length - 2;
-
-									return (
-										<React.Fragment key={crumb.href}>
-											<BreadcrumbItem
-												className={cn(
-													"hidden min-w-0",
-													isMiddle ? "lg:inline-flex" : "md:inline-flex",
-												)}
-											>
-												{isCurrent ? (
-													<BreadcrumbPage className="max-w-48 truncate">
-														{crumb.label}
-													</BreadcrumbPage>
-												) : crumb.link ? (
-													<BreadcrumbLink
-														className="max-w-48 truncate"
-														render={<Link href={crumb.href as Route} />}
-													>
-														{crumb.label}
-													</BreadcrumbLink>
-												) : (
-													<span className="max-w-48 truncate">
-														{crumb.label}
-													</span>
-												)}
-											</BreadcrumbItem>
-											{!isLast && (
-												<BreadcrumbSeparator
-													className={cn(
-														"hidden",
-														isMiddle ? "lg:block" : "md:block",
-													)}
-												/>
-											)}
-										</React.Fragment>
-									);
-								})}
-							</BreadcrumbList>
-						</Breadcrumb>
+						<HeaderBreadcrumbs crumbs={crumbs} pathname={pathname} />
 					</div>
 					<div className="flex items-center gap-2">
 						<Button
