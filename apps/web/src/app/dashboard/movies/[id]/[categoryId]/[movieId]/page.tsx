@@ -2,11 +2,10 @@ import { createPageMetadata, getMovieMetadataContext } from "@/app/metadata";
 import { CopyStreamButton } from "@/components/copy-stream-button";
 import { ExternalStreamLink } from "@/components/external-stream-link";
 import { ItemActionButtons } from "@/components/item-action-buttons";
+import { MovieWatchSection } from "@/components/movie-watch-section";
 import type { MovieDetailPageProps as PageProps } from "@/components/types";
-import { VideoPlayer } from "@/components/video-player";
 import { toSafeImageSrc } from "@/lib/image-url";
 import { withStreamCategory } from "@/lib/stream-category";
-import { formatTimestamp } from "@/lib/series-resume";
 import { toYoutubeEmbedUrl } from "@/lib/youtube";
 import { getCachedMovie } from "@/server/cached-content";
 import {
@@ -176,46 +175,33 @@ async function MovieDetailContent({ params }: PageProps) {
 							</p>
 						) : null}
 
-						<section className="mt-10 space-y-3">
-							<div className="flex flex-wrap items-baseline justify-between gap-2">
-								<h2 className="font-serif text-2xl tracking-tight">Watch</h2>
-								{resumeAt > 0 ? (
-									<p className="text-xs font-medium text-muted-foreground tabular-nums">
-										Resuming at {formatTimestamp(resumeAt)}
-									</p>
-								) : resume?.completed ? (
-									<p className="text-xs font-medium text-muted-foreground">
-										Watched
-									</p>
-								) : null}
-							</div>
-							<VideoPlayer
-								className="rounded-2xl border-border/40 shadow-2xl shadow-black/50"
-								poster={safePosterSrc}
-								startAt={resumeAt}
-								progress={{
-									playlistId: id,
-									itemId: movieId,
-									itemType: "movie",
-									itemName: movie.name,
-									itemUrl: `/dashboard/movies/${id}/${categoryId}/${movieId}`,
-									itemImage: movie.poster,
-								}}
-								sources={[
-									{
-										kind: extension === "m3u8" ? "hls" : "native",
-										src: withStreamCategory(
-											`/api/stream/vod/${encodeURIComponent(id)}/movie/${encodeURIComponent(movieId)}?ext=${encodeURIComponent(extension)}`,
-											categoryId,
-										),
-									},
-									// Fallback for providers that refuse the server's IP.
-									...(directUrl
-										? [{ kind: "direct" as const, src: directUrl }]
-										: []),
-								]}
-							/>
-						</section>
+						<MovieWatchSection
+							className="rounded-2xl border-border/40 shadow-2xl shadow-black/50"
+							poster={safePosterSrc}
+							resumeAt={resumeAt}
+							completed={resume?.completed ?? false}
+							progress={{
+								playlistId: id,
+								itemId: movieId,
+								itemType: "movie",
+								itemName: movie.name,
+								itemUrl: `/dashboard/movies/${id}/${categoryId}/${movieId}`,
+								itemImage: movie.poster,
+							}}
+							sources={[
+								{
+									kind: extension === "m3u8" ? "hls" : "native",
+									src: withStreamCategory(
+										`/api/stream/vod/${encodeURIComponent(id)}/movie/${encodeURIComponent(movieId)}?ext=${encodeURIComponent(extension)}`,
+										categoryId,
+									),
+								},
+								// Fallback for providers that refuse the server's IP.
+								...(directUrl
+									? [{ kind: "direct" as const, src: directUrl }]
+									: []),
+							]}
+						/>
 
 						<dl className="mt-8 grid gap-x-8 gap-y-4 border-y border-border/50 py-6 sm:grid-cols-2">
 							{movie.director && movie.director.length > 0 ? (
