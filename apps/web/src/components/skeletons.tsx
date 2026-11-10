@@ -308,31 +308,65 @@ export function ShowDetailSkeleton() {
 	);
 }
 
-export function ContinueWatchingSkeleton({ count = 6 }: { count?: number }) {
-	const visibility = [
-		"",
-		"",
-		"hidden sm:block",
-		"hidden sm:block",
-		"hidden lg:block",
-		"hidden lg:block",
-	];
+export function ContinueWatchingSkeleton({ count = 7 }: { count?: number }) {
 	return (
-		<section className="mb-8">
-			<Skeleton className="mb-3 h-6 w-40" />
-			<div className="flex gap-4 overflow-x-auto pb-2 scrollbar-none">
-				{Array.from({ length: count }).map((_, i) => (
-					<div
-						key={i}
-						className={`w-36 shrink-0 space-y-2 ${visibility[i] ?? ""}`}
-					>
-						<Skeleton className="aspect-2/3 w-full rounded-lg" />
-						<Skeleton className="h-4 w-full" />
-						<Skeleton className="h-4 w-2/3" />
+		<div className="flex gap-3 overflow-hidden pt-1 pb-3 [contain:inline-size] sm:gap-4">
+			{Array.from({ length: count }).map((_, i) => (
+				<div key={i} className="w-36 shrink-0 sm:w-40 lg:w-44">
+					<Skeleton className="aspect-2/3 w-full rounded-xl" />
+					<Skeleton className="mt-2 h-4 w-full" />
+					<Skeleton className="mt-1.5 h-3 w-2/3" />
+				</div>
+			))}
+		</div>
+	);
+}
+
+export function PlaylistListSkeleton({ count = 2 }: { count?: number }) {
+	return (
+		<div className="divide-y divide-border/70 overflow-hidden rounded-xl border border-border/70">
+			{Array.from({ length: count }).map((_, i) => (
+				<div
+					key={i}
+					className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:gap-6 sm:px-5"
+				>
+					<div className="flex-1 space-y-2">
+						<Skeleton className="h-5 w-44" />
+						<Skeleton className="h-4 w-64 max-w-full" />
 					</div>
-				))}
+					<div className="flex gap-2">
+						<Skeleton className="h-8 w-16" />
+						<Skeleton className="h-8 w-16" />
+						<Skeleton className="h-8 w-16" />
+						<Skeleton className="ml-auto size-8" />
+					</div>
+				</div>
+			))}
+		</div>
+	);
+}
+
+export function HomeSkeleton() {
+	return (
+		<div className="space-y-10">
+			<div className="space-y-3">
+				<Skeleton className="h-10 w-56" />
+				<Skeleton className="h-4 w-72 max-w-full" />
+				<div className="flex gap-2 pt-2">
+					<Skeleton className="h-8 w-24 rounded-full" />
+					<Skeleton className="h-8 w-28 rounded-full" />
+					<Skeleton className="h-8 w-28 rounded-full" />
+				</div>
 			</div>
-		</section>
+			<div className="space-y-4">
+				<Skeleton className="h-7 w-48" />
+				<ContinueWatchingSkeleton />
+			</div>
+			<div className="space-y-4">
+				<Skeleton className="h-7 w-36" />
+				<PlaylistListSkeleton />
+			</div>
+		</div>
 	);
 }
 
