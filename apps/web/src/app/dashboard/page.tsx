@@ -107,7 +107,7 @@ function QuickLink({
 	return (
 		<Link
 			href={href as Route}
-			className="inline-flex h-9 items-center gap-2 rounded-full border border-border/80 bg-background px-3.5 text-sm font-medium transition-colors outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/60 [&_svg]:size-4 [&_svg]:text-muted-foreground"
+			className="inline-flex h-9 shrink-0 items-center gap-1 whitespace-nowrap rounded-full border border-border/80 bg-background px-2.5 text-[0.8125rem] font-medium transition-colors outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/60 sm:gap-2 sm:px-3.5 sm:text-sm [&_svg]:size-3.5 [&_svg]:text-muted-foreground sm:[&_svg]:size-4"
 		>
 			{icon}
 			{children}
@@ -171,7 +171,11 @@ async function HomeContent() {
 				<p className="mt-2 text-base text-muted-foreground">
 					Pick up where you left off, or open one of your playlists.
 				</p>
-				<nav aria-label="Quick access" className="mt-5 flex flex-wrap gap-2">
+				{/* One row down to 360 px wide (tighter pills under `sm`); wraps below. */}
+				<nav
+					aria-label="Quick access"
+					className="mt-5 flex flex-wrap gap-1.5 sm:gap-2"
+				>
 					<QuickLink
 						href={`/dashboard/search/${activeId}`}
 						icon={<SearchIcon />}
