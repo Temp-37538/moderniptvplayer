@@ -95,17 +95,17 @@ const SECTION_CONFIG: Record<
 > = {
 	channels: {
 		title: "Search channels",
-		placeholder: "Search channels in this category",
+		placeholder: "Channel name",
 		Icon: Radio,
 	},
 	movies: {
 		title: "Search movies",
-		placeholder: "Search movies in this category",
+		placeholder: "Movie title",
 		Icon: Film,
 	},
 	series: {
 		title: "Search series",
-		placeholder: "Search series in this category",
+		placeholder: "Series title",
 		Icon: Tv,
 	},
 };
@@ -231,6 +231,7 @@ export function CategoryItemSearch({
 						value={query}
 						onChange={(event) => setQuery(event.target.value)}
 						placeholder={placeholder}
+						aria-label={`Search ${section} in this category`}
 						className="h-12 pl-9 text-base"
 					/>
 				</div>
