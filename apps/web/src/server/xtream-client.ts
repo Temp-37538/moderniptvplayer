@@ -116,47 +116,69 @@ const toId = (value: unknown) =>
 const enc = encodeURIComponent;
 
 /**
- * Fills the fields the library serializers map over without checking, so a
- * panel that omits `category_ids` or an episode's `info` cannot crash a page.
- * Returns copies: raw responses are shared through the response cache.
+ * Fills the fields the library serializers read without checking, so a panel
+ * that omits `category_ids`, `backdrop_path`, `tmdb_id` or an episode's
+ * `info` cannot crash a page. Returns copies: raw responses are shared
+ * through the response cache.
  */
-function withCategoryIds(value: unknown): unknown {
+function withListDefaults(value: unknown): RawRecord {
 	const item = toRecord(value);
-	if (Array.isArray(item.category_ids)) {
-		return value;
-	}
 	const id = toId(item.category_id);
-	return { ...item, category_ids: id ? [id] : [] };
+	return {
+		...item,
+		category_ids: Array.isArray(item.category_ids)
+			? item.category_ids
+			: id
+				? [id]
+				: [],
+		backdrop_path: Array.isArray(item.backdrop_path)
+			? item.backdrop_path
+			: typeof item.backdrop_path === "string" && item.backdrop_path
+				? [item.backdrop_path]
+				: [],
+	};
 }
 
 function fillSerializerDefaults(key: SerializerKey, value: unknown): unknown {
 	if (key === "channels" || key === "movies" || key === "shows") {
-		return Array.isArray(value) ? value.map(withCategoryIds) : value;
+		return Array.isArray(value) ? value.map(withListDefaults) : value;
 	}
 	if (key === "movie") {
 		const data = toRecord(value);
+		const info = withListDefaults(Array.isArray(data.info) ? {} : data.info);
 		return {
 			...data,
-			info: Array.isArray(data.info) ? {} : toRecord(data.info),
-			movie_data: withCategoryIds(data.movie_data),
+			info: { ...info, tmdb_id: toId(info.tmdb_id) },
+			movie_data: withListDefaults(data.movie_data),
 		};
 	}
 	if (key === "show") {
 		const data = toRecord(value);
 		const episodes: RawRecord = {};
 		for (const [season, list] of Object.entries(toRecord(data.episodes))) {
-			episodes[season] = Array.isArray(list)
-				? list.map((episode) => {
-						const record = toRecord(episode);
-						return { ...record, info: toRecord(record.info) };
-					})
-				: [];
+			if (!Array.isArray(list)) {
+				continue;
+			}
+			const filled = list
+				.filter((episode) => typeof episode === "object" && episode !== null)
+				.map((episode: RawRecord) => ({
+					...episode,
+					season: episode.season ?? (Number(season) || season),
+					info: toRecord(episode.info),
+				}));
+			// An empty season has nothing to show, and the serializer reads its
+			// first episode when the panel sends no season list.
+			if (filled.length > 0) {
+				episodes[season] = filled;
+			}
 		}
 		return {
 			...data,
-			info: withCategoryIds(data.info),
+			info: withListDefaults(data.info),
 			episodes,
-			seasons: Array.isArray(data.seasons) ? data.seasons : [],
+			seasons: Array.isArray(data.seasons)
+				? data.seasons.filter((season) => toId(toRecord(season).id) !== "")
+				: [],
 		};
 	}
 	return value;
