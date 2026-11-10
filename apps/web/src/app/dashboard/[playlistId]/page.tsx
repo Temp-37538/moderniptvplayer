@@ -70,7 +70,7 @@ async function PlaylistHomeContent({
 
 			<nav
 				aria-label="Playlist library"
-				className="grid gap-x-8 sm:grid-cols-4"
+				className="grid gap-x-8 sm:grid-cols-2 xl:grid-cols-4"
 			>
 				<Link
 					href={`/dashboard/channels/${playlistId}` as Route}
@@ -138,7 +138,7 @@ async function PlaylistHomeContent({
 				</Link>
 			</nav>
 
-			<div className="grid gap-10 md:grid-cols-2">
+			<div className="grid gap-10 lg:grid-cols-2">
 				<section aria-labelledby="watch-later-heading" className="space-y-4">
 					<div className="flex items-baseline justify-between gap-4">
 						<h2

@@ -566,7 +566,7 @@ export function PlaylistHomeSkeleton() {
 		<SkeletonPage narrow className="space-y-10">
 			<PageHeaderSkeleton titleWidth="w-64" descriptionWidth="w-56" />
 
-			<div className="grid gap-x-8 sm:grid-cols-4">
+			<div className="grid gap-x-8 sm:grid-cols-2 xl:grid-cols-4">
 				{Array.from({ length: 4 }).map((_, i) => (
 					<div key={i} className="flex min-h-32 flex-col justify-between py-5">
 						<div className="flex items-center justify-between">
@@ -581,7 +581,7 @@ export function PlaylistHomeSkeleton() {
 				))}
 			</div>
 
-			<div className="grid gap-10 md:grid-cols-2">
+			<div className="grid gap-10 lg:grid-cols-2">
 				<SavedItemsSectionSkeleton />
 				<SavedItemsSectionSkeleton />
 			</div>
