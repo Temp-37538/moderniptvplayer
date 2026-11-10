@@ -41,6 +41,8 @@ type CategoryItemSearchProps = {
 	section: SearchSection;
 	playlistId: string;
 	categoryId: string;
+	/** Category name for the page title, when the page knows it. */
+	categoryName?: string | null;
 };
 
 type ImageWithFallbackProps = {
@@ -122,6 +124,7 @@ export function CategoryItemSearch({
 	section,
 	playlistId,
 	categoryId,
+	categoryName,
 }: CategoryItemSearchProps) {
 	const [query, setQuery] = useState("");
 	const [debouncedQuery, setDebouncedQuery] = useState("");
@@ -213,10 +216,12 @@ export function CategoryItemSearch({
 				<div className="flex items-center gap-3">
 					<div className="space-y-2">
 						<h1 className="font-serif text-4xl leading-[1.05] tracking-tight text-balance break-words md:text-5xl">
-							{title}
+							{categoryName || title}
 						</h1>
 						<p className="text-sm text-muted-foreground">
-							Search through this category only
+							{categoryName
+								? `Search ${section} in this category`
+								: "Search through this category only"}
 						</p>
 					</div>
 				</div>
@@ -230,11 +235,7 @@ export function CategoryItemSearch({
 					/>
 				</div>
 				<output aria-live="polite" className="min-h-5 text-sm">
-					{!isQueryValid ? (
-						<span className="text-muted-foreground">
-							Type at least {MIN_QUERY_LENGTH} characters.
-						</span>
-					) : isPending ? (
+					{!isQueryValid ? null : isPending ? (
 						<span className="inline-flex items-center gap-2 text-muted-foreground">
 							<Loader2 className="size-4 animate-spin" />
 							Searching...
@@ -258,7 +259,7 @@ export function CategoryItemSearch({
 				{!isQueryValid ? (
 					<EmptyState
 						title="Start typing to search"
-						description="Use at least 2 characters to run search."
+						description={`Type at least ${MIN_QUERY_LENGTH} characters.`}
 					/>
 				) : items.length === 0 ? (
 					isPending || error ? null : (

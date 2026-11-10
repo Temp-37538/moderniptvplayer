@@ -42,12 +42,14 @@ async function ChannelCategorySearchContent({ params }: PageProps) {
 	}
 
 	await assertCategoryAvailable(id, "channel", categoryId);
+	const context = await getCategoryMetadataContext("channels", id, categoryId);
 
 	return (
 		<CategoryItemSearch
 			section="channels"
 			playlistId={id}
 			categoryId={categoryId}
+			categoryName={context?.categoryName}
 		/>
 	);
 }

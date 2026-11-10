@@ -42,12 +42,14 @@ async function MovieCategorySearchContent({ params }: PageProps) {
 	}
 
 	await assertCategoryAvailable(id, "movie", categoryId);
+	const context = await getCategoryMetadataContext("movies", id, categoryId);
 
 	return (
 		<CategoryItemSearch
 			section="movies"
 			playlistId={id}
 			categoryId={categoryId}
+			categoryName={context?.categoryName}
 		/>
 	);
 }
