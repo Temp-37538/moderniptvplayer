@@ -1,3 +1,4 @@
+import { PAGE_TITLE_CLASS } from "@/components/page-container";
 import { Button } from "@/components/ui/button";
 import { PlusIcon } from "lucide-react";
 import Link from "next/link";
@@ -6,9 +7,7 @@ export function NoPlaylistNotice() {
 	return (
 		<div className="flex flex-1 flex-col px-4 pt-10 pb-16">
 			<div className="max-w-xl">
-				<h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-					Start with a playlist.
-				</h2>
+				<h2 className={PAGE_TITLE_CLASS}>Start with a playlist.</h2>
 
 				<p className="mt-4 max-w-lg text-base leading-7 text-muted-foreground">
 					Import an Xtream or M3U playlist to bring live TV, movies, and series

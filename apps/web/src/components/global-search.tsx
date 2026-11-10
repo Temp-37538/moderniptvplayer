@@ -1,6 +1,7 @@
 "use client";
 
 import { EmptyState } from "@/components/empty-state";
+import { PAGE_TITLE_CLASS } from "@/components/page-container";
 import {
 	formatRetryWait,
 	SEARCH_POLL_INTERVAL_MS,
@@ -243,8 +244,8 @@ export function GlobalSearch({
 
 	return (
 		<div className="flex h-full flex-col gap-6">
-			<header className="space-y-1">
-				<h1 className="text-2xl font-bold tracking-tight">Search</h1>
+			<header className="space-y-2">
+				<h1 className={PAGE_TITLE_CLASS}>Search</h1>
 				<p className="text-sm text-muted-foreground">
 					Search channels, movies, and series in {playlistName}.
 				</p>

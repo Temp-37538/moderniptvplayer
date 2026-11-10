@@ -1,4 +1,5 @@
 "use client";
+import { PAGE_TITLE_CLASS } from "@/components/page-container";
 import { SearchForm } from "@/components/search-form";
 import type {
 	CategorySearchBaseProps,
@@ -163,10 +164,8 @@ function CategorySearchBase({
 		<div className="h-full flex flex-col gap-3 md:gap-4  scrollbar-thin scrollbar-thumb-rounded-lg scrollbar-thumb-border/50 scrollbar-track-border/20">
 			<div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
 				<div className="flex items-center justify-between gap-2.5 md:gap-3 min-w-0">
-					<div className="min-w-0">
-						<h1 className="text-lg md:text-2xl font-bold tracking-tight truncate">
-							{title}
-						</h1>
+					<div className="min-w-0 space-y-2">
+						<h1 className={`${PAGE_TITLE_CLASS} truncate pb-1`}>{title}</h1>
 						<p className="text-xs md:text-sm text-muted-foreground truncate">
 							{playlistName} {filteredCategories.length} categories
 						</p>

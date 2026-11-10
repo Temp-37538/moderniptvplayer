@@ -29,6 +29,13 @@ export function PageContainer({
 	);
 }
 
+/**
+ * The one page title style: the serif display face of the home page and the
+ * detail pages, at the same size everywhere.
+ */
+export const PAGE_TITLE_CLASS =
+	"font-serif text-4xl leading-[1.05] tracking-tight md:text-5xl";
+
 /** Page title block shared by dashboard pages. */
 export function PageHeader({
 	title,
@@ -38,8 +45,8 @@ export function PageHeader({
 	description?: React.ReactNode;
 }) {
 	return (
-		<header className="space-y-1">
-			<h1 className="text-2xl font-bold tracking-tight">{title}</h1>
+		<header className="space-y-2">
+			<h1 className={PAGE_TITLE_CLASS}>{title}</h1>
 			{description ? (
 				<p className="text-sm text-muted-foreground">{description}</p>
 			) : null}

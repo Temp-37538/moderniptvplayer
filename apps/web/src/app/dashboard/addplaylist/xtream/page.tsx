@@ -1,4 +1,5 @@
 import { createPageMetadata } from "@/app/metadata";
+import { PAGE_TITLE_CLASS } from "@/components/page-container";
 import { XtreamCodesForm } from "@/components/xtream-form";
 import { ArrowLeft } from "lucide-react";
 import type { Metadata } from "next";
@@ -26,7 +27,7 @@ function Page() {
 					Add a playlist
 				</Link>
 
-				<h1 className="mt-4 text-2xl font-bold tracking-tight">Xtream Codes</h1>
+				<h1 className={`mt-4 ${PAGE_TITLE_CLASS}`}>Xtream Codes</h1>
 				<p className="mt-2 text-sm text-muted-foreground">
 					Connect with the server URL, username and password from your IPTV
 					provider.
