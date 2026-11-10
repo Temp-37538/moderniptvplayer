@@ -1,12 +1,12 @@
 "use client";
 
+import { FallbackImage } from "@/components/fallback-image";
 import { Button } from "@/components/ui/button";
 import { channelNeighbors } from "@/lib/channel-neighbors";
 import { isTypingTarget } from "@/lib/player/shortcuts";
 import { cn } from "@/lib/utils";
 import { ChevronLeftIcon, ChevronRightIcon, Radio } from "lucide-react";
 import type { Route } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
@@ -159,13 +159,16 @@ export function ChannelSwitcher({
 							>
 								<span className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-sm bg-muted/60">
 									{channel.logo ? (
-										<Image
+										<FallbackImage
 											src={channel.logo}
 											alt=""
 											width={32}
 											height={32}
 											unoptimized
 											className="size-full object-contain p-0.5"
+											fallback={
+												<Radio className="size-4 text-muted-foreground/50" />
+											}
 										/>
 									) : (
 										<Radio className="size-4 text-muted-foreground/50" />
