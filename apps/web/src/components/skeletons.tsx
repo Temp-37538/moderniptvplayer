@@ -193,7 +193,7 @@ export function MediaDetailSkeleton() {
 
 export function ChannelDetailSkeleton() {
 	return (
-		<div className="w-full max-w-2xl space-y-5">
+		<div className="w-full max-w-[100rem] space-y-5">
 			<div className="flex items-center gap-4">
 				<Skeleton className="size-14 shrink-0 rounded-lg" />
 				<div className="space-y-2">
@@ -201,13 +201,31 @@ export function ChannelDetailSkeleton() {
 					<Skeleton className="h-4 w-32" />
 				</div>
 			</div>
-			<Skeleton className="aspect-video w-full rounded-lg" />
-			<div className="flex flex-wrap items-center justify-end gap-2">
-				<Skeleton className="h-8 w-8 rounded-md" />
-				<Skeleton className="h-8 w-8 rounded-md" />
-				<Skeleton className="h-8 w-8 rounded-md" />
-				<Skeleton className="h-8 w-8 rounded-md" />
+			<div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_20rem]">
+				<div className="space-y-5">
+					<Skeleton className="aspect-video w-full rounded-lg" />
+					<div className="flex flex-wrap items-center justify-end gap-2">
+						<Skeleton className="h-8 w-8 rounded-md" />
+						<Skeleton className="h-8 w-8 rounded-md" />
+						<Skeleton className="h-8 w-8 rounded-md" />
+						<Skeleton className="h-8 w-8 rounded-md" />
+					</div>
+				</div>
+				<ChannelSwitcherSkeleton />
 			</div>
+		</div>
+	);
+}
+
+/** The previous/next buttons and the channel list beside the player. */
+export function ChannelSwitcherSkeleton() {
+	return (
+		<div className="space-y-3">
+			<div className="flex justify-between">
+				<Skeleton className="h-8 w-24 rounded-md" />
+				<Skeleton className="h-8 w-20 rounded-md" />
+			</div>
+			<Skeleton className="h-96 w-full rounded-lg" />
 		</div>
 	);
 }

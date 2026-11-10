@@ -11,6 +11,7 @@
     "types": ["node"]
   },
   "include": [
+    "src/lib/channel-neighbors.test.ts",
     "src/lib/continue-watching.test.ts",
     "src/lib/global-search-timing.test.ts",
     "src/lib/global-search-url.test.ts",
