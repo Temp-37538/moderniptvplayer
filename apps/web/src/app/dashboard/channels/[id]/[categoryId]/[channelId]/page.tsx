@@ -1,4 +1,5 @@
 import { createPageMetadata, getChannelMetadataContext } from "@/app/metadata";
+import { FallbackImage } from "@/components/fallback-image";
 import {
 	ChannelSwitcher,
 	type SwitcherChannel,
@@ -22,7 +23,6 @@ import { getItemStatus } from "@/server/user-items";
 import { createXtreamClient, getPlaylistById } from "@/server/xtream";
 import { Radio } from "lucide-react";
 import type { Metadata } from "next";
-import Image from "next/image";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
@@ -149,13 +149,14 @@ async function ChannelDetailContent({ params }: PageProps) {
 			<header className="flex items-center gap-4">
 				<div className="flex size-14 shrink-0 items-center justify-center">
 					{safeLogoSrc ? (
-						<Image
+						<FallbackImage
 							src={safeLogoSrc}
 							alt={channel.name}
 							width={56}
 							height={56}
 							unoptimized
 							className="size-full object-contain object-left"
+							fallback={<Radio className="size-6 text-muted-foreground/60" />}
 						/>
 					) : (
 						<Radio className="size-6 text-muted-foreground/60" />
