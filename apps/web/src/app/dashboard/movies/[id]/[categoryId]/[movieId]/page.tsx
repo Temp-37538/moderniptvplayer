@@ -178,7 +178,10 @@ async function MovieDetailContent({ params }: PageProps) {
 
 					<div className="min-w-0 max-w-4xl">
 						<header>
-							<h1 className="font-serif text-4xl leading-[1.05] tracking-tight text-balance md:text-5xl">
+							<h1
+								dir="auto"
+								className="font-serif text-4xl leading-[1.05] tracking-tight text-balance wrap-break-word md:text-5xl"
+							>
 								{movie.name}
 							</h1>
 							{movie.originalName && movie.originalName !== movie.name ? (

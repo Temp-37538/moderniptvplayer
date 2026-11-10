@@ -141,7 +141,10 @@ async function ChannelsByCategoryContent({ params, searchParams }: PageProps) {
 										)}
 									</div>
 									<div className="mt-2 flex items-baseline gap-2">
-										<h3 className="min-w-0 flex-1 truncate text-sm font-medium">
+										<h3
+											dir="auto"
+											className="min-w-0 flex-1 truncate text-sm font-medium"
+										>
 											{channel.name}
 										</h3>
 										{channel.number > 0 && (

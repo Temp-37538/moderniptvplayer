@@ -34,7 +34,7 @@ export function PageContainer({
  * detail pages, at the same size everywhere.
  */
 export const PAGE_TITLE_CLASS =
-	"font-serif text-4xl leading-[1.05] tracking-tight md:text-5xl";
+	"font-serif text-4xl leading-[1.05] tracking-tight wrap-break-word md:text-5xl";
 
 /** Page title block shared by dashboard pages. */
 export function PageHeader({
@@ -46,7 +46,9 @@ export function PageHeader({
 }) {
 	return (
 		<header className="space-y-2">
-			<h1 className={PAGE_TITLE_CLASS}>{title}</h1>
+			<h1 dir="auto" className={PAGE_TITLE_CLASS}>
+				{title}
+			</h1>
 			{description ? (
 				<p className="text-sm text-muted-foreground">{description}</p>
 			) : null}

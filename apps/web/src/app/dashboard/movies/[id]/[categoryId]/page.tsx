@@ -143,7 +143,10 @@ async function MoviesByCategoryContent({ params, searchParams }: PageProps) {
 										</div>
 									)}
 								</div>
-								<h3 className="mt-2 text-sm font-medium leading-tight line-clamp-2 group-hover:text-primary transition-colors">
+								<h3
+									dir="auto"
+									className="mt-2 text-sm font-medium leading-tight line-clamp-2 wrap-break-word group-hover:text-primary transition-colors"
+								>
 									{movie.name}
 								</h3>
 							</Link>
