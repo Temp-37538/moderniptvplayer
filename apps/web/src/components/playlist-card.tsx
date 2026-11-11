@@ -77,6 +77,8 @@ export function PlaylistCard({
 			<div className="min-w-0 flex-1">
 				<Link
 					href={`/dashboard/${id}` as Route}
+					dir="auto"
+					title={playlistName}
 					className="block truncate text-base font-semibold tracking-tight decoration-muted-foreground/50 underline-offset-4 outline-none after:absolute after:inset-0 group-hover:underline focus-visible:after:ring-2 focus-visible:after:ring-ring"
 				>
 					{playlistName}

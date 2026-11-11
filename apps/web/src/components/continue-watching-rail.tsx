@@ -111,6 +111,17 @@ function useRailScroll() {
 	return { ref, canPrev, canNext, update, scrollByPage };
 }
 
+/** "Movie · 1 h 20 min left · Playlist", also used as its tooltip. */
+function metaLine(item: {
+	showId?: string | null;
+	timeLeft?: string | null;
+	playlistName?: string | null;
+}) {
+	return [item.showId ? "Series" : "Movie", item.timeLeft, item.playlistName]
+		.filter(Boolean)
+		.join(" · ");
+}
+
 export function ContinueWatchingRail({
 	items,
 }: {
@@ -220,17 +231,18 @@ export function ContinueWatchingRail({
 										/>
 									</div>
 								</div>
-								<p className="mt-2 line-clamp-2 text-sm font-medium leading-snug">
+								<p
+									dir="auto"
+									title={item.title}
+									className="mt-2 line-clamp-2 text-sm font-medium leading-snug wrap-break-word"
+								>
 									{item.title}
 								</p>
-								<p className="mt-0.5 truncate text-xs text-muted-foreground">
-									{[
-										item.showId ? "Series" : "Movie",
-										item.timeLeft,
-										item.playlistName,
-									]
-										.filter(Boolean)
-										.join(" · ")}
+								<p
+									title={metaLine(item)}
+									className="mt-0.5 truncate text-xs text-muted-foreground"
+								>
+									{metaLine(item)}
 								</p>
 							</Link>
 							<button
