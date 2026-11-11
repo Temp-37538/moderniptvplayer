@@ -94,7 +94,7 @@ function SidebarContent({ children }: { children: React.ReactNode }) {
 			{/* min-w-0: wide page content must not push the inset past the viewport. */}
 			<SidebarInset className="min-w-0">
 				<header className="flex h-16 z-10 shrink-0 justify-between items-center gap-2 border-b px-6 md:px-8 lg:px-10">
-					<div className="flex min-w-0 items-center gap-2">
+					<div className="flex min-w-0 flex-1 items-center gap-2">
 						<SidebarTrigger className="-ml-1 size-8 rounded-lg bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary hover:brightness-90 hover:text-sidebar-primary-foreground dark:hover:bg-sidebar-primary dark:hover:text-sidebar-primary-foreground md:hidden" />
 						<HeaderBreadcrumbs crumbs={crumbs} pathname={pathname} />
 					</div>

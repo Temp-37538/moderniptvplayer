@@ -67,7 +67,7 @@ export function HeaderBreadcrumbs({
 	const middle = crumbs.slice(1, Math.max(1, lastIndex - 1));
 
 	return (
-		<Breadcrumb className="min-w-0">
+		<Breadcrumb className="min-w-0 flex-1">
 			<BreadcrumbList className="flex-nowrap">
 				{crumbs.map((crumb, index) => {
 					const isLast = index === lastIndex;
