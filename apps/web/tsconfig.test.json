@@ -30,6 +30,8 @@
     "src/server/vod-category-route.test.ts",
     "src/server/process-map.test.ts",
     "src/server/search-route.test.ts",
-    "src/server/catalog-sync-pipeline.test.ts"
+    "src/server/catalog-sync-pipeline.test.ts",
+    "src/server/unreachable-backoff.test.ts",
+    "src/server/xtream-defaults.test.ts"
   ]
 }
