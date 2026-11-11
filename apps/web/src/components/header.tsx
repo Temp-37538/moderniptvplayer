@@ -6,7 +6,7 @@ import Link from "next/link";
 import React from "react";
 
 const menuItems: Array<{ name: string; id: number; href: string }> = [
-	{ name: "Add Playlist", id: 1, href: "/dashboard/addplaylist" },
+	{ name: "Add playlist", id: 1, href: "/dashboard/addplaylist" },
 	{ name: "Xtream Codes", id: 2, href: "/dashboard/addplaylist/xtream" },
 	{ name: "M3U URL", id: 3, href: "/dashboard/addplaylist/m3u" },
 ];
@@ -118,7 +118,7 @@ export const HeroHeader = () => {
 									render={<Link href="/dashboard/addplaylist" />}
 									nativeButton={false}
 								>
-									<span>Add Playlist</span>
+									<span>Add playlist</span>
 								</Button>
 							</div>
 						</div>

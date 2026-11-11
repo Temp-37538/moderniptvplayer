@@ -9,6 +9,7 @@ import { ChannelSwitcherSkeleton } from "@/components/skeletons";
 import { ExternalStreamLink } from "@/components/external-stream-link";
 import { ItemActionButtons } from "@/components/item-action-buttons";
 import type { ChannelDetailPageProps as PageProps } from "@/components/types";
+import { CatalogCrumbs } from "@/components/catalog-crumbs";
 import { VideoPlayer } from "@/components/video-player";
 import { toSafeImageSrc } from "@/lib/image-url";
 import { withStreamCategory } from "@/lib/stream-category";
@@ -147,6 +148,13 @@ async function ChannelDetailContent({ params }: PageProps) {
 	return (
 		<div className="w-full max-w-[100rem] space-y-5">
 			<header className="flex items-center gap-4">
+				<CatalogCrumbs
+					section="channels"
+					playlistId={id}
+					categoryId={categoryId}
+					itemId={channelId}
+					itemName={channel.name}
+				/>
 				<div className="flex size-14 shrink-0 items-center justify-center">
 					{safeLogoSrc ? (
 						<FallbackImage

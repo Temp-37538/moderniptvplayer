@@ -1,4 +1,5 @@
 import { createPageMetadata } from "@/app/metadata";
+import { PAGE_TITLE_CLASS } from "@/components/page-container";
 import {
 	Card,
 	CardContent,
@@ -13,7 +14,7 @@ import Link from "next/link";
 export const instant = false;
 
 export const metadata: Metadata = createPageMetadata({
-	title: "Add a Playlist",
+	title: "Add a playlist",
 	description:
 		"Choose how you want to import your IPTV library with Xtream Codes or M3U.",
 	path: "/dashboard/addplaylist",
@@ -23,9 +24,7 @@ export const metadata: Metadata = createPageMetadata({
 function Page() {
 	return (
 		<div className="flex min-h-[80svh] flex-col items-center justify-start px-4 py-8 md:justify-center md:py-4">
-			<h1 className="mb-2 text-3xl font-bold tracking-tight text-center sm:text-4xl md:text-5xl">
-				Add a playlist
-			</h1>
+			<h1 className={`mb-2 text-center ${PAGE_TITLE_CLASS}`}>Add a playlist</h1>
 			<p className="mb-8 max-w-md text-sm text-muted-foreground text-center sm:text-base">
 				Choose how you want to add your IPTV playlist to get started
 			</p>

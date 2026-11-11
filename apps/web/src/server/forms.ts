@@ -165,13 +165,15 @@ export async function validate(
 		};
 	}
 
+	let playlistId: string;
 	try {
-		await addPlaylist(
+		const playlist = await addPlaylist(
 			validatedData.data.username,
 			validatedData.data.serverUrl,
 			validatedData.data.playlistName,
 			validatedData.data.password,
 		);
+		playlistId = playlist.id;
 	} catch (error) {
 		if (error instanceof PlaylistAlreadyExistsError) {
 			return alreadyExistsState(rawData);
@@ -183,7 +185,8 @@ export async function validate(
 		errors: {},
 		success: true,
 		inputs: validatedData.data,
-		message: "Playlist added successfully !",
+		message: "Playlist added successfully.",
+		playlistId,
 	};
 }
 
@@ -354,7 +357,7 @@ export async function addM3uPlaylistAction(
 			errors: {},
 			success: true,
 			inputs: { m3uUrl: "", playlistName: imported.playlistName },
-			message: "Playlist added successfully !",
+			message: "Playlist added successfully.",
 			playlistId: playlist.id,
 		};
 	} catch (error) {

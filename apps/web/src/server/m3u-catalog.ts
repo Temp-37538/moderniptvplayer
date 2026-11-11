@@ -169,9 +169,22 @@ export async function m3uChannels(
 	page: number,
 	limit: number,
 ) {
+	return (await m3uChannelsPage(playlist, categoryId, page, limit)).items;
+}
+
+/** One page of the category, with the number of entries in the category. */
+export async function m3uChannelsPage(
+	playlist: { id: string; m3uUrl: string | null },
+	categoryId: string,
+	page: number,
+	limit: number,
+) {
 	const parsed = await readM3uCatalog(playlist);
 	const items = parsed.live.filter((entry) => entry.categoryId === categoryId);
-	return pageSlice(items, page, limit).map((entry) => toChannel(entry));
+	return {
+		items: pageSlice(items, page, limit).map((entry) => toChannel(entry)),
+		total: items.length,
+	};
 }
 
 export async function m3uChannel(
@@ -195,11 +208,24 @@ export async function m3uMovies(
 	page: number,
 	limit: number,
 ) {
+	return (await m3uMoviesPage(playlist, categoryId, page, limit)).items;
+}
+
+/** One page of the category, with the number of entries in the category. */
+export async function m3uMoviesPage(
+	playlist: { id: string; m3uUrl: string | null },
+	categoryId: string,
+	page: number,
+	limit: number,
+) {
 	const parsed = await readM3uCatalog(playlist);
 	const items = parsed.movies.filter(
 		(entry) => entry.categoryId === categoryId,
 	);
-	return pageSlice(items, page, limit).map(toMovieListing);
+	return {
+		items: pageSlice(items, page, limit).map(toMovieListing),
+		total: items.length,
+	};
 }
 
 export async function m3uMovie(
@@ -220,11 +246,24 @@ export async function m3uShows(
 	page: number,
 	limit: number,
 ) {
+	return (await m3uShowsPage(playlist, categoryId, page, limit)).items;
+}
+
+/** One page of the category, with the number of entries in the category. */
+export async function m3uShowsPage(
+	playlist: { id: string; m3uUrl: string | null },
+	categoryId: string,
+	page: number,
+	limit: number,
+) {
 	const parsed = await readM3uCatalog(playlist);
 	const items = parsed.shows.filter((show) =>
 		show.categoryIds.includes(categoryId),
 	);
-	return pageSlice(items, page, limit).map((show) => toShowListing(show));
+	return {
+		items: pageSlice(items, page, limit).map((show) => toShowListing(show)),
+		total: items.length,
+	};
 }
 
 export async function m3uShow(

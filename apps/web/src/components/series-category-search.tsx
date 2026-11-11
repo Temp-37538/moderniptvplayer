@@ -1,4 +1,5 @@
 "use client";
+import { PAGE_TITLE_CLASS } from "@/components/page-container";
 import { SearchForm } from "@/components/search-form";
 import type {
 	CategorySearchBaseProps,
@@ -16,7 +17,7 @@ import { Eye, EyeOff, Film, FolderOpen, Pin, Radio, Tv } from "lucide-react";
 import type { Route } from "next";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { toast } from "sonner";
 
 function toLowerCaseSafe(value: unknown) {
@@ -54,6 +55,10 @@ function CategorySearchBase({
 	const [pendingId, setPendingId] = useState<string | null>(null);
 	const [lockPending, setLockPending] = useState(false);
 	const [hiddenOpen, setHiddenOpen] = useState(false);
+	// Touch screens have no hover, tablets included: pin and hide show after
+	// "Edit".
+	const [editing, setEditing] = useState(false);
+	const hiddenListId = useId();
 
 	useEffect(() => {
 		setQuery(searchParams.get("q") ?? "");
@@ -75,7 +80,25 @@ function CategorySearchBase({
 	const buildCategoryHref = (categoryId: string) =>
 		`${hrefPrefix}/${id}/${categoryId}` as Route;
 
+	// A focused button that gets disabled, or whose row moves or goes away,
+	// drops keyboard focus to the page: put it back on the matching control.
+	function refocus(selector: string | null, hadFocus: boolean) {
+		if (!hadFocus || !selector) {
+			return;
+		}
+		requestAnimationFrame(() =>
+			document.querySelector<HTMLElement>(selector)?.focus(),
+		);
+	}
+
+	const focusedIn = (attribute: string, categoryId: string) =>
+		document.activeElement?.getAttribute(attribute) === categoryId;
+
+	const selectorFor = (attribute: string, categoryId: string | undefined) =>
+		categoryId ? `[${attribute}="${CSS.escape(categoryId)}"]` : null;
+
 	async function onTogglePin(category: ListedCategory) {
+		const hadFocus = focusedIn("data-pin", category.id);
 		const previous = visible;
 		setPendingId(category.id);
 		setVisible((current) =>
@@ -93,10 +116,17 @@ function CategorySearchBase({
 			toast.error(`Unable to update pin for ${category.name}`);
 		} finally {
 			setPendingId(null);
+			refocus(selectorFor("data-pin", category.id), hadFocus);
 		}
 	}
 
 	async function onHide(category: ListedCategory) {
+		const hadFocus = focusedIn("data-hide", category.id);
+		const index = filteredCategories.findIndex(
+			(item) => item.id === category.id,
+		);
+		const neighbour =
+			filteredCategories[index + 1] ?? filteredCategories[index - 1];
 		const previousVisible = visible;
 		const previousHidden = hidden;
 		setPendingId(category.id);
@@ -108,16 +138,21 @@ function CategorySearchBase({
 		try {
 			await toggleCategoryHidden(id, kind, category.id);
 			router.refresh();
+			toast.success(`${category.name} hidden`, {
+				action: { label: "Undo", onClick: () => onUnhide(category) },
+			});
 		} catch {
 			setVisible(previousVisible);
 			setHidden(previousHidden);
 			toast.error(`Unable to hide ${category.name}`);
 		} finally {
 			setPendingId(null);
+			refocus(selectorFor("data-category-link", neighbour?.id), hadFocus);
 		}
 	}
 
 	async function onUnhide(category: ListedCategory) {
+		const hadFocus = focusedIn("data-show", category.id);
 		const previousVisible = visible;
 		const previousHidden = hidden;
 		setPendingId(category.id);
@@ -137,6 +172,7 @@ function CategorySearchBase({
 			toast.error(`Unable to show ${category.name}`);
 		} finally {
 			setPendingId(null);
+			refocus(selectorFor("data-category-link", category.id), hadFocus);
 		}
 	}
 
@@ -157,34 +193,20 @@ function CategorySearchBase({
 
 	return (
 		<div className="h-full flex flex-col gap-3 md:gap-4  scrollbar-thin scrollbar-thumb-rounded-lg scrollbar-thumb-border/50 scrollbar-track-border/20">
-			<div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-				<div className="flex items-center justify-between gap-2.5 md:gap-3 min-w-0">
-					<div className="min-w-0">
-						<h1 className="text-lg md:text-2xl font-bold tracking-tight truncate">
-							{title}
-						</h1>
-						<p className="text-xs md:text-sm text-muted-foreground truncate">
-							{playlistName} {filteredCategories.length} categories
-						</p>
-					</div>
-					<label
-						htmlFor="adult-category-lock-mobile"
-						className="flex md:hidden items-center gap-2 text-xs text-muted-foreground shrink-0"
-					>
-						<Switch
-							id="adult-category-lock-mobile"
-							size="sm"
-							checked={adultLocked}
-							disabled={lockPending}
-							onCheckedChange={onLockChange}
-						/>
-						Lock adult categories
-					</label>
+			<div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+				<div className="min-w-0 space-y-2">
+					<h1 className={`${PAGE_TITLE_CLASS} truncate pb-1`}>{title}</h1>
+					<p className="text-xs md:text-sm text-muted-foreground truncate">
+						{playlistName} · {filteredCategories.length}{" "}
+						{filteredCategories.length === 1 ? "category" : "categories"}
+					</p>
 				</div>
-				<div className="flex flex-col gap-2 md:items-end">
+				{/* Mobile: search on top, the lock under it. From xl: one row,
+				    lock then search, both centered on the same line. */}
+				<div className="flex flex-col gap-3 xl:shrink-0 xl:flex-row-reverse xl:items-center xl:gap-5">
 					<SearchForm
 						placeholder={placeholder}
-						className="md:w-70 w-full"
+						className="w-full md:max-w-md xl:w-70"
 						inputName="q"
 						inputProps={{
 							value: query,
@@ -204,33 +226,73 @@ function CategorySearchBase({
 							},
 						}}
 					/>
-					<label
-						htmlFor="adult-category-lock"
-						className="hidden md:flex items-center gap-2 text-xs text-muted-foreground"
-					>
-						<Switch
-							id="adult-category-lock"
-							size="sm"
-							checked={adultLocked}
-							disabled={lockPending}
-							onCheckedChange={onLockChange}
-						/>
-						Lock adult categories
-					</label>
+					<div className="flex items-center justify-between gap-3 md:max-w-md xl:contents">
+						<label
+							htmlFor="adult-category-lock"
+							className="flex items-center gap-2 whitespace-nowrap text-xs text-muted-foreground md:text-sm"
+						>
+							<Switch
+								id="adult-category-lock"
+								size="sm"
+								checked={adultLocked}
+								disabled={lockPending}
+								onCheckedChange={onLockChange}
+							/>
+							Lock adult categories
+						</label>
+						<button
+							type="button"
+							aria-pressed={editing}
+							className="-mr-2 cursor-pointer rounded-md px-2 py-1 text-xs font-medium text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring md:hidden md:pointer-coarse:inline"
+							onClick={() => setEditing((value) => !value)}
+						>
+							{editing ? "Done" : "Edit"}
+						</button>
+					</div>
 				</div>
 			</div>
 			<div
-				className={`flex-1 overflow-y-auto ${lockPending ? "pointer-events-none opacity-60" : ""}`}
+				className={`-m-1 flex-1 overflow-y-auto ${lockPending ? "pointer-events-none opacity-60" : ""}`}
 			>
-				<div className="grid grid-cols-2 sm:grid-cols-3   lg:grid-cols-4 xl:grid-cols-5 gap-3">
+				{/* A typographic index: names in columns, item counts on the
+				    right, pin and hide revealed on hover or focus (always on
+				    touch screens). */}
+				<ul className="columns-1 gap-x-10 p-1 min-[520px]:columns-2 lg:columns-3 2xl:columns-4">
 					{filteredCategories.map((category) => (
-						<div
+						<li
 							key={category.id}
-							className="group relative flex flex-col rounded-xl border border-border/50 bg-card transition-all duration-200 hover:border-primary/30 hover:bg-accent/50 hover:shadow-lg hover:shadow-primary/5 hover:translate-y-1"
+							className="group relative flex break-inside-avoid items-center gap-2 border-b border-border/40"
 						>
-							<div className="absolute top-2 right-2 z-10 flex gap-1">
+							<Link
+								data-category-link={category.id}
+								href={buildCategoryHref(category.id)}
+								className="flex min-w-0 flex-1 items-baseline gap-3 rounded-sm py-2.5 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+							>
+								{category.pinned ? (
+									<Pin
+										aria-hidden
+										className="size-3 shrink-0 self-center fill-current text-muted-foreground"
+									/>
+								) : null}
+								<span className="min-w-0 flex-1 truncate text-[0.9375rem] decoration-muted-foreground/50 underline-offset-4 group-hover:underline">
+									{category.name}
+								</span>
+								{category.count !== undefined ? (
+									<span className="shrink-0 text-xs tabular-nums text-muted-foreground transition-opacity md:group-focus-within:opacity-0 md:group-hover:opacity-0">
+										{category.count.toLocaleString("en")}
+									</span>
+								) : null}
+							</Link>
+							<div
+								className={`${
+									editing
+										? "flex md:pointer-coarse:static md:pointer-coarse:translate-y-0 md:pointer-coarse:opacity-100"
+										: "hidden md:pointer-coarse:hidden"
+								} shrink-0 gap-0.5 bg-background transition-opacity md:absolute md:flex md:top-1/2 md:right-0 md:-translate-y-1/2 md:opacity-0 md:group-focus-within:opacity-100 md:group-hover:opacity-100`}
+							>
 								<button
 									type="button"
+									data-pin={category.id}
 									aria-pressed={category.pinned}
 									aria-label={
 										category.pinned
@@ -238,48 +300,54 @@ function CategorySearchBase({
 											: `Pin ${category.name}`
 									}
 									disabled={pendingId === category.id}
-									className="inline-flex size-7 items-center justify-center rounded-md bg-background/80 text-muted-foreground hover:text-foreground disabled:opacity-50 cursor-pointer"
+									className="inline-flex size-7 cursor-pointer items-center justify-center rounded-md text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
 									onClick={() => onTogglePin(category)}
 								>
 									<Pin
-										className={`size-3.5 ${category.pinned ? "fill-current text-primary" : ""}`}
+										className={`size-3.5 ${category.pinned ? "fill-current" : ""}`}
 									/>
 								</button>
 								<button
 									type="button"
+									data-hide={category.id}
 									aria-label={`Hide ${category.name}`}
 									disabled={pendingId === category.id}
-									className="inline-flex size-7 items-center justify-center rounded-md bg-background/80 text-muted-foreground hover:text-foreground disabled:opacity-50 cursor-pointer"
+									className="inline-flex size-7 cursor-pointer items-center justify-center rounded-md text-muted-foreground outline-none hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
 									onClick={() => onHide(category)}
 								>
 									<EyeOff className="size-3.5" />
 								</button>
 							</div>
-							<Link
-								href={buildCategoryHref(category.id)}
-								className="flex flex-col items-center justify-center gap-2 md:gap-3 p-3 pt-9 pb-10 md:p-5 md:pt-10 md:pb-12"
-							>
-								<span className="text-xs md:text-sm font-medium text-center leading-tight line-clamp-2">
-									{category.name}
-								</span>
-							</Link>
-						</div>
+						</li>
 					))}
-				</div>
+				</ul>
 				{filteredCategories.length === 0 && (
-					<div className="flex flex-col items-center h-full justify-center py-20 text-muted-foreground">
+					<div className="flex flex-col items-center h-full justify-center py-20 text-center text-muted-foreground">
 						<FolderOpen className="size-12 mb-4 opacity-30" />
-						<p className="text-base md:text-lg font-medium">{emptyTitle}</p>
-						<p className="text-xs md:text-sm">{emptyDescription}</p>
+						<p className="text-base md:text-lg font-medium">
+							{normalized
+								? "No matching categories"
+								: hidden.length > 0
+									? "All categories are hidden"
+									: emptyTitle}
+						</p>
+						<p className="text-xs md:text-sm">
+							{normalized
+								? `No category name contains "${query.trim()}".`
+								: hidden.length > 0
+									? "Show a hidden category below to browse it."
+									: emptyDescription}
+						</p>
 					</div>
 				)}
 				{hidden.length > 0 && (
-					<div className="mt-4 rounded-xl border border-border/50 bg-card px-4 py-3">
+					<div className="mx-1 mt-8 border-t border-border/40 pt-4">
 						<button
 							type="button"
-							className="flex w-full cursor-pointer items-center justify-between text-sm font-medium"
+							className="flex w-full cursor-pointer items-center justify-between rounded-md text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring"
 							onClick={() => setHiddenOpen((open) => !open)}
 							aria-expanded={hiddenOpen}
+							aria-controls={hiddenListId}
 						>
 							<span>Hidden ({hidden.length})</span>
 							<span
@@ -289,6 +357,8 @@ function CategorySearchBase({
 							</span>
 						</button>
 						<div
+							id={hiddenListId}
+							inert={!hiddenOpen}
 							className={`grid transition-all duration-200 ease-out ${
 								hiddenOpen
 									? "grid-rows-[1fr] opacity-100"
@@ -307,9 +377,10 @@ function CategorySearchBase({
 											</span>
 											<button
 												type="button"
+												data-show={category.id}
 												aria-label={`Show ${category.name}`}
 												disabled={pendingId === category.id}
-												className="inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-xs hover:bg-muted disabled:opacity-50 cursor-pointer"
+												className="inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-xs hover:bg-muted disabled:opacity-50 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-ring"
 												onClick={() => onUnhide(category)}
 											>
 												<Eye className="size-3.5" />

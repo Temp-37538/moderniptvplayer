@@ -64,7 +64,7 @@ export function PlaylistCard({
 					className="flex min-w-0 flex-1 items-center gap-3 rounded-md py-1 outline-none focus-visible:ring-2 focus-visible:ring-ring/50 sm:gap-4"
 				>
 					<div className="min-w-0 flex-1">
-						<p className="truncate text-xs font-semibold tracking-tight transition-colors group-hover:text-primary">
+						<p className="truncate text-sm font-semibold tracking-tight transition-colors group-hover:text-primary sm:text-base">
 							{playlistName}
 						</p>
 						<p className="mt-1 truncate text-xs text-muted-foreground">

@@ -58,6 +58,8 @@ export function M3UForm() {
 						defaultValue={inputs?.m3uUrl ?? ""}
 						placeholder="http://example.com/playlist.m3u"
 						autoComplete="off"
+						aria-invalid={Boolean(state.errors.m3uUrl)}
+						aria-describedby={state.errors.m3uUrl ? "m3u-url-error" : undefined}
 						className={cn(
 							"pl-10 h-12 bg-secondary border-border text-foreground placeholder:text-muted-foreground",
 							{ "border-destructive": state.errors.m3uUrl },
@@ -65,7 +67,9 @@ export function M3UForm() {
 					/>
 				</div>
 				{state.errors.m3uUrl ? (
-					<p className="text-sm text-destructive">{state.errors.m3uUrl}</p>
+					<p id="m3u-url-error" className="text-sm text-destructive">
+						{state.errors.m3uUrl}
+					</p>
 				) : null}
 			</div>
 
@@ -86,17 +90,26 @@ export function M3UForm() {
 						defaultValue={inputs?.playlistName ?? ""}
 						placeholder="My Playlist"
 						autoComplete="off"
+						aria-invalid={Boolean(state.errors.playlistName)}
+						aria-describedby={
+							state.errors.playlistName
+								? "m3u-playlist-name-hint m3u-playlist-name-error"
+								: "m3u-playlist-name-hint"
+						}
 						className={cn(
 							"pl-10 h-12 bg-secondary border-border text-foreground placeholder:text-muted-foreground",
 							{ "border-destructive": state.errors.playlistName },
 						)}
 					/>
 				</div>
-				<p className="text-sm text-muted-foreground">
+				<p
+					id="m3u-playlist-name-hint"
+					className="text-sm text-muted-foreground"
+				>
 					Optional. If you leave it blank, the host name is used.
 				</p>
 				{state.errors.playlistName ? (
-					<p className="text-sm text-destructive">
+					<p id="m3u-playlist-name-error" className="text-sm text-destructive">
 						{state.errors.playlistName}
 					</p>
 				) : null}
@@ -107,7 +120,7 @@ export function M3UForm() {
 				disabled={isPending}
 				className="h-12 w-full mt-2 text-base font-semibold"
 			>
-				{isPending ? "Adding..." : "Add Playlist"}
+				{isPending ? "Adding..." : "Add playlist"}
 			</Button>
 
 			{state.message ? (

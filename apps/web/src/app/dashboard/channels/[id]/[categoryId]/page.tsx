@@ -1,24 +1,32 @@
 import { createPageMetadata, getCategoryMetadataContext } from "@/app/metadata";
+import { FallbackImage } from "@/components/fallback-image";
 import type { IdCategoryPageProps as PageProps } from "@/components/types";
-import { getCachedChannels } from "@/server/cached-content";
+import { getCachedChannelsPage } from "@/server/cached-content";
 import {
 	assertCategoryAvailable,
 	filterBrowsableItems,
 } from "@/server/category-access";
+import {
+	pageCount,
+	pageRedirectTarget,
+	parsePageParam,
+} from "@/server/pagination";
 import { getPlaylistById } from "@/server/xtream";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
+import { BreadcrumbLabel } from "@/components/breadcrumb-labels";
 import { EmptyState } from "@/components/empty-state";
+import { PageContainer, PageHeader } from "@/components/page-container";
 import { PaginationNav } from "@/components/pagination-nav";
 import { toSafeImageSrc } from "@/lib/image-url";
 import { Radio } from "lucide-react";
-import Image from "next/image";
 
 export const instant = false;
 
-const ITEMS_PER_PAGE = 20;
+// 24 fills whole rows in the 1 to 6 column grids.
+const ITEMS_PER_PAGE = 24;
 
 export async function generateMetadata({
 	params,
@@ -26,7 +34,7 @@ export async function generateMetadata({
 }: PageProps): Promise<Metadata> {
 	const { id, categoryId } = await params;
 	const { page: pageParam } = await searchParams;
-	const currentPage = Number(pageParam) || 1;
+	const currentPage = parsePageParam(pageParam) ?? 1;
 	await assertCategoryAvailable(id, "channel", categoryId);
 	const context = await getCategoryMetadataContext("channels", id, categoryId);
 	const categoryTitle = context?.categoryName ?? "Channels";
@@ -57,7 +65,7 @@ export default function ChannelsByCategoryPage({
 async function ChannelsByCategoryContent({ params, searchParams }: PageProps) {
 	const { id, categoryId } = await params;
 	const { page: pageParam } = await searchParams;
-	const currentPage = Number(pageParam) || 1;
+	const currentPage = parsePageParam(pageParam) ?? 1;
 
 	const playlist = await getPlaylistById(id);
 
@@ -67,13 +75,19 @@ async function ChannelsByCategoryContent({ params, searchParams }: PageProps) {
 
 	await assertCategoryAvailable(id, "channel", categoryId);
 
-	const channels = await getCachedChannels(
-		id,
-		playlist,
-		categoryId,
-		currentPage,
-		ITEMS_PER_PAGE,
-	);
+	const [{ items: channels, total }, context] = await Promise.all([
+		getCachedChannelsPage(id, categoryId, currentPage, ITEMS_PER_PAGE),
+		getCategoryMetadataContext("channels", id, categoryId),
+	]);
+	// Pages count the raw rows, before the visibility filter.
+	const totalPages = pageCount(total, ITEMS_PER_PAGE);
+	const redirectPage = pageRedirectTarget(pageParam, totalPages);
+	if (redirectPage !== null) {
+		redirect(
+			`/dashboard/channels/${id}/${categoryId}${redirectPage > 1 ? `?page=${redirectPage}` : ""}`,
+		);
+	}
+	const hasNextPage = currentPage < totalPages;
 	const visibleChannels = await filterBrowsableItems(
 		id,
 		"channel",
@@ -81,69 +95,90 @@ async function ChannelsByCategoryContent({ params, searchParams }: PageProps) {
 		channels,
 	);
 
-	const hasNextPage = channels.length === ITEMS_PER_PAGE;
 	const hasPreviousPage = currentPage > 1;
+	const categoryName = context?.categoryName ?? "Channels";
 
 	return (
-		<div className="h-full overflow-y-auto ">
-			<div className="flex items-center justify-between mb-6">
-				<div className="flex items-center gap-3">
-					<div>
-						<h1 className="text-2xl font-bold tracking-tight">Channels</h1>
-						<p className="text-sm text-muted-foreground">Page {currentPage}</p>
-					</div>
-				</div>
-			</div>
+		<PageContainer>
+			<BreadcrumbLabel
+				href={`/dashboard/channels/${id}/${categoryId}`}
+				label={context?.categoryName}
+			/>
+			<PageHeader
+				title={categoryName}
+				description={
+					totalPages > 1
+						? `Channels, page ${currentPage} of ${totalPages}`
+						: "Channels"
+				}
+			/>
 			{visibleChannels.length > 0 ? (
-				<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+				// The logo carries the tile: no card, the name and number under it.
+				<ul className="grid grid-cols-2 gap-x-4 gap-y-6 min-[480px]:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8">
 					{visibleChannels.map((channel) => {
 						const safeLogoSrc = toSafeImageSrc(channel.logo);
 						return (
-							<Link
-								key={channel.id}
-								href={`/dashboard/channels/${id}/${categoryId}/${channel.id}`}
-								className="group flex items-center gap-4 rounded-xl border border-border/50 bg-card p-4 transition-all duration-200 hover:border-primary/30 hover:bg-accent/50 hover:shadow-lg hover:shadow-primary/5"
-							>
-								<div className="flex items-center justify-center size-12 rounded-lg bg-muted overflow-hidden shrink-0">
-									{safeLogoSrc ? (
-										<Image
-											src={safeLogoSrc}
-											alt={channel.name}
-											width={48}
-											height={48}
-											unoptimized
-											className="size-full object-contain p-1"
-										/>
-									) : (
-										<Radio className="size-5 text-muted-foreground/40" />
-									)}
-								</div>
-								<div className="flex-1 min-w-0">
-									<h3 className="text-sm font-medium leading-tight line-clamp-1 group-hover:text-primary transition-colors">
-										{channel.name}
-									</h3>
-									{channel.number > 0 && (
-										<p className="text-xs text-muted-foreground mt-0.5">
-											Ch. {channel.number}
-										</p>
-									)}
-								</div>
-							</Link>
+							<li key={channel.id}>
+								<Link
+									href={`/dashboard/channels/${id}/${categoryId}/${channel.id}`}
+									className="group block outline-none"
+								>
+									<div className="relative flex aspect-video items-center justify-center overflow-hidden rounded-md bg-muted/40 transition-colors group-hover:bg-muted/80 group-focus-visible:ring-2 group-focus-visible:ring-ring">
+										{safeLogoSrc ? (
+											<FallbackImage
+												src={safeLogoSrc}
+												alt=""
+												fill
+												unoptimized
+												sizes="(min-width: 1024px) 200px, 45vw"
+												className="object-contain p-[18%] transition-transform duration-200 group-hover:scale-105"
+												fallback={
+													<Radio className="size-6 text-muted-foreground/50" />
+												}
+											/>
+										) : (
+											<Radio className="size-6 text-muted-foreground/50" />
+										)}
+									</div>
+									<div className="mt-2 flex items-baseline gap-2">
+										<h3
+											dir="auto"
+											className="min-w-0 flex-1 truncate text-sm font-medium"
+										>
+											{channel.name}
+										</h3>
+										{channel.number > 0 && (
+											<span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+												{channel.number}
+											</span>
+										)}
+									</div>
+								</Link>
+							</li>
 						);
 					})}
-				</div>
+				</ul>
 			) : (
 				<EmptyState
-					title="No channels in this category"
-					description="Try another category."
+					title={
+						hasPreviousPage || hasNextPage
+							? "Nothing to show on this page"
+							: "No channels in this category"
+					}
+					description={
+						hasPreviousPage || hasNextPage
+							? "Try the next or previous page."
+							: "Try another category."
+					}
 				/>
 			)}
 			<PaginationNav
 				currentPage={currentPage}
+				totalPages={totalPages}
 				hasNextPage={hasNextPage}
 				hasPreviousPage={hasPreviousPage}
 				baseUrl={`/dashboard/channels/${id}/${categoryId}`}
 			/>
-		</div>
+		</PageContainer>
 	);
 }

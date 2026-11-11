@@ -10,9 +10,6 @@ import {
 	SidebarMenu,
 	SidebarMenuButton,
 	SidebarMenuItem,
-	SidebarMenuSub,
-	SidebarMenuSubButton,
-	SidebarMenuSubItem,
 	useSidebar,
 } from "@/components/ui/sidebar";
 import { Skeleton } from "./ui/skeleton";
@@ -47,30 +44,14 @@ function SkeletonSidebar({ children }: { children: React.ReactNode }) {
 						<SidebarGroupLabel>
 							<Skeleton className="h-3 w-16 rounded" />
 						</SidebarGroupLabel>
+						{/* TV, Movies and Series, collapsed as on first load. */}
 						<SidebarMenu>
-							<SidebarMenuItem>
-								<SidebarMenuButton className="pointer-events-none">
-									<Skeleton className="size-4 rounded shrink-0" />
-									<Skeleton className="h-3.5 w-20 rounded" />
-									<Skeleton className="ml-auto size-3.5 rounded shrink-0" />
-								</SidebarMenuButton>
-								<SidebarMenuSub>
-									{Array.from({ length: 2 }).map((_, i) => (
-										// biome-ignore lint/suspicious/noArrayIndexKey: "Index is acceptable here since items are static placeholders"
-										<SidebarMenuSubItem key={i}>
-											<SidebarMenuSubButton className="pointer-events-none">
-												<Skeleton className="h-3 w-24 rounded" />
-											</SidebarMenuSubButton>
-										</SidebarMenuSubItem>
-									))}
-								</SidebarMenuSub>
-							</SidebarMenuItem>
-							{Array.from({ length: 2 }).map((_, i) => (
+							{["w-8", "w-14", "w-12"].map((width, i) => (
 								// biome-ignore lint/suspicious/noArrayIndexKey: "Index is acceptable here since items are static placeholders"
 								<SidebarMenuItem key={i}>
 									<SidebarMenuButton className="pointer-events-none">
 										<Skeleton className="size-4 rounded shrink-0" />
-										<Skeleton className="h-3.5 w-20 rounded" />
+										<Skeleton className={`h-3.5 ${width} rounded`} />
 										<Skeleton className="ml-auto size-3.5 rounded shrink-0" />
 									</SidebarMenuButton>
 								</SidebarMenuItem>
@@ -81,19 +62,24 @@ function SkeletonSidebar({ children }: { children: React.ReactNode }) {
 						<SidebarGroupLabel>
 							<Skeleton className="h-3 w-14 rounded" />
 						</SidebarGroupLabel>
+						{/* Search (with its shortcut), Watch Later, Favorites. */}
 						<SidebarMenu>
 							<SidebarMenuItem>
 								<SidebarMenuButton className="pointer-events-none">
 									<Skeleton className="size-4 rounded shrink-0" />
-									<Skeleton className="h-3.5 w-24 rounded" />
-								</SidebarMenuButton>
-							</SidebarMenuItem>
-							<SidebarMenuItem>
-								<SidebarMenuButton className="pointer-events-none">
-									<Skeleton className="size-4 rounded shrink-0" />
 									<Skeleton className="h-3.5 w-12 rounded" />
+									<Skeleton className="ml-auto h-4 w-9 rounded group-data-[collapsible=icon]:hidden" />
 								</SidebarMenuButton>
 							</SidebarMenuItem>
+							{["w-20", "w-16"].map((width, i) => (
+								// biome-ignore lint/suspicious/noArrayIndexKey: "Index is acceptable here since items are static placeholders"
+								<SidebarMenuItem key={i}>
+									<SidebarMenuButton className="pointer-events-none">
+										<Skeleton className="size-4 rounded shrink-0" />
+										<Skeleton className={`h-3.5 ${width} rounded`} />
+									</SidebarMenuButton>
+								</SidebarMenuItem>
+							))}
 						</SidebarMenu>
 					</SidebarGroup>
 				</SidebarContent>
@@ -112,19 +98,19 @@ function SkeletonSidebar({ children }: { children: React.ReactNode }) {
 					</div>
 				</SidebarFooter>
 			</Sidebar>
-			<SidebarInset>
-				<header className="flex h-16 z-10 shrink-0 justify-between items-center gap-2 border-b px-4">
+			{/* min-w-0: wide page content must not push the inset past the viewport. */}
+			<SidebarInset className="min-w-0">
+				<header className="flex h-16 z-10 shrink-0 justify-between items-center gap-2 border-b px-6 md:px-8 lg:px-10">
 					<div className="flex items-center gap-2">
 						<Skeleton className="hidden md:block h-4 w-32 rounded" />
 						<Skeleton className="hidden md:block h-4 w-4 rounded" />
 						<Skeleton className="h-4 w-24 rounded" />
 					</div>
 					<div className="flex items-center gap-2">
-						<Skeleton className="h-8 w-12 rounded-md" />
-						<Skeleton className="h-8 w-17 rounded-md" />
+						<Skeleton className="size-8 rounded-md" />
 					</div>
 				</header>
-				<div className="flex flex-1 flex-col gap-4 p-4 overflow-hidden">
+				<div className="flex flex-1 flex-col gap-4 overflow-hidden px-6 pt-6 md:px-8 lg:px-10">
 					{children}
 				</div>
 			</SidebarInset>

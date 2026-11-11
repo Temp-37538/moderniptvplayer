@@ -1,4 +1,10 @@
-import { createPageMetadata, getMovieMetadataContext } from "@/app/metadata";
+import {
+	createPageMetadata,
+	getCategoryMetadataContext,
+	getMovieMetadataContext,
+} from "@/app/metadata";
+import { FallbackImage } from "@/components/fallback-image";
+import { BreadcrumbLabel } from "@/components/breadcrumb-labels";
 import { CopyStreamButton } from "@/components/copy-stream-button";
 import { ExternalStreamLink } from "@/components/external-stream-link";
 import { ItemActionButtons } from "@/components/item-action-buttons";
@@ -17,7 +23,6 @@ import { getResumeInfo } from "@/server/watch-progress";
 import { createXtreamClient, getPlaylistById } from "@/server/xtream";
 import { Film } from "lucide-react";
 import type { Metadata } from "next";
-import Image from "next/image";
 import { notFound } from "next/navigation";
 
 export const instant = false;
@@ -78,6 +83,11 @@ async function MovieDetailContent({ params }: PageProps) {
 	}
 
 	await assertItemInCategory(id, "movie", categoryId, movieId, movie);
+	const categoryContext = await getCategoryMetadataContext(
+		"movies",
+		id,
+		categoryId,
+	);
 
 	const streamUrl =
 		playlist.source === "M3U"
@@ -100,18 +110,31 @@ async function MovieDetailContent({ params }: PageProps) {
 	// The provider's value is untrusted: only a valid YouTube id gets an embed.
 	const trailerUrl = toYoutubeEmbedUrl(movie.youtubeId);
 	return (
-		<div className="min-h-full overflow-y-auto scrollbar-thin scrollbar-thumb-rounded-lg scrollbar-thumb-border/50 scrollbar-track-border/20">
-			<div className="w-full px-6 pt-6 pb-10 md:px-10 md:pt-8 md:pb-12">
-				<div className="grid gap-10 md:grid-cols-[19rem_minmax(0,1fr)] md:gap-14">
-					<div className="md:sticky md:top-8 md:self-start space-y-5">
+		<div className="h-full overflow-y-auto scrollbar-thin scrollbar-thumb-rounded-lg scrollbar-thumb-border/50 scrollbar-track-border/20">
+			<BreadcrumbLabel
+				href={`/dashboard/movies/${id}/${categoryId}`}
+				label={categoryContext?.categoryName}
+			/>
+			<BreadcrumbLabel
+				href={`/dashboard/movies/${id}/${categoryId}/${movieId}`}
+				label={movie.name}
+			/>
+			<div className="w-full pb-6">
+				<div className="grid grid-cols-[minmax(0,1fr)] gap-10 xl:grid-cols-[19rem_minmax(0,1fr)] xl:gap-14">
+					<div className="w-full space-y-5 md:mx-auto md:max-w-xs xl:sticky xl:top-0 xl:mx-0 xl:max-w-none xl:self-start">
 						{safePosterSrc ? (
-							<Image
+							<FallbackImage
 								src={safePosterSrc}
 								alt={movie.name}
 								width={304}
 								height={456}
 								unoptimized
 								className="w-full rounded-2xl border border-border/40 object-cover shadow-2xl shadow-black/50"
+								fallback={
+									<div className="flex aspect-2/3 w-full items-center justify-center rounded-2xl border border-border/40 bg-muted">
+										<Film className="size-12 text-muted-foreground/40" />
+									</div>
+								}
 							/>
 						) : (
 							<div className="flex aspect-2/3 w-full items-center justify-center rounded-2xl border border-border/40 bg-muted">
@@ -152,9 +175,12 @@ async function MovieDetailContent({ params }: PageProps) {
 						) : null}
 					</div>
 
-					<div className="min-w-0">
+					<div className="min-w-0 max-w-4xl">
 						<header>
-							<h1 className="font-serif text-4xl leading-[1.05] tracking-tight text-balance md:text-5xl">
+							<h1
+								dir="auto"
+								className="font-serif text-4xl leading-[1.05] tracking-tight text-balance wrap-break-word md:text-5xl"
+							>
 								{movie.name}
 							</h1>
 							{movie.originalName && movie.originalName !== movie.name ? (
@@ -164,7 +190,7 @@ async function MovieDetailContent({ params }: PageProps) {
 							) : null}
 							{movie.genre && movie.genre.length > 0 ? (
 								<p className="mt-4 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-									{movie.genre.join(" - ")}
+									{movie.genre.join(" · ")}
 								</p>
 							) : null}
 						</header>
@@ -205,7 +231,7 @@ async function MovieDetailContent({ params }: PageProps) {
 							]}
 						/>
 
-						<dl className="mt-8 grid gap-x-8 gap-y-4 border-y border-border/50 py-6 sm:grid-cols-2">
+						<dl className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-x-8 gap-y-4 border-y border-border/50 py-6 wrap-break-word sm:grid-cols-2">
 							{movie.director && movie.director.length > 0 ? (
 								<div>
 									<dt className="font-serif text-base font-medium text-foreground/80">
@@ -226,7 +252,7 @@ async function MovieDetailContent({ params }: PageProps) {
 							) : null}
 							{movie.subtitles && movie.subtitles.length > 0 ? (
 								<div>
-									<dt className="text-sm font-medium text-foreground/80">
+									<dt className="font-serif text-base font-medium text-foreground/80">
 										Subtitles
 									</dt>
 									<dd className="mt-1.5 text-sm">
@@ -236,7 +262,7 @@ async function MovieDetailContent({ params }: PageProps) {
 							) : null}
 							{movie.country ? (
 								<div>
-									<dt className="text-sm font-medium text-foreground/80">
+									<dt className="font-serif text-base font-medium text-foreground/80">
 										Country
 									</dt>
 									<dd className="mt-1.5 text-sm">{movie.country}</dd>

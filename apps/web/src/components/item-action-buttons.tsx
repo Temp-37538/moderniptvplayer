@@ -58,8 +58,9 @@ export function ItemActionButtons({
 							aria-label={
 								optimisticWL ? "Remove from Watch Later" : "Add to Watch Later"
 							}
+							aria-pressed={optimisticWL}
 							disabled={isPendingWL}
-							className="inline-flex cursor-pointer items-center justify-center size-8 rounded-[min(var(--radius-md),10px)] hover:bg-muted transition-colors disabled:opacity-50"
+							className="inline-flex cursor-pointer items-center justify-center size-8 rounded-[min(var(--radius-md),10px)] hover:bg-muted transition-colors disabled:opacity-50 outline-none focus-visible:ring-2 focus-visible:ring-ring"
 							onClick={handleToggleWatchLater}
 						>
 							<Clock
@@ -85,8 +86,9 @@ export function ItemActionButtons({
 							aria-label={
 								optimisticFav ? "Remove from Favorites" : "Add to Favorites"
 							}
+							aria-pressed={optimisticFav}
 							disabled={isPendingFav}
-							className="inline-flex cursor-pointer items-center justify-center size-8 rounded-[min(var(--radius-md),10px)] hover:bg-muted transition-colors disabled:opacity-50"
+							className="inline-flex cursor-pointer items-center justify-center size-8 rounded-[min(var(--radius-md),10px)] hover:bg-muted transition-colors disabled:opacity-50 outline-none focus-visible:ring-2 focus-visible:ring-ring"
 							onClick={handleToggleFavorite}
 						>
 							<Heart
