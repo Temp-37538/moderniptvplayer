@@ -1,4 +1,5 @@
 import { createPageMetadata } from "@/app/metadata";
+import { PAGE_TITLE_CLASS } from "@/components/page-container";
 import { XtreamCodesForm } from "@/components/xtream-form";
 import { ArrowLeft } from "lucide-react";
 import type { Metadata } from "next";
@@ -7,7 +8,7 @@ import Link from "next/link";
 export const instant = false;
 
 export const metadata: Metadata = createPageMetadata({
-	title: "Add Xtream Playlist",
+	title: "Add Xtream playlist",
 	description:
 		"Connect a playlist with Xtream Codes credentials to start browsing channels, movies, and series.",
 	path: "/dashboard/addplaylist/xtream",
@@ -16,7 +17,7 @@ export const metadata: Metadata = createPageMetadata({
 
 function Page() {
 	return (
-		<div className="flex flex-1 flex-col px-4 pt-2 pb-16">
+		<div className="flex min-h-0 flex-1 flex-col overflow-y-auto pb-16">
 			<div className="w-full max-w-md">
 				<Link
 					href="/dashboard/addplaylist"
@@ -26,7 +27,7 @@ function Page() {
 					Add a playlist
 				</Link>
 
-				<h1 className="mt-4 text-2xl font-bold tracking-tight">Xtream Codes</h1>
+				<h1 className={`mt-4 ${PAGE_TITLE_CLASS}`}>Xtream Codes</h1>
 				<p className="mt-2 text-sm text-muted-foreground">
 					Connect with the server URL, username and password from your IPTV
 					provider.

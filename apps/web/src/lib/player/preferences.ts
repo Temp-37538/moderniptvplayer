@@ -160,3 +160,35 @@ export function chooseSubtitle(
 	);
 	return (sameTitle ?? sameLanguage[0])?.id ?? null;
 }
+
+// Series: play the next episode when one ends. On by default. The key is the
+// one the seasons list has always used.
+const AUTO_NEXT_KEY = "iptv:auto-next";
+const AUTO_NEXT_EVENT = "iptv:auto-next-change";
+
+export function readAutoNext(): boolean {
+	try {
+		return window.localStorage.getItem(AUTO_NEXT_KEY) !== "false";
+	} catch {
+		return true;
+	}
+}
+
+export function writeAutoNext(on: boolean) {
+	try {
+		window.localStorage.setItem(AUTO_NEXT_KEY, String(on));
+	} catch {
+		// Storage can be unavailable: the choice then lasts for this page.
+	}
+	window.dispatchEvent(new Event(AUTO_NEXT_EVENT));
+}
+
+/** For useSyncExternalStore: other tabs and this one both notify. */
+export function subscribeAutoNext(onChange: () => void) {
+	window.addEventListener("storage", onChange);
+	window.addEventListener(AUTO_NEXT_EVENT, onChange);
+	return () => {
+		window.removeEventListener("storage", onChange);
+		window.removeEventListener(AUTO_NEXT_EVENT, onChange);
+	};
+}

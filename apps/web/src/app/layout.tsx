@@ -72,9 +72,9 @@ export default async function RootLayout({
 		cookieStore.get("sidebar_state")?.value !== "false";
 
 	return (
-		<html lang="en" suppressHydrationWarning>
+		<html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
 			<body
-				className={`${fontSans.variable} ${fontSerif.variable} ${fontMono.variable} data-scroll-behavior="smooth" antialiased`}
+				className={`${fontSans.variable} ${fontSerif.variable} ${fontMono.variable} antialiased`}
 			>
 				<Providers defaultSidebarOpen={defaultSidebarOpen}>
 					<div className="flex h-screen w-screen overflow-hidden">

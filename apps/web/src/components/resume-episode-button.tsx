@@ -11,10 +11,13 @@ import type { ReactNode } from "react";
  */
 export function ResumeEpisodeButton({
 	episodeId,
+	fromStart = false,
 	className,
 	children,
 }: {
 	episodeId: string;
+	/** Play from the beginning instead of the saved position. */
+	fromStart?: boolean;
 	className?: string;
 	children: ReactNode;
 }) {
@@ -22,7 +25,7 @@ export function ResumeEpisodeButton({
 		<button
 			type="button"
 			className={className}
-			onClick={() => requestPlayEpisode(episodeId)}
+			onClick={() => requestPlayEpisode(episodeId, { fromStart })}
 		>
 			{children}
 		</button>

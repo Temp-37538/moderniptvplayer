@@ -254,6 +254,9 @@ export async function saveManualEpisodeProgress(
 
 export type ContinueWatchingItem = {
 	id: string;
+	playlistId: string;
+	/** Set for series episodes, null for movies. */
+	showId: string | null;
 	itemName: string;
 	itemUrl: string;
 	itemImage: string | null;
@@ -370,6 +373,8 @@ function nextEpisodeUrl(
 
 function toContinueItem(row: {
 	id: string;
+	playlistId: string;
+	showId: string | null;
 	itemName: string;
 	itemUrl: string;
 	itemImage: string | null;
@@ -378,6 +383,8 @@ function toContinueItem(row: {
 }): ContinueWatchingItem {
 	return {
 		id: row.id,
+		playlistId: row.playlistId,
+		showId: row.showId,
 		itemName: row.itemName,
 		itemUrl: row.itemUrl,
 		itemImage: row.itemImage,
@@ -456,6 +463,8 @@ async function resolveShow(row: {
 	const entry = progress[episodeId];
 	return {
 		id: `next:${row.playlistId}:${row.showId}:${episodeId}`,
+		playlistId: row.playlistId,
+		showId: row.showId,
 		itemName: formatEpisodeProgressName(
 			show.name,
 			episode.seasonName,
@@ -600,4 +609,21 @@ export async function getContinueWatching(
 		}
 	}
 	return items;
+}
+
+/**
+ * Takes a title off Continue Watching. A movie loses its saved position. A show
+ * loses the progress of all its episodes, otherwise an older episode row would
+ * bring it straight back.
+ */
+export async function removeContinueWatchingEntry(
+	userId: string,
+	entry: { id: string; playlistId: string; showId: string | null },
+): Promise<number> {
+	const { count } = await prisma.watchProgress.deleteMany({
+		where: entry.showId
+			? { userId, playlistId: entry.playlistId, showId: entry.showId }
+			: { userId, playlistId: entry.playlistId, id: entry.id, showId: null },
+	});
+	return count;
 }

@@ -82,7 +82,7 @@ export function NavMain({ items }: { items: NavItem[] }) {
 
 	return (
 		<SidebarGroup>
-			<SidebarGroupLabel>Platform</SidebarGroupLabel>
+			<SidebarGroupLabel>Browse</SidebarGroupLabel>
 			<SidebarMenu>
 				{items.map((item) => (
 					<NavMainItem

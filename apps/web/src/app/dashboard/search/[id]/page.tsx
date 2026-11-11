@@ -41,10 +41,8 @@ async function GlobalSearchPageContent({
 	}
 
 	return (
-		<div className="flex h-full flex-col overflow-y-auto p-6">
-			<div className="w-full max-w-5xl">
-				<GlobalSearch playlistId={id} playlistName={playlist.playlistName} />
-			</div>
+		<div className="flex h-full min-h-0 flex-col">
+			<GlobalSearch playlistId={id} playlistName={playlist.playlistName} />
 		</div>
 	);
 }

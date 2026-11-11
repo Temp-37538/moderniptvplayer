@@ -12,6 +12,7 @@ import prisma from "@moderniptvplayer/db";
 import { notFound } from "next/navigation";
 import { cache } from "react";
 import { requireAuthenticatedUserId } from "./auth-utils";
+import { getCategoryCounts } from "./catalog-lookups";
 import type { CatalogKind } from "./catalog-index-policy";
 import {
 	categoryTargetFromItemUrl,
@@ -32,7 +33,7 @@ import {
 
 export type CategoryBrowserData = {
 	playlistName: string;
-	categories: Array<NamedCategory & { pinned: boolean }>;
+	categories: Array<NamedCategory & { pinned: boolean; count?: number }>;
 	hiddenCategories: Array<NamedCategory & { pinned: boolean }>;
 	lockAdultCategories: boolean;
 };
@@ -422,9 +423,10 @@ export async function loadCategoryBrowser(
 		return null;
 	}
 
-	const [catalog, state] = await Promise.all([
+	const [catalog, state, counts] = await Promise.all([
 		loadCatalog(playlistId, kind),
 		loadBlockState(userId, playlistId, kind),
+		getCategoryCounts(playlistId, kind),
 	]);
 	const named = catalog.map((category) => ({
 		id: String(category.id),
@@ -438,7 +440,12 @@ export async function loadCategoryBrowser(
 	);
 	return {
 		playlistName: playlist.playlistName,
-		categories: partitioned.visible,
+		categories: counts
+			? partitioned.visible.map((category) => ({
+					...category,
+					count: counts[category.id] ?? 0,
+				}))
+			: partitioned.visible,
 		hiddenCategories: partitioned.hidden,
 		lockAdultCategories: state.lockAdultCategories,
 	};

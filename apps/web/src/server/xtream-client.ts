@@ -1,6 +1,8 @@
 import "server-only";
 import { createHash } from "node:crypto";
-import { safeFetchJson } from "./safe-http";
+import { HttpTimeoutError, safeFetchJson } from "./safe-http";
+import { createUnreachableBackoff } from "./unreachable-backoff";
+import { fillSerializerDefaults } from "./xtream-defaults";
 
 /**
  * Minimal Xtream Codes client. It replaces the network layer of
@@ -68,6 +70,12 @@ export type XtreamClientOptions = {
 const RAW_CACHE_TTL_MS = 60_000;
 const RAW_CACHE_MAX_ENTRIES = 8;
 const MAX_PAGE_SIZE = 1000;
+/**
+ * After a provider times out, the next calls of the same render fail at once
+ * instead of each waiting for its own timeout. Short enough that "Try again"
+ * really asks the provider again.
+ */
+const unreachable = createUnreachableBackoff(10_000);
 
 // Short-lived, in-process cache of raw upstream responses. The upstream API
 // has no pagination: every page used to re-download the full list. Keys are
@@ -159,7 +167,7 @@ export class SafeXtream {
 		const serializer = this.#serializers[key] as
 			| ((input: unknown) => unknown)
 			| undefined;
-		return serializer ? serializer(value) : value;
+		return serializer ? serializer(fillSerializerDefaults(key, value)) : value;
 	}
 
 	#get(action: string, params: Record<string, string> = {}): Promise<unknown> {
@@ -170,10 +178,19 @@ export class SafeXtream {
 			this.#username,
 		)}&password=${enc(this.#password)}&action=${action}${query}`;
 
-		return readThrough(`${this.#cacheNamespace}|${action}${query}`, () =>
+		const namespace = this.#cacheNamespace;
+		if (unreachable.isBlocked(namespace)) {
+			return Promise.reject(new HttpTimeoutError());
+		}
+		return readThrough(`${namespace}|${action}${query}`, () =>
 			safeFetchJson(url, {
 				allowPrivateHosts: this.#allowPrivateHosts,
 				...(this.#timeoutMs ? { timeoutMs: this.#timeoutMs } : {}),
+			}).catch((error: unknown) => {
+				if (error instanceof HttpTimeoutError) {
+					unreachable.markTimedOut(namespace);
+				}
+				throw error;
 			}),
 		);
 	}

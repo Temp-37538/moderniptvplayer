@@ -1,4 +1,10 @@
-import { createPageMetadata, getShowMetadataContext } from "@/app/metadata";
+import {
+	createPageMetadata,
+	getCategoryMetadataContext,
+	getShowMetadataContext,
+} from "@/app/metadata";
+import { FallbackImage } from "@/components/fallback-image";
+import { BreadcrumbLabel } from "@/components/breadcrumb-labels";
 import { ItemActionButtons } from "@/components/item-action-buttons";
 import { ResumeEpisodeButton } from "@/components/resume-episode-button";
 import { SeasonsList } from "@/components/seasons-list";
@@ -19,9 +25,8 @@ import {
 import { getItemStatus } from "@/server/user-items";
 import { getEpisodeProgress } from "@/server/watch-progress";
 import { getPlaylistById } from "@/server/xtream";
-import { PlayIcon, Tv } from "lucide-react";
+import { PlayIcon, RotateCcwIcon, Tv } from "lucide-react";
 import type { Metadata } from "next";
-import Image from "next/image";
 import { notFound } from "next/navigation";
 
 export const instant = false;
@@ -75,6 +80,11 @@ async function ShowDetailContent({ params }: PageProps) {
 	}
 
 	await assertItemInCategory(id, "series", categoryId, showId, show);
+	const categoryContext = await getCategoryMetadataContext(
+		"series",
+		id,
+		categoryId,
+	);
 
 	const itemStatus = await getItemStatus(id, showId, "series");
 	const safePosterSrc = toSafeImageSrc(show.poster);
@@ -107,13 +117,21 @@ async function ShowDetailContent({ params }: PageProps) {
 	const trailerUrl = toYoutubeEmbedUrl(show.youtubeId);
 
 	return (
-		<div className="min-h-full overflow-y-auto scrollbar-thin scrollbar-thumb-rounded-lg scrollbar-thumb-border/50 scrollbar-track-border/20">
-			<div className="w-full px-6 pt-6 pb-10 md:px-10 md:pt-8 md:pb-12">
-				<div className="grid gap-10 md:grid-cols-[19rem_minmax(0,1fr)] md:gap-14">
-					<div className="md:sticky md:top-8 md:self-start space-y-5">
+		<div className="h-full overflow-y-auto scrollbar-thin scrollbar-thumb-rounded-lg scrollbar-thumb-border/50 scrollbar-track-border/20">
+			<BreadcrumbLabel
+				href={`/dashboard/series/${id}/${categoryId}`}
+				label={categoryContext?.categoryName}
+			/>
+			<BreadcrumbLabel
+				href={`/dashboard/series/${id}/${categoryId}/${showId}`}
+				label={show.name}
+			/>
+			<div className="w-full pb-6">
+				<div className="grid grid-cols-[minmax(0,1fr)] gap-10 xl:grid-cols-[19rem_minmax(0,1fr)] xl:gap-14">
+					<div className="w-full space-y-5 md:mx-auto md:max-w-xs xl:sticky xl:top-0 xl:mx-0 xl:max-w-none xl:self-start">
 						<div className="relative">
 							{safePosterSrc ? (
-								<Image
+								<FallbackImage
 									src={safePosterSrc}
 									alt={show.name}
 									width={304}
@@ -121,6 +139,11 @@ async function ShowDetailContent({ params }: PageProps) {
 									unoptimized
 									priority
 									className="w-full rounded-2xl border border-border/40 object-cover shadow-2xl shadow-black/50"
+									fallback={
+										<div className="flex aspect-2/3 w-full items-center justify-center rounded-2xl border border-border/40 bg-muted">
+											<Tv className="size-12 text-muted-foreground/40" />
+										</div>
+									}
 								/>
 							) : (
 								<div className="flex aspect-2/3 w-full items-center justify-center rounded-2xl border border-border/40 bg-muted">
@@ -195,16 +218,29 @@ async function ShowDetailContent({ params }: PageProps) {
 								)}
 							</ResumeEpisodeButton>
 						)}
+						{resumeEntry && resumeTarget?.kind === "resume" && (
+							<ResumeEpisodeButton
+								episodeId={resumeEntry.id}
+								fromStart
+								className="-mt-3 flex w-full items-center justify-center gap-1.5 rounded-md py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
+							>
+								<RotateCcwIcon className="size-3.5" />
+								Start over
+							</ResumeEpisodeButton>
+						)}
 					</div>
 
-					<div className="min-w-0">
+					<div className="min-w-0 max-w-4xl">
 						<header>
-							<h1 className="font-serif text-4xl leading-[1.05] tracking-tight text-balance md:text-5xl">
+							<h1
+								dir="auto"
+								className="font-serif text-4xl leading-[1.05] tracking-tight text-balance wrap-break-word md:text-5xl"
+							>
 								{show.name}
 							</h1>
 							{show.genre && show.genre.length > 0 && (
 								<p className="mt-4 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-									{show.genre.join(", ")}
+									{show.genre.join(" · ")}
 								</p>
 							)}
 						</header>
@@ -215,10 +251,10 @@ async function ShowDetailContent({ params }: PageProps) {
 							</p>
 						)}
 
-						<dl className="mt-8 grid gap-x-8 gap-y-4 border-y border-border/50 py-6 sm:grid-cols-2">
+						<dl className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-x-8 gap-y-4 border-y border-border/50 py-6 wrap-break-word sm:grid-cols-2">
 							{show.director?.some((name) => name !== "") && (
 								<div>
-									<dt className="text-sm font-medium text-foreground/80">
+									<dt className="font-serif text-base font-medium text-foreground/80">
 										Director
 									</dt>
 									<dd className="mt-1.5 text-sm">
@@ -228,7 +264,7 @@ async function ShowDetailContent({ params }: PageProps) {
 							)}
 							{show.cast && show.cast.length > 0 && (
 								<div>
-									<dt className="text-sm font-medium text-foreground/80">
+									<dt className="font-serif text-base font-medium text-foreground/80">
 										Cast
 									</dt>
 									<dd className="mt-1.5 text-sm">{show.cast.join(", ")}</dd>

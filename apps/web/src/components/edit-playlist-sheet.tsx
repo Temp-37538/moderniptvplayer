@@ -174,13 +174,22 @@ function EditPlaylistForm({
 						defaultValue={inputs.playlistName}
 						autoComplete="off"
 						placeholder="My Playlist"
+						aria-invalid={Boolean(state.errors.properties?.playlistName)}
+						aria-describedby={
+							state.errors.properties?.playlistName
+								? `${playlistNameId}-error`
+								: undefined
+						}
 						className={cn("h-10 pl-10", {
 							"border-destructive": state.errors.properties?.playlistName,
 						})}
 					/>
 				</div>
 				{state.errors.properties?.playlistName ? (
-					<p className="text-sm text-destructive">
+					<p
+						id={`${playlistNameId}-error`}
+						className="text-sm text-destructive"
+					>
 						{state.errors.properties.playlistName.errors.join(", ")}
 					</p>
 				) : null}
@@ -198,13 +207,19 @@ function EditPlaylistForm({
 						defaultValue={inputs.serverUrl}
 						autoComplete="off"
 						placeholder="http://example.com:8080"
+						aria-invalid={Boolean(state.errors.properties?.serverUrl)}
+						aria-describedby={
+							state.errors.properties?.serverUrl
+								? `${serverUrlId}-error`
+								: undefined
+						}
 						className={cn("h-10 pl-10", {
 							"border-destructive": state.errors.properties?.serverUrl,
 						})}
 					/>
 				</div>
 				{state.errors.properties?.serverUrl ? (
-					<p className="text-sm text-destructive">
+					<p id={`${serverUrlId}-error`} className="text-sm text-destructive">
 						{state.errors.properties.serverUrl.errors.join(", ")}
 					</p>
 				) : null}
@@ -223,13 +238,19 @@ function EditPlaylistForm({
 						defaultValue={inputs.username}
 						autoComplete="off"
 						placeholder="Enter your username"
+						aria-invalid={Boolean(state.errors.properties?.username)}
+						aria-describedby={
+							state.errors.properties?.username
+								? `${usernameId}-error`
+								: undefined
+						}
 						className={cn("h-10 pl-10", {
 							"border-destructive": state.errors.properties?.username,
 						})}
 					/>
 				</div>
 				{state.errors.properties?.username ? (
-					<p className="text-sm text-destructive">
+					<p id={`${usernameId}-error`} className="text-sm text-destructive">
 						{state.errors.properties.username.errors.join(", ")}
 					</p>
 				) : null}
@@ -247,6 +268,12 @@ function EditPlaylistForm({
 						defaultValue={inputs.password}
 						autoComplete="new-password"
 						placeholder="Leave blank to keep the current password"
+						aria-invalid={Boolean(state.errors.properties?.password)}
+						aria-describedby={
+							state.errors.properties?.password
+								? `${passwordId}-error`
+								: undefined
+						}
 						className={cn("h-10 pl-10", {
 							"border-destructive": state.errors.properties?.password,
 						})}
@@ -256,7 +283,7 @@ function EditPlaylistForm({
 					Leave blank to keep the current password.
 				</p>
 				{state.errors.properties?.password ? (
-					<p className="text-sm text-destructive">
+					<p id={`${passwordId}-error`} className="text-sm text-destructive">
 						{state.errors.properties.password.errors.join(", ")}
 					</p>
 				) : null}
@@ -345,6 +372,10 @@ function EditM3uPlaylistForm({
 						defaultValue={inputs.playlistName}
 						autoComplete="off"
 						placeholder="My Playlist"
+						aria-invalid={Boolean(state.errors.playlistName)}
+						aria-describedby={
+							state.errors.playlistName ? `${playlistNameId}-error` : undefined
+						}
 						className={cn("h-10 pl-10", {
 							"border-destructive": state.errors.playlistName,
 						})}
@@ -354,7 +385,10 @@ function EditM3uPlaylistForm({
 					Current host: {playlist.serverUrl}
 				</p>
 				{state.errors.playlistName ? (
-					<p className="text-sm text-destructive">
+					<p
+						id={`${playlistNameId}-error`}
+						className="text-sm text-destructive"
+					>
 						{state.errors.playlistName}
 					</p>
 				) : null}
@@ -372,6 +406,10 @@ function EditM3uPlaylistForm({
 						defaultValue={inputs.m3uUrl}
 						autoComplete="off"
 						placeholder="Leave blank to keep the current URL"
+						aria-invalid={Boolean(state.errors.m3uUrl)}
+						aria-describedby={
+							state.errors.m3uUrl ? `${urlId}-error` : undefined
+						}
 						className={cn("h-10 pl-10", {
 							"border-destructive": state.errors.m3uUrl,
 						})}
@@ -382,7 +420,9 @@ function EditM3uPlaylistForm({
 					replaces the saved one.
 				</p>
 				{state.errors.m3uUrl ? (
-					<p className="text-sm text-destructive">{state.errors.m3uUrl}</p>
+					<p id={`${urlId}-error`} className="text-sm text-destructive">
+						{state.errors.m3uUrl}
+					</p>
 				) : null}
 			</div>
 			<Button type="submit" disabled={isPending} className="mt-2">

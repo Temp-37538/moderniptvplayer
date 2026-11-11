@@ -1,16 +1,23 @@
 "use client";
 
 import { EmptyState } from "@/components/empty-state";
+import { PAGE_TITLE_CLASS } from "@/components/page-container";
 import {
 	formatRetryWait,
 	SEARCH_POLL_INTERVAL_MS,
 	SEARCH_POLL_WINDOW_MS,
 } from "@/lib/global-search-timing";
+import {
+	parseSearchKind,
+	type SearchKind,
+	searchQueryString,
+} from "@/lib/global-search-url";
 import { toSafeImageSrc } from "@/lib/image-url";
 import { Film, Radio, Search, Tv } from "lucide-react";
 import type { Route } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 const SEARCH_DEBOUNCE_MS = 300;
@@ -18,7 +25,6 @@ const SEARCH_MAX_POLLS =
 	Math.ceil(SEARCH_POLL_WINDOW_MS / SEARCH_POLL_INTERVAL_MS) + 1;
 const SEARCH_LIMIT = 20;
 
-type SearchKind = "all" | "channel" | "movie" | "series";
 type ResultKind = Exclude<SearchKind, "all">;
 type SearchStatus =
 	| "idle"
@@ -104,9 +110,16 @@ export function GlobalSearch({
 	playlistId: string;
 	playlistName: string;
 }) {
-	const [query, setQuery] = useState("");
-	const [debouncedQuery, setDebouncedQuery] = useState("");
-	const [kind, setKind] = useState<SearchKind>("all");
+	const pathname = usePathname();
+	const searchParams = useSearchParams();
+	// Back from a result or a reload starts from the search in the address.
+	const [query, setQuery] = useState(() => searchParams.get("q") ?? "");
+	const [debouncedQuery, setDebouncedQuery] = useState(() =>
+		(searchParams.get("q") ?? "").trim(),
+	);
+	const [kind, setKind] = useState<SearchKind>(() =>
+		parseSearchKind(searchParams.get("kind")),
+	);
 	const [status, setStatus] = useState<SearchStatus>("idle");
 	const [results, setResults] = useState<SearchResult[]>([]);
 	const [stale, setStale] = useState(false);
@@ -121,6 +134,18 @@ export function GlobalSearch({
 	const queryIsValid = normalizedQuery.length >= 2;
 	const isDebouncing = queryIsValid && normalizedQuery !== debouncedQuery;
 	const displayedStatus = isDebouncing ? "loading" : status;
+
+	// Replaces the entry instead of adding one per key press, like the
+	// category search does.
+	function updateSearch(next: { q: string; kind: SearchKind }) {
+		setQuery(next.q);
+		setKind(next.kind);
+		window.history.replaceState(
+			null,
+			"",
+			`${pathname}${searchQueryString(window.location.search, next)}`,
+		);
+	}
 
 	useEffect(() => {
 		const timeout = window.setTimeout(() => {
@@ -243,8 +268,8 @@ export function GlobalSearch({
 
 	return (
 		<div className="flex h-full flex-col gap-6">
-			<header className="space-y-1">
-				<h1 className="text-3xl font-bold tracking-tight">Search</h1>
+			<header className="space-y-2">
+				<h1 className={PAGE_TITLE_CLASS}>Search</h1>
 				<p className="text-sm text-muted-foreground">
 					Search channels, movies, and series in {playlistName}.
 				</p>
@@ -260,7 +285,7 @@ export function GlobalSearch({
 						id="global-catalog-search"
 						type="search"
 						value={query}
-						onChange={(event) => setQuery(event.target.value)}
+						onChange={(event) => updateSearch({ q: event.target.value, kind })}
 						placeholder="Search the entire playlist..."
 						autoComplete="off"
 						className="h-12 w-full rounded-lg border border-input bg-background pr-4 pl-10 text-base outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30"
@@ -274,7 +299,7 @@ export function GlobalSearch({
 							key={filter.value}
 							type="button"
 							aria-pressed={kind === filter.value}
-							onClick={() => setKind(filter.value)}
+							onClick={() => updateSearch({ q: query, kind: filter.value })}
 							className={
 								kind === filter.value
 									? "rounded-full border border-primary bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground"
@@ -368,7 +393,7 @@ export function GlobalSearch({
 											({grouped.length})
 										</span>
 									</h2>
-									<div className="grid gap-2 md:grid-cols-2">
+									<div className="grid grid-cols-[minmax(0,1fr)] gap-2 md:grid-cols-2">
 										{grouped.map((result) => (
 											<Link
 												key={`${result.kind}-${result.id}`}

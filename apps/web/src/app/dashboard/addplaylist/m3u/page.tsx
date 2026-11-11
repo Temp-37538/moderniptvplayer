@@ -1,4 +1,5 @@
 import { createPageMetadata } from "@/app/metadata";
+import { PAGE_TITLE_CLASS } from "@/components/page-container";
 import { M3UForm } from "@/components/m3u-form";
 import { ArrowLeft } from "lucide-react";
 import type { Metadata } from "next";
@@ -7,7 +8,7 @@ import Link from "next/link";
 export const instant = false;
 
 export const metadata: Metadata = createPageMetadata({
-	title: "Add M3U Playlist",
+	title: "Add M3U playlist",
 	description: "Import an IPTV playlist from an M3U URL.",
 	path: "/dashboard/addplaylist/m3u",
 	noIndex: true,
@@ -15,7 +16,7 @@ export const metadata: Metadata = createPageMetadata({
 
 function Page() {
 	return (
-		<div className="flex flex-1 flex-col px-4 pt-2 pb-16">
+		<div className="flex min-h-0 flex-1 flex-col overflow-y-auto pb-16">
 			<div className="w-full max-w-md">
 				<Link
 					href="/dashboard/addplaylist"
@@ -25,7 +26,7 @@ function Page() {
 					Add a playlist
 				</Link>
 
-				<h1 className="mt-4 text-2xl font-bold tracking-tight">M3U URL</h1>
+				<h1 className={`mt-4 ${PAGE_TITLE_CLASS}`}>M3U URL</h1>
 				<p className="mt-2 text-sm text-muted-foreground">
 					Import live TV, movies, and series from an M3U link. Xtream username
 					and password are not required. The URL is stored encrypted and is not

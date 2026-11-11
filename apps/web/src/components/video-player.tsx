@@ -1,16 +1,28 @@
 "use client";
 
 import { DesktopPlayer } from "@/components/desktop-player";
+import { Button } from "@/components/ui/button";
 import { useDesktopBridge } from "@/lib/desktop/bridge";
+import {
+	LIVE_RETRY_DELAYS_MS,
+	LIVE_RETRY_RESET_AFTER_MS,
+	liveRetryDelay,
+} from "@/lib/player/live-retry";
 import { ProgressSaver } from "@/lib/player/progress";
+import {
+	isActivationTarget,
+	isTypingTarget,
+	type PlayerAction,
+	playerShortcut,
+} from "@/lib/player/shortcuts";
 import type { PlayerSource, ProgressDetails } from "@/lib/player/types";
 import { cn } from "@/lib/utils";
-import { AlertCircleIcon } from "lucide-react";
+import { AlertCircleIcon, Loader2Icon, RotateCcwIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 export type { PlayerSource, ProgressDetails } from "@/lib/player/types";
 
-type VideoPlayerProps = {
+export type VideoPlayerProps = {
 	/** Tried in order: the next one is used when one cannot be played. */
 	sources: PlayerSource[];
 	poster?: string;
@@ -168,6 +180,54 @@ async function diagnose(
 
 const MAX_HLS_MEDIA_RECOVERIES = 2;
 
+function applyShortcut(
+	action: PlayerAction,
+	video: HTMLVideoElement,
+	container: HTMLElement,
+) {
+	switch (action.type) {
+		case "toggle-play":
+			if (video.paused) {
+				video.play().catch(() => {});
+			} else {
+				video.pause();
+			}
+			return;
+		case "seek":
+			if (Number.isFinite(video.duration)) {
+				video.currentTime = Math.min(
+					video.duration,
+					Math.max(0, video.currentTime + action.seconds),
+				);
+			}
+			return;
+		case "volume":
+			video.volume = Math.min(1, Math.max(0, video.volume + action.delta));
+			if (action.delta > 0) {
+				video.muted = false;
+			}
+			return;
+		case "toggle-mute":
+			video.muted = !video.muted;
+			return;
+		case "toggle-fullscreen": {
+			if (document.fullscreenElement) {
+				document.exitFullscreen().catch(() => {});
+				return;
+			}
+			if (container.requestFullscreen) {
+				container.requestFullscreen().catch(() => {});
+				return;
+			}
+			// iOS Safari only puts the video element itself in full screen.
+			(
+				video as HTMLVideoElement & { webkitEnterFullscreen?: () => void }
+			).webkitEnterFullscreen?.();
+			return;
+		}
+	}
+}
+
 function WebVideoPlayer({
 	sources,
 	poster,
@@ -179,8 +239,19 @@ function WebVideoPlayer({
 	className,
 }: WebVideoPlayerProps) {
 	const inDesktop = useDesktopBridge() !== null;
+	const containerRef = useRef<HTMLDivElement>(null);
 	const videoRef = useRef<HTMLVideoElement>(null);
 	const [attempt, setAttempt] = useState({ key: "", index: 0 });
+	// Bumped by a retry: plays the same sources again from the first one.
+	const [run, setRun] = useState(0);
+	const [reconnect, setReconnect] = useState<{
+		key: string;
+		attempt: number;
+		delay: number;
+	} | null>(null);
+	const [buffering, setBuffering] = useState(false);
+	// Automatic reconnections used since the stream last played.
+	const autoRetriesRef = useRef({ key: "", count: 0 });
 	const [failedKey, setFailedKey] = useState("");
 	const [failureDetail, setFailureDetail] = useState<
 		(FailureDetail & { key: string }) | null
@@ -198,6 +269,19 @@ function WebVideoPlayer({
 	const failed = failedKey === sourcesKey;
 	const detail = failureDetail?.key === sourcesKey ? failureDetail : null;
 	const activeNotice = notice?.key === sourcesKey ? notice.kind : null;
+	const activeReconnect = reconnect?.key === sourcesKey ? reconnect : null;
+
+	const retryNow = () => {
+		autoRetriesRef.current = { key: sourcesKey, count: 0 };
+		// The order is decided again: a direct URL that failed is no longer
+		// preferred.
+		orderRef.current = null;
+		setAttempt({ key: sourcesKey, index: 0 });
+		setFailedKey("");
+		setFailureDetail(null);
+		setReconnect(null);
+		setRun((value) => value + 1);
+	};
 
 	const progressKey = progress
 		? `${progress.playlistId}|${progress.itemType}|${progress.itemId}`
@@ -345,6 +429,18 @@ function WebVideoPlayer({
 				setAttempt({ key: sourcesKey, index: sourceIndex + 1 });
 				return;
 			}
+			if (live && !codec) {
+				const used =
+					autoRetriesRef.current.key === sourcesKey
+						? autoRetriesRef.current.count
+						: 0;
+				const delay = liveRetryDelay(used);
+				if (delay !== null) {
+					autoRetriesRef.current = { key: sourcesKey, count: used + 1 };
+					setReconnect({ key: sourcesKey, attempt: used + 1, delay });
+					return;
+				}
+			}
 			setFailedKey(sourcesKey);
 			diagnose(ordered, technical, directFailed).then((result) => {
 				if (!disposed) {
@@ -360,6 +456,17 @@ function WebVideoPlayer({
 			}
 		};
 		video.addEventListener("loadedmetadata", onLoadedMetadata);
+		// Once it has played for a while again, the next drop gets the full set
+		// of reconnections. A stream that dies right after starting does not
+		// reset them, so it cannot reconnect forever.
+		let playedTimer: number | undefined;
+		const onPlayingAgain = () => {
+			window.clearTimeout(playedTimer);
+			playedTimer = window.setTimeout(() => {
+				autoRetriesRef.current = { key: sourcesKey, count: 0 };
+			}, LIVE_RETRY_RESET_AFTER_MS);
+		};
+		video.addEventListener("playing", onPlayingAgain);
 
 		const attachNative = () => {
 			video.src = source.src;
@@ -450,16 +557,115 @@ function WebVideoPlayer({
 		return () => {
 			disposed = true;
 			video.removeEventListener("loadedmetadata", onLoadedMetadata);
+			video.removeEventListener("playing", onPlayingAgain);
+			window.clearTimeout(playedTimer);
 			teardown();
 			// Drops the connection to the proxy, hence to the provider: accounts
 			// only allow a few simultaneous streams.
 			video.removeAttribute("src");
 			video.load();
 		};
-	}, [sourcesKey, sourceIndex, live, autoPlay, startAt]);
+	}, [sourcesKey, sourceIndex, live, autoPlay, startAt, run]);
+
+	// Waits, then plays the sources again. Only the setters are used, so the
+	// timer is not reset by every render.
+	useEffect(() => {
+		if (!activeReconnect) {
+			return;
+		}
+		const { key, delay } = activeReconnect;
+		const timer = window.setTimeout(() => {
+			orderRef.current = null;
+			setAttempt({ key, index: 0 });
+			setReconnect(null);
+			setRun((value) => value + 1);
+		}, delay);
+		return () => window.clearTimeout(timer);
+	}, [activeReconnect]);
+
+	// The spinner follows what the element says about its data.
+	useEffect(() => {
+		const video = videoRef.current;
+		if (!video) {
+			return;
+		}
+		const on = () => setBuffering(true);
+		const off = () => setBuffering(false);
+		const onEvents = ["waiting", "seeking"] as const;
+		const offEvents = [
+			"playing",
+			"pause",
+			"seeked",
+			"error",
+			"emptied",
+			"ended",
+		] as const;
+		for (const name of onEvents) {
+			video.addEventListener(name, on);
+		}
+		for (const name of offEvents) {
+			video.addEventListener(name, off);
+		}
+		return () => {
+			for (const name of onEvents) {
+				video.removeEventListener(name, on);
+			}
+			for (const name of offEvents) {
+				video.removeEventListener(name, off);
+			}
+		};
+	}, []);
+
+	// Shortcuts work while the focus is in the player (the video, its
+	// controls) or while the pointer is over it, but never while typing, and
+	// Space or Enter still press a focused button.
+	useEffect(() => {
+		const container = containerRef.current;
+		const video = videoRef.current;
+		if (!container || !video) {
+			return;
+		}
+		let hovered = false;
+		const onEnter = () => {
+			hovered = true;
+		};
+		const onLeave = () => {
+			hovered = false;
+		};
+		const onKeyDown = (event: KeyboardEvent) => {
+			if (event.defaultPrevented) {
+				return;
+			}
+			const target = event.target instanceof Element ? event.target : null;
+			if (isTypingTarget(target) || isActivationTarget(target, event.key)) {
+				return;
+			}
+			const focusedInside = target !== null && container.contains(target);
+			if (!focusedInside && !hovered) {
+				return;
+			}
+			const action = playerShortcut(event, live);
+			if (!action) {
+				return;
+			}
+			// The native controls would otherwise handle the same key again.
+			event.preventDefault();
+			event.stopPropagation();
+			applyShortcut(action, video, container);
+		};
+		container.addEventListener("pointerenter", onEnter);
+		container.addEventListener("pointerleave", onLeave);
+		window.addEventListener("keydown", onKeyDown, true);
+		return () => {
+			container.removeEventListener("pointerenter", onEnter);
+			container.removeEventListener("pointerleave", onLeave);
+			window.removeEventListener("keydown", onKeyDown, true);
+		};
+	}, [live]);
 
 	return (
 		<div
+			ref={containerRef}
 			className={cn(
 				"relative aspect-video w-full overflow-hidden rounded-xl border border-border/50 bg-black",
 				className,
@@ -474,15 +680,51 @@ function WebVideoPlayer({
 				poster={poster}
 				className="size-full"
 			/>
+			{buffering && !failed && !activeReconnect && (
+				<div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+					<Loader2Icon
+						aria-hidden
+						className="size-10 animate-spin text-white/80 drop-shadow"
+					/>
+					<output className="sr-only">Loading</output>
+				</div>
+			)}
+			{!failed && activeReconnect && (
+				<div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/70 p-6 text-center text-sm text-white">
+					<Loader2Icon aria-hidden className="size-6 animate-spin" />
+					<output>
+						Stream interrupted. Reconnecting (attempt {activeReconnect.attempt}{" "}
+						of {LIVE_RETRY_DELAYS_MS.length})...
+					</output>
+					<Button
+						type="button"
+						size="sm"
+						variant="secondary"
+						onClick={retryNow}
+					>
+						<RotateCcwIcon />
+						Retry now
+					</Button>
+				</div>
+			)}
 			{!failed && activeNotice && (
 				<p className="pointer-events-none absolute inset-x-0 top-0 bg-black/75 px-3 py-2 text-center text-xs text-white/90">
 					{NOTICES[activeNotice]}
 				</p>
 			)}
 			{failed && (
-				<div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/85 p-6 text-center text-sm text-white">
-					<AlertCircleIcon className="size-6" />
+				<div className="absolute inset-0 flex flex-col items-center justify-center-safe gap-1.5 overflow-y-auto bg-black/85 p-3 text-center text-xs text-white sm:gap-2 sm:p-6 sm:text-sm">
+					<AlertCircleIcon className="size-5 shrink-0 sm:size-6" />
 					<p>This stream can't be played in the browser.</p>
+					<Button
+						type="button"
+						size="sm"
+						variant="secondary"
+						onClick={retryNow}
+					>
+						<RotateCcwIcon />
+						Try again
+					</Button>
 					{detail && (
 						<p className="max-w-prose text-white/85">{detail.reason}</p>
 					)}
@@ -499,7 +741,7 @@ function WebVideoPlayer({
 						codec, even inside formats they support.
 					</p>
 					{detail?.technical && (
-						<p className="max-w-prose break-words font-mono text-[11px] text-white/50">
+						<p className="max-w-prose break-words font-mono text-[11px] text-white/50 max-sm:hidden">
 							{detail.technical}
 						</p>
 					)}

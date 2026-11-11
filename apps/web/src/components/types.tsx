@@ -3,6 +3,7 @@ import {
 	FilmIcon,
 	HeartIcon,
 	HistoryIcon,
+	SearchIcon,
 	TvIcon,
 } from "lucide-react";
 import type * as React from "react";
@@ -11,6 +12,8 @@ export type ListedCategory = {
 	id: string;
 	name: string;
 	pinned: boolean;
+	/** Items in the category, when the search index already knows it. */
+	count?: number;
 };
 
 export type CategorySearchProps = {
@@ -59,6 +62,8 @@ export interface Project {
 	name: string;
 	url: string;
 	icon: React.ReactNode;
+	/** Letter of the Ctrl/Cmd shortcut shown next to the entry. */
+	shortcut?: string;
 }
 
 export const sidebarData = {
@@ -97,6 +102,12 @@ export const sidebarData = {
 	] as NavItem[],
 
 	projects: [
+		{
+			name: "Search",
+			url: "/dashboard/search",
+			icon: <SearchIcon />,
+			shortcut: "K",
+		},
 		{
 			name: "Watch Later",
 			url: "/dashboard/watchlater",
@@ -144,6 +155,8 @@ export type FormState = {
 	success: boolean;
 	message?: string;
 	changed?: boolean;
+	/** Id of the playlist a successful add created. */
+	playlistId?: string;
 };
 
 export type PageProps = {
@@ -184,6 +197,8 @@ export type ItemActionButtonsProps = {
 
 export type PaginationNavProps = {
 	currentPage: number;
+	/** Pages in the whole category, at least 1. */
+	totalPages: number;
 	hasNextPage: boolean;
 	hasPreviousPage: boolean;
 	/** Base URL without `?page=` query param, e.g. `/dashboard/channels/abc/123` */

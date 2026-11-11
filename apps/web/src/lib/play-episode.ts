@@ -2,8 +2,19 @@
 // list, which owns the player, to play an episode.
 export const PLAY_EPISODE_EVENT = "iptv:play-episode";
 
-export function requestPlayEpisode(episodeId: string) {
+export type PlayEpisodeRequest = {
+	episodeId: string;
+	/** Ignore the saved position and play from the beginning. */
+	fromStart: boolean;
+};
+
+export function requestPlayEpisode(
+	episodeId: string,
+	{ fromStart = false }: { fromStart?: boolean } = {},
+) {
 	window.dispatchEvent(
-		new CustomEvent<string>(PLAY_EPISODE_EVENT, { detail: episodeId }),
+		new CustomEvent<PlayEpisodeRequest>(PLAY_EPISODE_EVENT, {
+			detail: { episodeId, fromStart },
+		}),
 	);
 }

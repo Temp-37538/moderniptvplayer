@@ -1,5 +1,6 @@
 "use client";
 
+import { FallbackImage } from "@/components/fallback-image";
 import type { DesktopBridge } from "@/lib/desktop/bridge";
 import {
 	carryFullscreen,
@@ -26,7 +27,6 @@ import {
 	Volume2Icon,
 	XIcon,
 } from "lucide-react";
-import Image from "next/image";
 import {
 	type ReactNode,
 	useCallback,
@@ -174,13 +174,14 @@ export function DesktopPlayer({
 					)}
 				>
 					{poster ? (
-						<Image
+						<FallbackImage
 							src={poster}
 							alt=""
 							fill
 							unoptimized
 							sizes="100vw"
 							className="object-cover opacity-60"
+							fallback={null}
 						/>
 					) : null}
 					<div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-white">

@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { validate } from "@/server/forms";
 import { cn } from "@/lib/utils";
 import { CheckCircle2, Globe, ListVideo, Lock, User } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useActionState } from "react";
 import type { FormState } from "./types";
 import { Alert, AlertDescription } from "./ui/alert";
@@ -17,7 +18,18 @@ const initialState: FormState = {
 };
 
 export function XtreamCodesForm() {
-	const [state, formAction, isPending] = useActionState(validate, initialState);
+	const router = useRouter();
+	const [state, formAction, isPending] = useActionState(
+		async (previous: FormState, formData: FormData) => {
+			const result = await validate(previous, formData);
+			if (result.success && result.playlistId) {
+				router.push(`/dashboard/${result.playlistId}`);
+				router.refresh();
+			}
+			return result;
+		},
+		initialState,
+	);
 	const formKey = [
 		state.inputs?.username ?? "",
 		state.inputs?.password ?? "",
@@ -28,7 +40,12 @@ export function XtreamCodesForm() {
 	].join("|");
 
 	return (
-		<form key={formKey} action={formAction} className="flex flex-col gap-5">
+		<form
+			key={formKey}
+			action={formAction}
+			autoComplete="off"
+			className="flex flex-col gap-5"
+		>
 			<div className="flex flex-col gap-2">
 				<Label
 					htmlFor="xtream-username"
@@ -44,9 +61,14 @@ export function XtreamCodesForm() {
 						required
 						defaultValue={state.inputs?.username ?? ""}
 						minLength={1}
-						maxLength={40}
-						autoComplete="username"
-						aria-describedby="username-error"
+						maxLength={128}
+						autoComplete="off"
+						aria-invalid={Boolean(state.errors.properties?.username)}
+						aria-describedby={
+							state.errors.properties?.username
+								? "xtream-username-error"
+								: undefined
+						}
 						placeholder="Enter your username"
 						className={cn(
 							"pl-10 h-12 bg-secondary border-border text-foreground placeholder:text-muted-foreground",
@@ -57,7 +79,7 @@ export function XtreamCodesForm() {
 					/>
 				</div>
 				{state.errors.properties?.username && (
-					<p className="text-sm text-destructive">
+					<p id="xtream-username-error" className="text-sm text-destructive">
 						{state.errors.properties.username.errors.join(", ")}
 					</p>
 				)}
@@ -78,9 +100,14 @@ export function XtreamCodesForm() {
 						defaultValue={state.inputs?.password ?? ""}
 						required
 						minLength={1}
-						maxLength={100}
-						autoComplete="current-password"
-						aria-describedby="password-error"
+						maxLength={256}
+						autoComplete="new-password"
+						aria-invalid={Boolean(state.errors.properties?.password)}
+						aria-describedby={
+							state.errors.properties?.password
+								? "xtream-password-error"
+								: undefined
+						}
 						type="password"
 						placeholder="Enter your password"
 						className={cn(
@@ -92,7 +119,7 @@ export function XtreamCodesForm() {
 					/>
 				</div>
 				{state.errors.properties?.password && (
-					<p className="text-sm text-destructive">
+					<p id="xtream-password-error" className="text-sm text-destructive">
 						{state.errors.properties.password.errors.join(", ")}
 					</p>
 				)}
@@ -111,9 +138,10 @@ export function XtreamCodesForm() {
 						id="xtream-serverUrl"
 						name="serverUrl"
 						required
+						maxLength={2048}
 						autoComplete="url"
 						defaultValue={state.inputs?.serverUrl ?? ""}
-						aria-describedby="serverUrl-error"
+						aria-describedby="xtream-serverUrl-error"
 						placeholder="http://example.com:8080"
 						className={cn(
 							"pl-10 h-12 bg-secondary border-border text-foreground placeholder:text-muted-foreground",
@@ -124,7 +152,7 @@ export function XtreamCodesForm() {
 					/>
 				</div>
 				{state.errors.properties?.serverUrl && (
-					<p className="text-sm text-destructive">
+					<p id="xtream-serverUrl-error" className="text-sm text-destructive">
 						{state.errors.properties.serverUrl.errors.join(", ")}
 					</p>
 				)}
@@ -144,7 +172,7 @@ export function XtreamCodesForm() {
 						name="playlistName"
 						required
 						minLength={1}
-						maxLength={50}
+						maxLength={100}
 						autoComplete="playlist-name"
 						defaultValue={state.inputs?.playlistName ?? ""}
 						aria-describedby="playlistName-error"
@@ -158,7 +186,10 @@ export function XtreamCodesForm() {
 					/>
 				</div>
 				{state.errors.properties?.playlistName && (
-					<p className="text-sm text-destructive">
+					<p
+						id="xtream-playlistName-error"
+						className="text-sm text-destructive"
+					>
 						{state.errors.properties.playlistName.errors.join(", ")}
 					</p>
 				)}
@@ -169,7 +200,7 @@ export function XtreamCodesForm() {
 				disabled={isPending}
 				className="h-12 w-full mt-2 text-base font-semibold"
 			>
-				{isPending ? "Adding..." : "Add Playlist"}
+				{isPending ? "Adding..." : "Add playlist"}
 			</Button>
 
 			{state?.message && (

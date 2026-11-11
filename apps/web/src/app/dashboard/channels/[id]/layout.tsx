@@ -5,7 +5,7 @@ export const instant = false;
 
 function Layout({ children }: { children: React.ReactNode }) {
 	return (
-		<Suspense fallback={<CategoryGridSkeleton count={40} />}>
+		<Suspense fallback={<CategoryGridSkeleton count={86} />}>
 			{children}
 		</Suspense>
 	);

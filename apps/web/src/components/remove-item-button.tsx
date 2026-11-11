@@ -8,7 +8,7 @@ import {
 import type { RemoveItemButtonProps } from "@/components/types";
 import { toggleWatchLater, toggleFavorite } from "@/server/user-items";
 import { Trash2 } from "lucide-react";
-import { useTransition } from "react";
+import { type MouseEvent, useTransition } from "react";
 import { toast } from "sonner";
 
 export function RemoveItemButton({
@@ -20,21 +20,36 @@ export function RemoveItemButton({
 	variant,
 }: RemoveItemButtonProps) {
 	const [isPending, startTransition] = useTransition();
+	const listName = variant === "watchlater" ? "Watch Later" : "Favorites";
 
-	function handleRemove() {
+	// Removing and restoring are the same toggle.
+	function toggle() {
+		return variant === "watchlater"
+			? toggleWatchLater(playlistId, itemId, itemType, itemName, itemUrl)
+			: toggleFavorite(playlistId, itemId, itemType, itemName, itemUrl);
+	}
+
+	// The row is gone once removed, so the undo does not rely on its state.
+	function handleUndo() {
+		toggle().catch(() => toast.error(`Unable to restore ${itemName}`));
+	}
+
+	function handleRemove(event: MouseEvent<HTMLButtonElement>) {
+		// The row goes away: keep keyboard focus in the list on the next one.
+		const hadFocus = document.activeElement === event.currentTarget;
+		const row = event.currentTarget.closest("li");
+		const neighbour = (
+			row?.nextElementSibling ?? row?.previousElementSibling
+		)?.querySelector<HTMLElement>("[data-remove-item]");
 		startTransition(async () => {
 			try {
-				if (variant === "watchlater") {
-					await toggleWatchLater(
-						playlistId,
-						itemId,
-						itemType,
-						itemName,
-						itemUrl,
-					);
-				} else {
-					await toggleFavorite(playlistId, itemId, itemType, itemName, itemUrl);
+				await toggle();
+				if (hadFocus && neighbour) {
+					requestAnimationFrame(() => neighbour.focus());
 				}
+				toast.success(`Removed ${itemName} from ${listName}`, {
+					action: { label: "Undo", onClick: handleUndo },
+				});
 			} catch {
 				toast.error(`Unable to remove ${itemName}`);
 			}
@@ -47,18 +62,13 @@ export function RemoveItemButton({
 				render={
 					<button
 						type="button"
-						aria-label={
-							variant === "watchlater"
-								? "Remove from Watch Later"
-								: "Remove from Favorites"
-						}
+						data-remove-item=""
+						aria-label={`Remove ${itemName} from ${listName}`}
 						disabled={isPending}
-						className="inline-flex cursor-pointer items-center justify-center size-8 rounded-[min(var(--radius-md),10px)] hover:bg-muted transition-colors disabled:opacity-50 shrink-0"
+						className="inline-flex cursor-pointer items-center justify-center size-8 rounded-[min(var(--radius-md),10px)] text-muted-foreground hover:bg-muted hover:text-destructive focus-visible:text-destructive transition-colors disabled:opacity-50 shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-ring"
 						onClick={handleRemove}
 					>
-						<Trash2
-							className={`size-4 text-destructive transition-colors ${isPending ? "opacity-50" : ""}`}
-						/>
+						<Trash2 className={`size-4 ${isPending ? "opacity-50" : ""}`} />
 					</button>
 				}
 			/>
